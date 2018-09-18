@@ -39,13 +39,14 @@ def register():
     post_data = flask.request.get_json()
     email = post_data.get('email')
     name = post_data.get('name')
+    area = post_data.get('area')
     # Query to see if the user already exists
     user = User.query.filter_by(email=email).first()
-    if email and name and not user:
+    if email and name and area and not user:
         # There is no user so we'll try to register them
         # Register the user
         password = post_data.get('password')
-        user = User(email=email, password=password, name=name)
+        user = User(email=email, password=password, name=name, area=area)
         user.save()
 
         # return a response notifying the user that they registered successfully
@@ -55,12 +56,3 @@ def register():
         # Return a message to the user telling them that they they already exist
         raise RouteError('Can not create user.')
 
-
-@login_routes.route('/facebook')
-def facebook_login():
-    pass
-
-@login_routes.route('facebook_authorized')
-@jsonify_response
-def facebook_authorized():
-    pass

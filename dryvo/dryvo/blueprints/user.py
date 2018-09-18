@@ -23,7 +23,10 @@ def make_student():
         user = User.get_by_id(user_id)
     else:
         raise RouteError('Not authorized.', 401)
-    
+
+    if user.teacher or user.student:
+        raise RouteError('Already student or teacher.')
+
     teacher_id = data.get('teacher_id')
     teacher = Teacher.get_by_id(teacher_id)
     if not teacher:
@@ -44,12 +47,17 @@ def make_teacher():
 
     user_id = data.get('user_id')
     user = User.get_by_id(user_id)
-    if not user:
+    if not user or user.student or user.teacher:
         raise RouteError('User not found.')
 
+    price = data.get('price')
+    phone = data.get('phone')
+    if not price or not phone:
+        raise RouteError('Empty fields.')
+
     teacher = Teacher(user_id=user_id,
-                      price=data.get('price'),
-                      phone=data.get('phone'),
+                      price=price,
+                      phone=phone,
                       is_paying=data.get('is_paying', True))
     teacher.save()
     return {'message': 'Teacher created successfully.'}, 201

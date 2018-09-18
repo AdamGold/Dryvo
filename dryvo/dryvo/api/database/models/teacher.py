@@ -6,7 +6,7 @@ class Teacher(SurrogatePK, Model):
 
     __tablename__ = 'teachers'
     user_id = reference_col('users', nullable=False)
-    user = relationship('User', uselist=False)
+    user = relationship('User', backref='teacher', uselist=False)
     price = Column(db.Integer, nullable=False)
     phone = Column(db.String, nullable=False)
     is_paying = Column(db.Boolean, default=True, nullable=False)
