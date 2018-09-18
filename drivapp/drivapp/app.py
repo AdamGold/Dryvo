@@ -18,7 +18,6 @@ def register_extensions(flask_app):
     """Register Flask extensions."""
     db.init_app(flask_app)
     login_manager.init_app(flask_app)
-    return None
 
 
 def create_app(config):
