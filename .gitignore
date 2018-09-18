@@ -2,3 +2,5 @@ venv
 drivapp.egg-info
 
 .vscode
+
+*.pyc
