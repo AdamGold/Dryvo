@@ -1,10 +1,10 @@
 from setuptools import setup, find_packages
 
-setup(name='drivapp',
+setup(name='dryvo',
       version='0.1.1',
-      description='Drivapp Application',
-      url='https://bitbucket.org/drivapp',
-      author='Drivapp',
+      description='Dryvo Application',
+      url='https://bitbucket.org/dryvo',
+      author='Dryvo',
       author_email='',
       license='MIT',
       packages=find_packages(),
