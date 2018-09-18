@@ -11,14 +11,6 @@ from extensions import login_manager
 
 login_routes = Blueprint('login', __name__, url_prefix='/login')
 
-facebook = OAuth().remote_app('facebook',
-                              base_url='https://graph.facebook.com/',
-                              request_token_url=None,
-                              access_token_url='/oauth/access_token',
-                              authorize_url='https://www.facebook.com/dialog/oauth',
-                              consumer_key=os.environ['FACEBOOK_APP_ID'],
-                              consumer_secret=os.environ['FACEBOOK_SECRET'],
-                              request_token_params={'scope': 'email'})
 
 @login_manager.user_loader
 def load_user(user_id):
@@ -46,13 +38,14 @@ def direct_login():
 def register():
     post_data = flask.request.get_json()
     email = post_data.get('email')
+    name = post_data.get('name')
     # Query to see if the user already exists
     user = User.query.filter_by(email=email).first()
-    if email and not user:
+    if email and name and not user:
         # There is no user so we'll try to register them
         # Register the user
         password = post_data.get('password')
-        user = User(email=email, password=password)
+        user = User(email=email, password=password, name=name)
         user.save()
 
         # return a response notifying the user that they registered successfully
@@ -60,13 +53,14 @@ def register():
     else:
         # There is an existing user. We don't want to register users twice
         # Return a message to the user telling them that they they already exist
-        raise RouteError('User already exists.')
+        raise RouteError('Can not create user.')
 
 
 @login_routes.route('/facebook')
-@jsonify_response
 def facebook_login():
-    return facebook.authorize(callback=flask.url_for('facebook_authorized',
-                              next=flask.request.args.get('next') or
-                              flask.request.referrer or None,
-                              _external=True))
+    pass
+
+@login_routes.route('facebook_authorized')
+@jsonify_response
+def facebook_authorized():
+    pass

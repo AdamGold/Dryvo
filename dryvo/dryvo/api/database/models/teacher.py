@@ -7,7 +7,6 @@ class Teacher(SurrogatePK, Model):
     __tablename__ = 'teachers'
     user_id = reference_col('users', nullable=False)
     user = relationship('User', uselist=False)
-    area = Column(db.String(80), nullable=False)
     price = Column(db.Integer, nullable=False)
     phone = Column(db.String, nullable=False)
     is_paying = Column(db.Boolean, default=True, nullable=False)
@@ -24,5 +23,4 @@ class Teacher(SurrogatePK, Model):
             'id': self.id,
             'teacher_id': self.teacher_id,
             'user_id': self.user_id,
-            'area': self.area,
         }

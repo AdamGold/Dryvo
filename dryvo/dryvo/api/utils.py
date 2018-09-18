@@ -4,6 +4,7 @@ import traceback
 
 import flask
 from flask.json import jsonify
+from consts import DEBUG_MODE
 
 
 class RouteError(Exception):

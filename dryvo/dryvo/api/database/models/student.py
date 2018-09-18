@@ -14,7 +14,6 @@ class Student(SurrogatePK, Model):
     teacher = relationship('Teacher', backref=backref('students', lazy='dynamic'))
     user_id = reference_col('users', nullable=False)
     user = relationship('User', uselist=False)
-    area = Column(db.String(80), nullable=False)
 
     def __init__(self, **kwargs):
         """Create instance."""
@@ -25,5 +24,4 @@ class Student(SurrogatePK, Model):
             'id': self.id,
             'teacher_id': self.teacher_id,
             'user_id': self.user_id,
-            'area': self.area,
         }
