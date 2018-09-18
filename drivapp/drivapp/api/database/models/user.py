@@ -16,21 +16,18 @@ class User(UserMixin, SurrogatePK, Model):
     """A user of the app."""
 
     __tablename__ = 'users'
-    username = Column(db.String(80), unique=True, nullable=False)
     email = Column(db.String(80), unique=True, nullable=False)
     password = Column(db.String(120), nullable=True)
     created_at = Column(db.DateTime, nullable=False, default=dt.datetime.utcnow)
     last_login = Column(db.DateTime, nullable=False, default=dt.datetime.utcnow)
     salt = Column(db.String(80), nullable=False)
+    name = Column(db.String(80), nullable=False)
     is_admin = Column(db.Boolean, nullable=False, default=False)
 
-    def __init__(self, email, username='', password='', **kwargs):
-        """Create instance."""
-        if not username:
-            username = binascii.b2a_base64(hashlib.sha1(email.encode('utf-8')).digest()).decode("utf-8")
+    def __init__(self, email, password='', **kwargs):
         if not password:
             password = os.urandom(20)
-        db.Model.__init__(self, username=username, email=email, **kwargs)
+        db.Model.__init__(self, email=email, **kwargs)
         self.set_password(password)
 
     @staticmethod
@@ -50,14 +47,9 @@ class User(UserMixin, SurrogatePK, Model):
         passhash = self._prepare_password(value, self.salt)[1]
         return passhash == self.password
 
-    @staticmethod
-    def get_user_by_email(email):
-        return User.query.filter_by(email=email).first() or False
-
     def to_dict(self):
         return {
             'id': self.id,
-            'username': self.username,
             'email': self.email,
             'created_at': self.created_at,
             'last_login': self.last_login,
