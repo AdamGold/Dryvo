@@ -11,12 +11,14 @@ class Lesson(SurrogatePK, Model):
     __tablename__ = 'lessons'
     teacher_id = reference_col('teachers', nullable=False)
     teacher = relationship('Teacher', backref=backref('lessons', lazy='dynamic'))
-    student_id = reference_col('students', nullable=False)
+    student_id = reference_col('students', nullable=True)
     student = relationship('Student', backref=backref('lessons', lazy='dynamic'))
+    duration = Column(db.Integer, nullable=False, default=60)
     time = Column(db.DateTime, nullable=False)
     created_at = Column(db.DateTime, nullable=False, default=dt.datetime.utcnow)
     meetup = Column(db.String, nullable=True)
-    is_approved = Column(db.Boolean, nullable=False, default=False)
+    teacher_approved = Column(db.Boolean, nullable=False, default=True)
+    content = Column(db.Text, nullable=True)
 
     def __init__(self, **kwargs):
         """Create instance."""
