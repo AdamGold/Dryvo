@@ -1,8 +1,8 @@
-import json
-
+import os
 import flask
 from flask import Blueprint
 from flask_login import login_user
+from flask_oauth import OAuth
 
 from api.database.models.user import User
 from api.utils import RouteError, jsonify_response
@@ -11,6 +11,14 @@ from extensions import login_manager
 
 login_routes = Blueprint('login', __name__, url_prefix='/login')
 
+facebook = OAuth().remote_app('facebook',
+                              base_url='https://graph.facebook.com/',
+                              request_token_url=None,
+                              access_token_url='/oauth/access_token',
+                              authorize_url='https://www.facebook.com/dialog/oauth',
+                              consumer_key=os.environ['FACEBOOK_APP_ID'],
+                              consumer_secret=os.environ['FACEBOOK_SECRET'],
+                              request_token_params={'scope': 'email'})
 
 @login_manager.user_loader
 def load_user(user_id):
@@ -53,3 +61,12 @@ def register():
         # There is an existing user. We don't want to register users twice
         # Return a message to the user telling them that they they already exist
         raise RouteError('User already exists.')
+
+
+@login_routes.route('/facebook')
+@jsonify_response
+def facebook_login():
+    return facebook.authorize(callback=flask.url_for('facebook_authorized',
+                              next=flask.request.args.get('next') or
+                              flask.request.referrer or None,
+                              _external=True))
