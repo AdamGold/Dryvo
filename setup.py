@@ -1,7 +1,7 @@
 from setuptools import setup, find_packages
 
 setup(name='drivapp',
-      version='0.1',
+      version='0.1.1',
       description='Drivapp Application',
       url='https://bitbucket.org/drivapp',
       author='Drivapp',
@@ -10,7 +10,6 @@ setup(name='drivapp',
       packages=find_packages(),
       install_requires=[
           'gunicorn',
-          'psycopg2',
           'SQLAlchemy',
           'sqlalchemy-utils',
           'Flask',
