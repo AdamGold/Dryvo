@@ -2,12 +2,10 @@ import json
 
 import flask
 from flask import Blueprint
-from flask_login import login_user, current_user
+from flask_login import login_user
 
-import consts
 from api.database.models.user import User
-from api.utils import RouteError
-from api.utils import jsonify_response
+from api.utils import RouteError, jsonify_response
 from extensions import login_manager
 
 
@@ -24,12 +22,7 @@ def load_user(user_id):
 @jsonify_response
 def direct_login():
     data = flask.request.get_json()
-    # Get the user object using their email (unique to every user)
-    email = data.get('email')
-    if email:
-        user = User.get_user_by_email(email)
-    else:
-        user = User.query.filter_by(username=data.get('username')).first()
+    user = User.query.filter_by(email=data.get('email')).first()
 
     # Try to authenticate the found user using their password
     if user and user.check_password(data.get('password')):
@@ -45,19 +38,13 @@ def direct_login():
 def register():
     post_data = flask.request.get_json()
     email = post_data.get('email')
-    username = post_data.get('username')
     # Query to see if the user already exists
-    user = User.get_user_by_email(email)
-    user_by_username = User.query.filter_by(username=username).first()
+    user = User.query.filter_by(email=email).first()
     if email and not user:
-        if user_by_username:
-            # taken username
-            raise RouteError('This username is taken.', 409)
         # There is no user so we'll try to register them
         # Register the user
-        username = post_data.get('username')
         password = post_data.get('password')
-        user = User(email=email, username=username, password=password, manually_registered=True)
+        user = User(email=email, password=password)
         user.save()
 
         # return a response notifying the user that they registered successfully
