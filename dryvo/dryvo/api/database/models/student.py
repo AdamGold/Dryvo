@@ -7,7 +7,7 @@ from sqlalchemy.orm import backref
 
 
 class Student(SurrogatePK, Model):
-    """A user of the app."""
+    """A student of the app."""
 
     __tablename__ = 'students'
     teacher_id = reference_col('teachers', nullable=False)

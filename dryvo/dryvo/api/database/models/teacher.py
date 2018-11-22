@@ -2,7 +2,7 @@ from api.database.mixins import Column, Model, SurrogatePK, db, relationship, re
 
 
 class Teacher(SurrogatePK, Model):
-    """A user of the app."""
+    """A teacher of the app."""
 
     __tablename__ = 'teachers'
     user_id = reference_col('users', nullable=False)

@@ -6,7 +6,7 @@ from sqlalchemy.orm import backref
 
 
 class Review(SurrogatePK, Model):
-    """A user of the app."""
+    """Review of a teacher"""
 
     __tablename__ = 'reviews'
     teacher_id = reference_col('teachers', nullable=False)
