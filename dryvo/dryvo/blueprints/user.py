@@ -58,7 +58,8 @@ def make_teacher():
 
     teacher = Teacher(user_id=user_id,
                       price=price,
-                      phone=phone)
+                      phone=phone,
+                      lesson_duration=data.get('lesson_duration'))
     teacher.save()
     return {'message': 'Teacher created successfully.'}, 201
 

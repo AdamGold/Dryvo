@@ -15,7 +15,7 @@ class Lesson(SurrogatePK, Model):
     teacher = relationship('Teacher', backref=backref('lessons', lazy='dynamic'))
     student_id = reference_col('students', nullable=True)
     student = relationship('Student', backref=backref('lessons', lazy='dynamic'))
-    duration = Column(db.Integer, nullable=False, default=40)
+    duration = Column(db.Integer, nullable=False)
     time = Column(db.Integer, nullable=False)
     created_at = Column(db.DateTime, nullable=False, default=dt.datetime.utcnow)
     meetup = Column(db.String, nullable=True)

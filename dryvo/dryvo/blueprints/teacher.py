@@ -25,7 +25,7 @@ def get_lesson_data():
         'time': data.get('time'),
         'meetup': data.get('meetup'),
         'student_id': student_id,
-        'duration': data.get('duration'),
+        'duration': data.get('duration', current_user.teacher.lesson_duration),
         'is_approved': True if data.get('student_id') else False
     }
 
@@ -94,6 +94,7 @@ def update_lesson(lesson_id):
     lesson.update_only_changed_fields()
 
     return {'message': 'Lesson updated successfully.'}
+
 
 @teacher_routes.route('/work_days', methods=['GET'])
 @jsonify_response

@@ -13,6 +13,7 @@ class Teacher(SurrogatePK, Model):
     price_rating = Column(db.Float, nullable=True)
     availabillity_rating = Column(db.Float, nullable=True)
     content_rating = Column(db.Float, nullable=True)
+    lesson_duration = Column(db.Integer, default=40, nullable=False)
 
     def __init__(self, **kwargs):
         """Create instance."""
