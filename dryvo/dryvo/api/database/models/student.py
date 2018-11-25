@@ -13,7 +13,7 @@ class Student(SurrogatePK, Model):
     teacher_id = reference_col('teachers', nullable=False)
     teacher = relationship('Teacher', backref=backref('students', lazy='dynamic'))
     user_id = reference_col('users', nullable=False)
-    user = relationship('User', backref='student', uselist=False)
+    user = relationship('User', backref=backref('student', uselist=False), uselist=False)
 
     def __init__(self, **kwargs):
         """Create instance."""

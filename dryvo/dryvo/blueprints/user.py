@@ -41,6 +41,7 @@ def make_student():
 @jsonify_response
 @login_required
 def make_teacher():
+    print(current_user)
     data = flask.request.get_json()
     if not current_user.is_admin:
         raise RouteError('Not authorized.', 401)
@@ -57,8 +58,7 @@ def make_teacher():
 
     teacher = Teacher(user_id=user_id,
                       price=price,
-                      phone=phone,
-                      is_paying=data.get('is_paying', True))
+                      phone=phone)
     teacher.save()
     return {'message': 'Teacher created successfully.'}, 201
 

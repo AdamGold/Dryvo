@@ -15,7 +15,7 @@ login_routes = Blueprint('login', __name__, url_prefix='/login')
 @login_manager.user_loader
 def load_user(user_id):
     """Load user by ID."""
-    return User.get_by_id(int(user_id))
+    return User.query.filter_by(id=int(user_id)).first()
 
 
 @login_routes.route('/direct', methods=['POST'])
@@ -55,4 +55,3 @@ def register():
         # There is an existing user. We don't want to register users twice
         # Return a message to the user telling them that they they already exist
         raise RouteError('Can not create user.')
-

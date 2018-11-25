@@ -6,12 +6,14 @@ from consts import DEBUG_MODE
 from app_config import Config
 from blueprints.login import login_routes
 from blueprints.user import user_routes
+from blueprints.teacher import teacher_routes
 from extensions import db, login_manager
 
 
 def register_blueprints(app):
     app.register_blueprint(login_routes)
     app.register_blueprint(user_routes)
+    app.register_blueprint(teacher_routes)
 
 
 def register_extensions(flask_app):
