@@ -41,7 +41,6 @@ def make_student():
 @jsonify_response
 @login_required
 def make_teacher():
-    print(current_user)
     data = flask.request.get_json()
     if not current_user.is_admin:
         raise RouteError('Not authorized.', 401)

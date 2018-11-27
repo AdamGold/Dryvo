@@ -24,8 +24,10 @@ class WorkDay(SurrogatePK, Model):
     teacher_id = reference_col('teachers', nullable=False)
     teacher = relationship('Teacher', backref=backref('work_days', lazy='dynamic'))
     day = Column(ChoiceType(Day, impl=db.Integer()), nullable=False)
-    from_hour = Column(db.String, nullable=False)
-    to_hour = Column(db.String, nullable=False)
+    from_hour = Column(db.Integer, nullable=False)
+    from_minutes = Column(db.Integer, nullable=False, default=0)
+    to_hour = Column(db.Integer, nullable=False)
+    to_minutes = Column(db.Integer, nullable=False, default=0)
 
     def __init__(self, **kwargs):
         """Create instance."""

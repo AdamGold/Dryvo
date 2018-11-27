@@ -119,7 +119,11 @@ def new_work_day():
     day = data.get('day')
     if not isinstance(day, int):
         day = getattr(Day, day, 1)
-    day = WorkDay(day=day, from_hour=data.get('from_hour'), to_hour=data.get('to_hour'))
+    day = WorkDay(day=day,
+                  from_hour=max(min(data.get('from_hour'), 24), 0),
+                  from_minutes=max(min(data.get('from_minutes'), 60), 0),
+                  to_hour=max(min(data.get('to_hour'), 24), 0),
+                  to_minutes=max(min(data.get('to_minutes'), 60), 0))
     current_user.teacher.work_days.append(day)
     day.save()
 
