@@ -47,7 +47,7 @@ class Teacher(SurrogatePK, Model):
         for lesson in existing_lessons.filter_by(student_id=None).all():
             available.append((lesson.date, lesson.date + timedelta(minutes=lesson.duration)))
 
-        return available
+        return sorted(available)
 
     def to_dict(self):
         return {
