@@ -3,6 +3,7 @@ from flask import Blueprint
 from flask_login import current_user, login_required, logout_user
 
 from api.database.consts import LESSONS_PER_PAGE, DAYS_PER_PAGE
+from consts import DATE_FORMAT
 from api.utils import jsonify_response, RouteError, paginate
 from api.database.models.teacher import Teacher
 from api.database.models.lesson import Lesson
@@ -10,6 +11,7 @@ from api.database.models.student import Student
 from api.database.models.work_day import WorkDay, Day
 
 from functools import wraps
+from datetime import datetime
 
 teacher_routes = Blueprint('teacher', __name__, url_prefix='/teacher')
 
@@ -22,11 +24,11 @@ def get_lesson_data():
         if not student:
             student_id = None
     return {
-        'time': data.get('time'),
+        'date': datetime.strptime(data.get('date'), DATE_FORMAT),
         'meetup': data.get('meetup'),
         'student_id': student_id,
         'duration': data.get('duration', current_user.teacher.lesson_duration),
-        'is_approved': True if data.get('student_id') else False
+        'is_approved': True if student_id else False
     }
 
 
@@ -58,8 +60,8 @@ def lessons():
 @login_required
 @teacher_required
 def new_lesson():
-    if not flask.request.get_json().get('time'):
-        raise RouteError('Please insert the time of the lesson.')
+    if not flask.request.get_json().get('date'):
+        raise RouteError('Please insert the date of the lesson.')
     lesson = Lesson(**get_lesson_data())
     current_user.teacher.lessons.append(lesson)
     lesson.save()
@@ -149,3 +151,12 @@ def delete_work_day(day_id):
         raise RouteError('Day does not exist', 404)
     day.delete()
     return {'message': 'Day deleted.'}
+
+
+@teacher_routes.route('/<int:teacher_id>/available_hours', methods=['POST'])
+@jsonify_response
+@login_required
+def available_hours(teacher_id):
+    data = flask.request.get_json()
+    teacher = Teacher.get_by_id(teacher_id)
+    return teacher.available_hours(datetime.strptime(data.get('date'), '%Y-%m-%d'))

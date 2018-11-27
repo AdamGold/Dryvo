@@ -16,7 +16,7 @@ class Lesson(SurrogatePK, Model):
     student_id = reference_col('students', nullable=True)
     student = relationship('Student', backref=backref('lessons', lazy='dynamic'))
     duration = Column(db.Integer, nullable=False)
-    time = Column(db.Integer, nullable=False)
+    date = Column(db.DateTime, nullable=False)
     created_at = Column(db.DateTime, nullable=False, default=dt.datetime.utcnow)
     meetup = Column(db.String, nullable=True)
     is_approved = Column(db.Boolean, nullable=False, default=True)
@@ -36,7 +36,7 @@ class Lesson(SurrogatePK, Model):
             'id': self.id,
             'teacher_id': self.teacher_id,
             'student_id': self.student_id,
-            'time': self.time,
+            'date': self.date,
             'meetup': self.meetup,
             'is_approved': self.is_approved,
             'created_at': self.created_at,

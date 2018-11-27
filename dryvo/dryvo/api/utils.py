@@ -63,3 +63,7 @@ def paginate(func):
         }
 
     return func_wrapper
+
+
+def get_hour_string_from_date(date):
+    return str(date.time())[0:5]
