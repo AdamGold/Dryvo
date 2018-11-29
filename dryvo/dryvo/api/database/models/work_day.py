@@ -28,6 +28,7 @@ class WorkDay(SurrogatePK, Model):
     from_minutes = Column(db.Integer, nullable=False, default=0)
     to_hour = Column(db.Integer, nullable=False)
     to_minutes = Column(db.Integer, nullable=False, default=0)
+    on_date = Column(db.Date, nullable=True)
 
     def __init__(self, **kwargs):
         """Create instance."""
@@ -40,4 +41,5 @@ class WorkDay(SurrogatePK, Model):
             'day': self.day.name,
             'from_hour': self.from_hour,
             'to_hour': self.to_hour,
+            'on_date': self.date
         }

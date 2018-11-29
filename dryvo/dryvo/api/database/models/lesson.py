@@ -22,7 +22,7 @@ class Lesson(SurrogatePK, Model):
     is_approved = Column(db.Boolean, nullable=False, default=True)
     content = Column(db.Text, nullable=True)
     deleted = Column(db.Boolean, nullable=False, default=False)
-    
+
     def __init__(self, **kwargs):
         """Create instance."""
         db.Model.__init__(self, **kwargs)
