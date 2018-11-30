@@ -32,6 +32,9 @@ class Teacher(SurrogatePK, Model):
         2. calculate lesson hours from available hours by default lesson duration
         MUST BE 24-hour format. 09:00, not 9:00
         """
+        available = []
+        if not requested_date:
+            return available
         weekday = requested_date.isoweekday()
         work_hours = self.work_days.filter_by(on_date=requested_date).all()
         if not work_hours:
@@ -40,7 +43,6 @@ class Teacher(SurrogatePK, Model):
             filter(func.extract('month', Lesson.date) == requested_date.month)
         taken_lessons = [(lesson.date, lesson.date + timedelta(minutes=lesson.duration)) \
                          for lesson in existing_lessons.filter(Lesson.student_id != None).all()]
-        available = []
         work_hours.sort(key=lambda x: x.from_hour) # sort from early to late
         for day in work_hours:
             hours = (requested_date.replace(hour=day.from_hour, minute=day.from_minutes),
