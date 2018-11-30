@@ -4,7 +4,7 @@ from sqlalchemy import func
 from sqlalchemy.ext.hybrid import hybrid_method
 
 from api.database.models.lesson import Lesson
-from api.database.utils import get_slots
+from api.utils import get_slots
 
 from datetime import datetime, timedelta
 

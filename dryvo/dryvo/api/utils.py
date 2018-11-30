@@ -63,3 +63,15 @@ def paginate(func):
         }
 
     return func_wrapper
+
+def get_slots(hours, appointments, duration):
+    minimum = (hours[0], hours[0])
+    maximum = (hours[1], hours[1])
+    available_lessons = []
+    slots = [max(min(v, maximum), minimum) for v in sorted([minimum] + appointments + [maximum])]
+    for start, end in((slots[i][1], slots[i+1][0]) for i in range(len(slots)-1)):
+        while start + duration <= end:
+            available_lessons.append((start, start + duration))
+            start += duration
+
+    return available_lessons
