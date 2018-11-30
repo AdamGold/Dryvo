@@ -23,6 +23,7 @@ class User(UserMixin, SurrogatePK, Model):
     salt = Column(db.String(80), nullable=False)
     name = Column(db.String(80), nullable=False)
     is_admin = Column(db.Boolean, nullable=False, default=False)
+    area = Column(db.String(80), nullable=False)
 
     def __init__(self, email, password='', **kwargs):
         if not password:
@@ -53,4 +54,5 @@ class User(UserMixin, SurrogatePK, Model):
             'email': self.email,
             'created_at': self.created_at,
             'last_login': self.last_login,
+            'area': self.area,
         }

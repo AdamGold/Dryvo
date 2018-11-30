@@ -1,6 +1,7 @@
 from flask_sqlalchemy import BaseQuery
 from api.database.mixins import db
 
+from datetime import timedelta
 
 class QueryWithSoftDelete(BaseQuery):
     _with_deleted = False

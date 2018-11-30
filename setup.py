@@ -1,7 +1,7 @@
 from setuptools import setup, find_packages
 
 setup(name='dryvo',
-      version='0.1.1',
+      version='0.1.4',
       description='Dryvo Application',
       url='https://bitbucket.org/dryvo',
       author='Dryvo',
