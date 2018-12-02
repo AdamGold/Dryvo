@@ -48,6 +48,7 @@ def get_lesson_data():
         'student_id': student_id,
         'teacher_id': teacher_id,
         'duration': duration,
+        'topic_id': data.get('topic_id'),
         'is_approved': True if current_user.teacher else False
     }
 
