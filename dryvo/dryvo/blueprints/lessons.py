@@ -49,6 +49,7 @@ def get_lesson_data():
         'teacher_id': teacher_id,
         'duration': duration,
         'topic_id': data.get('topic_id'),
+        'comments': data.get('comments'),
         'is_approved': True if current_user.teacher else False
     }
 
