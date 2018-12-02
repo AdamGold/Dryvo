@@ -76,8 +76,7 @@ def lessons():
 def new_lesson():
     if not flask.request.get_json().get('date'):
         raise RouteError('Please insert the date of the lesson.')
-    lesson = Lesson(**get_lesson_data())
-    lesson.save()
+    lesson = Lesson(**get_lesson_data()).save()
 
     return {'message': 'Lesson created successfully.'}, 201
 

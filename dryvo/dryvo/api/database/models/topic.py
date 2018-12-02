@@ -22,7 +22,7 @@ class Topic(SurrogatePK, Model):
 
     def is_marked(self, student_id):
         if not student_id:
-            return
+            return False
         lesson = Lesson.query.filter_by(student_id=student_id). \
             filter_by(topic_id=self.id). \
             filter_by(mark_topic=True).first()

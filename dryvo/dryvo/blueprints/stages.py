@@ -35,8 +35,7 @@ def new_topic():
         raise RouteError('Stage does not exist.')
     topic = Topic(title=data.get('title'),
                   stage_id=stage.id,
-                  order=data.get('order'))
-    topic.save()
+                  order=data.get('order')).save()
     return {'message': 'Topic created successfully.'}, 201
 
 
@@ -48,6 +47,5 @@ def new_stage():
         raise RouteError('Admin required.')
     data = flask.request.get_json()
     stage = Stage(title=data.get('title'),
-                  order=data.get('order'))
-    stage.save()
+                  order=data.get('order')).save()
     return {'message': 'Stage created successfully.'}, 201
