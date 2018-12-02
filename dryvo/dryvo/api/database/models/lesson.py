@@ -15,12 +15,15 @@ class Lesson(SurrogatePK, Model):
     teacher = relationship('Teacher', backref=backref('lessons', lazy='dynamic'))
     student_id = reference_col('students', nullable=True)
     student = relationship('Student', backref=backref('lessons', lazy='dynamic'))
+    topic_id = reference_col('topics', nullable=False)
+    topic = relationship('Topic')
     duration = Column(db.Integer, nullable=False)
     date = Column(db.DateTime, nullable=False)
     created_at = Column(db.DateTime, nullable=False, default=dt.datetime.utcnow)
     meetup = Column(db.String, nullable=True)
     is_approved = Column(db.Boolean, nullable=False, default=True)
-    content = Column(db.Text, nullable=True)
+    comments = Column(db.Text, nullable=True)
+    mark_topic = Column(db.Boolean, default=False, nullable=False)
     deleted = Column(db.Boolean, nullable=False, default=False)
 
     def __init__(self, **kwargs):
@@ -39,5 +42,8 @@ class Lesson(SurrogatePK, Model):
             'date': self.date,
             'meetup': self.meetup,
             'is_approved': self.is_approved,
+            'comments': self.comments,
+            'topic': self.topic.to_dict(),
+            'mark_topic': self.mark_topic,
             'created_at': self.created_at,
         }

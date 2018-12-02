@@ -48,6 +48,8 @@ def get_lesson_data():
         'student_id': student_id,
         'teacher_id': teacher_id,
         'duration': duration,
+        'topic_id': data.get('topic_id'),
+        'comments': data.get('comments'),
         'is_approved': True if current_user.teacher else False
     }
 
@@ -74,8 +76,7 @@ def lessons():
 def new_lesson():
     if not flask.request.get_json().get('date'):
         raise RouteError('Please insert the date of the lesson.')
-    lesson = Lesson(**get_lesson_data())
-    lesson.save()
+    lesson = Lesson(**get_lesson_data()).save()
 
     return {'message': 'Lesson created successfully.'}, 201
 
