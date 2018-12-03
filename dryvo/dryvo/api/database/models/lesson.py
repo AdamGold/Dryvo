@@ -15,7 +15,7 @@ class Lesson(SurrogatePK, Model):
     teacher = relationship('Teacher', backref=backref('lessons', lazy='dynamic'))
     student_id = reference_col('students', nullable=True)
     student = relationship('Student', backref=backref('lessons', lazy='dynamic'))
-    topic_id = reference_col('topics', nullable=False)
+    topic_id = reference_col('topics', nullable=True)
     topic = relationship('Topic')
     duration = Column(db.Integer, nullable=False)
     date = Column(db.DateTime, nullable=False)
