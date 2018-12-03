@@ -114,11 +114,10 @@ def facebook_logged_in(blueprint, token):
             # to publish their email address on GitHub!
             email=info["email"],
             name=info["name"],
-        )
+        ).save()
         # Associate the new local user account with the OAuth token
         oauth.user = user
         # Save and commit our database models
-        user.save()
         oauth.save()
         # Log in the new local user account
         login_user(user)
