@@ -14,13 +14,13 @@ from api.utils import RouteError, jsonify_response
 from extensions import login_manager
 
 
-login_routes = Blueprint('login', __name__, url_prefix='/login')
-facebook_blueprint = make_facebook_blueprint(
+#login_routes = Blueprint('login', __name__, url_prefix='/login')
+login_routes = make_facebook_blueprint(
     client_id="473596283140535",
     client_secret="553ebd9c279f5ce8e59af259a003ead8",
 )
 
-facebook_blueprint.backend = SQLAlchemyBackend(OAuth, db.session, user=current_user)
+login_routes.backend = SQLAlchemyBackend(OAuth, db.session, user=current_user)
 
 
 @login_manager.user_loader
@@ -74,7 +74,7 @@ def register():
 
 
 # create/login local user on successful OAuth login
-@oauth_authorized.connect_via(facebook_blueprint)
+@oauth_authorized.connect_via(login_routes)
 def facebook_logged_in(blueprint, token):
     if not token:
         #flash("Failed to log in with Facebook.", category="error")
@@ -128,7 +128,7 @@ def facebook_logged_in(blueprint, token):
 
 
 # notify on OAuth provider error
-@oauth_error.connect_via(facebook_blueprint)
+@oauth_error.connect_via(login_routes)
 def github_error(blueprint, error, error_description=None, error_uri=None):
     msg = (
         "OAuth error from {name}! "

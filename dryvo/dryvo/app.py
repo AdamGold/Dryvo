@@ -14,8 +14,7 @@ from extensions import db, login_manager
 
 
 def register_blueprints(app):
-    app.register_blueprint(login_routes)
-    app.register_blueprint(facebook_blueprint, url_prefix='/facebook_login')
+    app.register_blueprint(login_routes, url_prefix='/login')
     app.register_blueprint(user_routes)
     app.register_blueprint(teacher_routes)
     app.register_blueprint(student_routes)
