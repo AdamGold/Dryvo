@@ -2,7 +2,6 @@ import os
 import flask
 from flask import Blueprint
 from flask_login import login_user, current_user
-from flask_oauth import OAuth
 from sqlalchemy.orm.exc import NoResultFound
 from flask_dance.contrib.facebook import make_facebook_blueprint, facebook
 from flask_dance.consumer.backend.sqla import OAuthConsumerMixin, SQLAlchemyBackend
