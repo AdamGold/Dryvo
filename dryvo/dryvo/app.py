@@ -4,7 +4,7 @@ import flask
 
 from consts import DEBUG_MODE
 from app_config import Config
-from blueprints.login import login_routes, facebook_blueprint
+from blueprints.login import login_routes
 from blueprints.user import user_routes
 from blueprints.teacher import teacher_routes
 from blueprints.student import student_routes
