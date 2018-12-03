@@ -38,9 +38,6 @@ def get_lesson_data():
         duration = data.get('duration', current_user.teacher.lesson_duration)
         teacher_id = current_user.teacher.id
         student_id = data.get('student_id')
-        student = Student.get_by_id(student_id)
-        if not student:
-            raise RouteError('Student does not exist.')
 
     return {
         'date': date,
