@@ -4,7 +4,7 @@ import flask
 
 from consts import DEBUG_MODE
 from app_config import Config
-from blueprints.login import login_routes
+from blueprints.login import login_routes, facebook_blueprint
 from blueprints.user import user_routes
 from blueprints.teacher import teacher_routes
 from blueprints.student import student_routes
@@ -15,11 +15,13 @@ from extensions import db, login_manager
 
 def register_blueprints(app):
     app.register_blueprint(login_routes)
+    app.register_blueprint(facebook_blueprint, url_prefix='/facebook_login')
     app.register_blueprint(user_routes)
     app.register_blueprint(teacher_routes)
     app.register_blueprint(student_routes)
     app.register_blueprint(lessons_routes)
     app.register_blueprint(stages_routes)
+
 
 def register_extensions(flask_app):
     """Register Flask extensions."""

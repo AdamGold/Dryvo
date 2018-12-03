@@ -10,6 +10,7 @@ from api.database.models.student import Student
 from api.database.models.teacher import Teacher
 from api.database.models.test import Test
 from api.database.models.work_day import WorkDay
+from api.database.models.oauth import OAuth
 
 if __name__ == '__main__':
     with app.app_context():
