@@ -10,11 +10,11 @@ from blueprints.teacher import teacher_routes
 from blueprints.student import student_routes
 from blueprints.lessons import lessons_routes
 from blueprints.stages import stages_routes
-from extensions import db, login_manager
+from extensions import sess, db, login_manager
 
 
 def register_blueprints(app):
-    app.register_blueprint(login_routes, url_prefix='/login')
+    app.register_blueprint(login_routes)
     app.register_blueprint(user_routes)
     app.register_blueprint(teacher_routes)
     app.register_blueprint(student_routes)
@@ -24,6 +24,7 @@ def register_blueprints(app):
 
 def register_extensions(flask_app):
     """Register Flask extensions."""
+    sess.init_app(flask_app)
     db.init_app(flask_app)
     login_manager.init_app(flask_app)
 

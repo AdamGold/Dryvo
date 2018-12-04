@@ -4,3 +4,5 @@ dryvo.egg-info
 .vscode
 
 *.pyc
+
+dryvo/dryvo/flask_session

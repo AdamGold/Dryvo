@@ -1,37 +1,25 @@
 import os
 import flask
+import string
+import random
+import requests
 from flask import Blueprint
 from flask_login import login_user, current_user
 from sqlalchemy.orm.exc import NoResultFound
-from flask_dance.contrib.facebook import make_facebook_blueprint, facebook
-from flask_dance.consumer.backend.sqla import OAuthConsumerMixin, SQLAlchemyBackend
-from flask_dance.consumer import oauth_authorized, oauth_error
 
-from api.database.mixins import db
 from api.database.models.user import User
-from api.database.models.oauth import OAuth
+from api.database.models.oauth import OAuth, Provider
 from api.utils import RouteError, jsonify_response
 from extensions import login_manager
+from consts import DEBUG_MODE
 
-
-#login_routes = Blueprint('login', __name__, url_prefix='/login')
-login_routes = make_facebook_blueprint(
-    client_id="473596283140535",
-    client_secret="553ebd9c279f5ce8e59af259a003ead8",
-)
-
-login_routes.backend = SQLAlchemyBackend(OAuth, db.session, user=current_user)
+login_routes = Blueprint('login', __name__, url_prefix='/login')
 
 
 @login_manager.user_loader
 def load_user(user_id):
     """Load user by ID."""
     return User.query.filter_by(id=int(user_id)).first()
-
-
-@login_routes.route("/facebook")
-def facebook_login():
-    return flask.redirect(flask.url_for("facebook.login"))
 
 
 @login_routes.route('/direct', methods=['POST'])
@@ -73,70 +61,75 @@ def register():
         raise RouteError('Can not create user.')
 
 
-# create/login local user on successful OAuth login
-@oauth_authorized.connect_via(login_routes)
-def facebook_logged_in(blueprint, token):
-    if not token:
-        #flash("Failed to log in with Facebook.", category="error")
-        return False
+@login_routes.route('/facebook', methods=['GET'])
+@jsonify_response
+def oauth_facebook():
+    """setup Facebook API, redirect to facebook login & permissions
+    when redirected back, check auth code and setup a server session
+    with credentials
+    """
+    if current_user.is_authenticated:
+        raise RouteError('User already logged in.')
 
-    resp = blueprint.session.get("/user")
-    print(resp)
-    if not resp.ok:
-        msg = "Failed to fetch user info from Facebook."
-        #flash(msg, category="error")
-        return False
+    state = ''.join(random.choices(string.ascii_uppercase + string.digits, k=6))
+    redirect = flask.url_for('.facebook_authorized', _external=True)
+    auth_url = "https://www.facebook.com/v3.2/dialog/oauth?client_id={}" \
+               "&redirect_uri={}&state={}&scope={}". \
+               format(os.environ['FACEBOOK_CLIENT_ID'], redirect,
+                      state, os.environ['FACEBOOK_SCOPES'])
+    # Store the state so the callback can verify the auth server response.
+    flask.session['state'] = state
+    return {'auth_url': auth_url}
 
-    info = resp.json()
-    user_id = str(info["id"])
+
+@login_routes.route('/facebook/authorized', methods=['POST'])
+@jsonify_response
+def facebook_authorized():
+    args = flask.request.get_json()
+    if args.get('state') != flask.session.get('state') and not DEBUG_MODE:
+        raise RouteError('State not valid.')
+
+    redirect = flask.url_for('.facebook_authorized', _external=True) # the url we are on
+    token_url = "https://graph.facebook.com/v3.2/oauth/access_token?client_id=" \
+                "{}&redirect_uri={}&client_secret={}&code={}". \
+                format(os.environ['FACEBOOK_CLIENT_ID'], redirect,
+                       os.environ['FACEBOOK_CLIENT_SECRET'], args.get('code'))
+    access_token = requests.get(token_url).json().get('access_token')
+
+    url = "https://graph.facebook.com/debug_token?input_token={}&access_token={}". \
+          format(access_token, os.environ['FACEBOOK_TOKEN'])
+
+    validate_token_resp = requests.get(url).json()['data']
 
     # Find this OAuth token in the database, or create it
     query = OAuth.query.filter_by(
-        provider=blueprint.name,
-        provider_user_id=user_id,
+        provider=Provider.facebook,
+        provider_user_id=validate_token_resp.get('user_id'),
     )
     try:
         oauth = query.one()
     except NoResultFound:
         oauth = OAuth(
-            provider=blueprint.name,
-            provider_user_id=user_id,
-            token=token,
+            provider=Provider.facebook,
+            provider_user_id=validate_token_resp.get('user_id'),
+            token=access_token,
         )
 
     if oauth.user:
         login_user(oauth.user)
-        #flash("Successfully signed in with GitHub.")
     else:
+        profile = requests.get('https://graph.facebook.com/v3.2/{}?'
+                               'fields=email,name&access_token={}'.
+                               format(validate_token_resp.get('user_id'), access_token)).json()
+
         # Create a new local user account for this user
         user = User(
-            # Remember that `email` can be None, if the user declines
-            # to publish their email address on GitHub!
-            email=info["email"],
-            name=info["name"],
+            email=profile.get('email'),
+            name=profile.get('name'),
         ).save()
-        # Associate the new local user account with the OAuth token
         oauth.user = user
-        # Save and commit our database models
         oauth.save()
         # Log in the new local user account
         login_user(user)
-        #flash("Successfully signed in with GitHub.")
 
-    # Disable Flask-Dance's default behavior for saving the OAuth token
-    return False
-
-
-# notify on OAuth provider error
-@oauth_error.connect_via(login_routes)
-def github_error(blueprint, error, error_description=None, error_uri=None):
-    msg = (
-        "OAuth error from {name}! "
-        "error={error} description={description} uri={uri}"
-    ).format(
-        name=blueprint.name,
-        error=error,
-        description=error_description,
-        uri=error_uri,
-    )
-    #flash(msg, category="error")
+    return {'message': 'User logged in from facebook.'}, 201
