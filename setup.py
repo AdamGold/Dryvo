@@ -1,7 +1,7 @@
 from setuptools import setup, find_packages
 
 setup(name='dryvo',
-      version='0.1.4',
+      version='0.1.8',
       description='Dryvo Application',
       url='https://bitbucket.org/dryvo',
       author='Dryvo',
@@ -15,6 +15,7 @@ setup(name='dryvo',
           'Flask',
           'flask-login',
           'flask-sqlalchemy',
-          'flask-script'
+          'flask-script',
+          'flask-session',
       ],
       zip_safe=False)
