@@ -85,15 +85,15 @@ def oauth_facebook():
 @login_routes.route('/facebook/authorized', methods=['POST'])
 @jsonify_response
 def facebook_authorized():
-    args = flask.request.get_json()
-    if args.get('state') != flask.session.get('state') and not DEBUG_MODE:
+    data = flask.request.get_json()
+    if data.get('state') != flask.session.get('state') and not DEBUG_MODE:
         raise RouteError('State not valid.')
 
     redirect = flask.url_for('.facebook_authorized', _external=True) # the url we are on
     token_url = "https://graph.facebook.com/v3.2/oauth/access_token?client_id=" \
                 "{}&redirect_uri={}&client_secret={}&code={}". \
                 format(os.environ['FACEBOOK_CLIENT_ID'], redirect,
-                       os.environ['FACEBOOK_CLIENT_SECRET'], args.get('code'))
+                       os.environ['FACEBOOK_CLIENT_SECRET'], data.get('code'))
     access_token = requests.get(token_url).json().get('access_token')
 
     url = "https://graph.facebook.com/debug_token?input_token={}&access_token={}". \
@@ -126,6 +126,7 @@ def facebook_authorized():
         user = User(
             email=profile.get('email'),
             name=profile.get('name'),
+            area=data.get('area')
         ).save()
         oauth.user = user
         oauth.save()
