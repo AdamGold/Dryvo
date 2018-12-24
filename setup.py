@@ -17,5 +17,6 @@ setup(name='dryvo',
           'flask-sqlalchemy',
           'flask-script',
           'flask-session',
+          'pyjwt==1.4.2'
       ],
       zip_safe=False)

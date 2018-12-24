@@ -50,10 +50,10 @@ def paginate(func):
             pagination = response
             data = [item.to_dict() for item in response.items]
 
-        next_url = flask.url_for('.{}'.format(func.__name__), \
+        next_url = flask.url_for('.{}'.format(func.__name__),
                                  page=pagination.next_num, _external=True, *args, **kwargs) \
             if pagination.has_next else None
-        prev_url = flask.url_for('.{}'.format(func.__name__), \
+        prev_url = flask.url_for('.{}'.format(func.__name__),
                                  page=pagination.prev_num, _external=True, *args, **kwargs) \
             if pagination.has_prev else None
         return {
@@ -64,11 +64,13 @@ def paginate(func):
 
     return func_wrapper
 
+
 def get_slots(hours, appointments, duration):
     minimum = (hours[0], hours[0])
     maximum = (hours[1], hours[1])
     available_lessons = []
-    slots = [max(min(v, maximum), minimum) for v in sorted([minimum] + appointments + [maximum])]
+    slots = [max(min(v, maximum), minimum)
+             for v in sorted([minimum] + appointments + [maximum])]
     for start, end in((slots[i][1], slots[i+1][0]) for i in range(len(slots)-1)):
         while start + duration <= end:
             available_lessons.append((start, start + duration))
