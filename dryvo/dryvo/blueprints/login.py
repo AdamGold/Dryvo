@@ -8,6 +8,7 @@ from flask_login import login_user, current_user
 from sqlalchemy.orm.exc import NoResultFound
 
 from api.database.models.user import User
+from api.database.models.blacklist_token import BlacklistToken
 from api.database.models.oauth import OAuth, Provider
 from api.utils import RouteError, jsonify_response
 from extensions import login_manager
@@ -22,19 +23,51 @@ def load_user(user_id):
     return User.query.filter_by(id=int(user_id)).first()
 
 
+@login_manager.request_loader
+def load_user_from_request(request):
+    # get the auth token
+    auth_header = request.headers.get('Authorization')
+    if auth_header:
+        try:
+            auth_token = auth_header.split(" ")[1]
+        except IndexError:
+            raise RouteError('Bearer token malformed.', 401)
+    else:
+        auth_token = ''
+    if auth_token:
+        resp = User.decode_auth_token(auth_token)
+        if not isinstance(resp, str):
+            return User.query.filter_by(id=resp).first()
+    return None
+
+
 @login_routes.route('/direct', methods=['POST'])
 @jsonify_response
 def direct_login():
     data = flask.request.get_json()
     user = User.query.filter_by(email=data.get('email')).first()
-
     # Try to authenticate the found user using their password
     if user and user.check_password(data.get('password')):
-        login_user(user, remember=True)
-        return {'message': 'You logged in successfully.'}
+        auth_token = user.encode_auth_token(user.id)
+        if auth_token:
+            login_user(user, remember=True)
+            return {'message': 'You logged in successfully.',
+                    'auth_token': auth_token.decode()}
     else:
         # User does not exist. Therefore, we return an error message
         raise RouteError('Invalid email or password.', 401)
+
+
+@login_routes.route('/logout', methods=['POST'])
+@jsonify_response
+def logout():
+    auth_header = flask.request.headers.get('Authorization')
+    auth_token = auth_header.split(" ")[1]
+    # mark the token as blacklisted
+    blacklist_token = BlacklistToken(token=auth_token)
+    # insert the token
+    blacklist_token.save()
+    return {'message': 'Logged out successfully.'}
 
 
 @login_routes.route('/register', methods=['POST'])
@@ -52,9 +85,11 @@ def register():
         password = post_data.get('password')
         user = User(email=email, password=password, name=name, area=area)
         user.save()
-
+        # generate auth token
+        auth_token = user.encode_auth_token(user.id)
         # return a response notifying the user that they registered successfully
-        return {'message': 'You registered successfully. Please log in.'}, 201
+        return {'message': 'You registered successfully. Please log in.',
+                'auth_token': auth_token.decode()}, 201
     else:
         # There is an existing user. We don't want to register users twice
         # Return a message to the user telling them that they they already exist
@@ -71,7 +106,8 @@ def oauth_facebook():
     if current_user.is_authenticated:
         raise RouteError('User already logged in.')
 
-    state = ''.join(random.choices(string.ascii_uppercase + string.digits, k=6))
+    state = ''.join(random.choices(
+        string.ascii_uppercase + string.digits, k=6))
     redirect = flask.url_for('.facebook_authorized', _external=True)
     auth_url = "https://www.facebook.com/v3.2/dialog/oauth?client_id={}" \
                "&redirect_uri={}&state={}&scope={}". \
@@ -89,7 +125,8 @@ def facebook_authorized():
     if data.get('state') != flask.session.get('state') and not DEBUG_MODE:
         raise RouteError('State not valid.')
 
-    redirect = flask.url_for('.facebook_authorized', _external=True) # the url we are on
+    redirect = flask.url_for('.facebook_authorized',
+                             _external=True)  # the url we are on
     token_url = "https://graph.facebook.com/v3.2/oauth/access_token?client_id=" \
                 "{}&redirect_uri={}&client_secret={}&code={}". \
                 format(os.environ['FACEBOOK_CLIENT_ID'], redirect,
@@ -133,4 +170,6 @@ def facebook_authorized():
         # Log in the new local user account
         login_user(user)
 
-    return {'message': 'User logged in from facebook.'}, 201
+    auth_token = user.encode_auth_token(user.id)
+    if auth_token:
+        return {'message': 'User logged in from facebook.', 'auth_token': auth_token.decode()}, 201

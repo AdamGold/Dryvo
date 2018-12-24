@@ -6,3 +6,7 @@ dryvo.egg-info
 *.pyc
 
 dryvo/dryvo/flask_session
+
+.history/
+
+dist/
