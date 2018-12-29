@@ -8,7 +8,7 @@ from flask_login import UserMixin
 
 from api.database.mixins import Column, Model, SurrogatePK, db, relationship, reference_col
 from api.database.models.blacklist_token import BlacklistToken
-
+from api.database.consts import TOKEN_EXPIRY
 
 HASH_NAME = 'sha1'
 HASH_ROUNDS = 1000
@@ -61,7 +61,7 @@ class User(UserMixin, SurrogatePK, Model):
         """
         try:
             payload = {
-                'exp': datetime.utcnow() + timedelta(days=10),
+                'exp': datetime.utcnow() + timedelta(days=TOKEN_EXPIRY),
                 'iat': datetime.utcnow(),
                 'sub': user_id
             }
