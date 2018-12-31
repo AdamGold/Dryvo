@@ -1,4 +1,4 @@
-def test_config_app():
+def test_config_app(app):
     """ Test that the test config
     is being written over the actual config"""
-    assert 1 == 1
+    assert app.config.get('SECRET_KEY') == "VERY_SECRET"

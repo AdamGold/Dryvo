@@ -11,7 +11,7 @@ from server.api.database.mixins import (
 from server.api.database.models.user import User
 
 from sqlalchemy.orm import backref
-from sqlalchemy_utils import ChoiceType
+from sqlalchemy_utils import ChoiceType, JSONType
 import enum
 
 
@@ -28,7 +28,7 @@ class OAuth(SurrogatePK, Model):
     user_id = reference_col("users", nullable=False)
     user = relationship(User)
     provider = Column(ChoiceType(Provider, impl=db.Integer()), nullable=False)
-    token = Column(db.JSON, nullable=False, default=dt.datetime.utcnow)
+    token = Column(JSONType, nullable=False, default=dt.datetime.utcnow)
     created_at = Column(db.DateTime, nullable=False, default=dt.datetime.utcnow)
 
     def __init__(self, **kwargs):

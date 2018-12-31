@@ -1,1 +1,1 @@
-<?xml version="1.0" encoding="utf-8"?><testsuite errors="0" failures="0" name="pytest" skips="0" tests="1" time="0.107"><testcase classname="tests.test_app_config" file="tests/test_app_config.py" line="0" name="test_init_db" time="0.0021560192108154297"></testcase></testsuite>
+<?xml version="1.0" encoding="utf-8"?><testsuite errors="0" failures="0" name="pytest" skips="0" tests="1" time="0.378"><testcase classname="tests.test_app_config" file="tests/test_app_config.py" line="0" name="test_config_app" time="0.09706807136535645"></testcase></testsuite>

@@ -1,10 +1,13 @@
 from server.extensions import db
 from server.app import create_app
-from server.app_config import Config
 from server.api.database.models import *
 
+
+def init_db(db):
+    db.drop_all()
+    db.create_all()
+
 if __name__ == "__main__":
-    app = create_app(Config)
+    app = create_app()
     with app.app_context():
-        db.drop_all()
-        db.create_all()
+        init_db(db)

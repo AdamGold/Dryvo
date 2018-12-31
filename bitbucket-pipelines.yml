@@ -10,10 +10,7 @@ pipelines:
         - step:
               name: Build and Test
               script:
-                  - python setup.py build
                   - python setup.py test --addopts="--cov-config=./setup.cfg"
-              services:
-                  - postgres
     branches:
         master:
             - step:
@@ -24,8 +21,3 @@ pipelines:
                   name: Verify Server
                   script:
                       - curl --fail https://dryvo.herokuapp.com/ || exit 1
-
-definitions:
-    services:
-        postgres:
-            image: postgres
