@@ -10,3 +10,5 @@ dryvo/dryvo/flask_session
 .history/
 
 dist/
+
+.coverage

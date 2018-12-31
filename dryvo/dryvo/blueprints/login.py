@@ -38,6 +38,7 @@ def load_user_from_request(request):
         resp = User.decode_auth_token(auth_token)
         if not isinstance(resp, str):
             return User.query.filter_by(id=resp).first()
+        raise RouteError(resp, 401)
     return None
 
 
