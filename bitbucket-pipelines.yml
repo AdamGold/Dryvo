@@ -11,9 +11,20 @@ pipelines:
               name: Build and Test
               script:
                   - python setup.py test --addopts="--cov-config=./setup.cfg"
+              services:
+                  - postgres
     branches:
         master:
             - step:
                   name: Push to Heroku
                   script:
                       - git push https://heroku:$HEROKU_API_KEY@git.heroku.com/$HEROKU_APP_NAME.git $BITBUCKET_BRANCH:master
+            - step:
+                  name: Verify Server
+                  script:
+                      - curl --fail https://dryvo.herokuapp.com/ || exit 1
+
+definitions:
+    services:
+        postgres:
+            image: postgres

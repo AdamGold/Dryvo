@@ -1,0 +1,35 @@
+<?xml version="1.0" encoding="utf-8"?><testsuite errors="1" failures="0" name="pytest" skips="0" tests="1" time="0.469"><testcase classname="" file="" name="" time="0"><error message="collection failure">venv/lib/python3.6/site-packages/_pytest/config/__init__.py:430: in _importconftest
+    return self._conftestpath2mod[conftestpath]
+E   KeyError: local(&apos;/Users/adamgold/Documents/Development/Python/Dryvo/backend/dryvo/dryvo/tests/conftest.py&apos;)
+
+During handling of the above exception, another exception occurred:
+venv/lib/python3.6/site-packages/_pytest/config/__init__.py:436: in _importconftest
+    mod = conftestpath.pyimport()
+venv/lib/python3.6/site-packages/py/_path/local.py:668: in pyimport
+    __import__(modname)
+venv/lib/python3.6/site-packages/_pytest/assertion/rewrite.py:295: in load_module
+    six.exec_(co, mod.__dict__)
+dryvo/dryvo/tests/conftest.py:5: in &lt;module&gt;
+    from extensions import db
+E   ModuleNotFoundError: No module named &apos;extensions&apos;
+
+During handling of the above exception, another exception occurred:
+venv/lib/python3.6/site-packages/py/_path/common.py:377: in visit
+    for x in Visitor(fil, rec, ignore, bf, sort).gen(self):
+venv/lib/python3.6/site-packages/py/_path/common.py:429: in gen
+    for p in self.gen(subdir):
+venv/lib/python3.6/site-packages/py/_path/common.py:429: in gen
+    for p in self.gen(subdir):
+venv/lib/python3.6/site-packages/py/_path/common.py:418: in gen
+    dirs = self.optsort([p for p in entries
+venv/lib/python3.6/site-packages/py/_path/common.py:419: in &lt;listcomp&gt;
+    if p.check(dir=1) and (rec is None or rec(p))])
+venv/lib/python3.6/site-packages/_pytest/main.py:617: in _recurse
+    ihook = self.gethookproxy(dirpath)
+venv/lib/python3.6/site-packages/_pytest/main.py:434: in gethookproxy
+    my_conftestmodules = pm._getconftestmodules(fspath)
+venv/lib/python3.6/site-packages/_pytest/config/__init__.py:414: in _getconftestmodules
+    mod = self._importconftest(conftestpath)
+venv/lib/python3.6/site-packages/_pytest/config/__init__.py:453: in _importconftest
+    raise ConftestImportFailure(conftestpath, sys.exc_info())
+E   _pytest.config.ConftestImportFailure: (local(&apos;/Users/adamgold/Documents/Development/Python/Dryvo/backend/dryvo/dryvo/tests/conftest.py&apos;), (&lt;class &apos;ModuleNotFoundError&apos;&gt;, ModuleNotFoundError(&quot;No module named &apos;extensions&apos;&quot;,), &lt;traceback object at 0x105d37848&gt;))</error></testcase></testsuite>

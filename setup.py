@@ -4,13 +4,13 @@ test_req = ['pytest-flask==0.14.0', 'pytest-cov==2.6.0',
             'responses==0.9.0', "testing.postgresql"]
 
 setup(name='dryvo',
-      version='0.1.8',
+      version='0.2',
       description='Dryvo Application',
       url='https://bitbucket.org/dryvo',
       author='Dryvo',
       author_email='',
       license='MIT',
-      packages=find_packages(),
+      packages=['server'],
       install_requires=[
           'gunicorn',
           'SQLAlchemy',
