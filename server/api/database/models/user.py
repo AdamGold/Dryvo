@@ -16,6 +16,7 @@ from server.api.database.mixins import (
 )
 from server.api.database.models import BlacklistToken
 from server.api.database.consts import TOKEN_EXPIRY
+from server.api.utils import TokenError
 
 HASH_NAME = "sha1"
 HASH_ROUNDS = 1000
@@ -79,7 +80,7 @@ class User(UserMixin, SurrogatePK, Model):
             return e
 
     @staticmethod
-    def decode_auth_token(auth_token):
+    def from_token(auth_token):
         """
         Decodes the auth token
         :param auth_token:
@@ -89,13 +90,13 @@ class User(UserMixin, SurrogatePK, Model):
             payload = jwt.decode(auth_token, os.environ["SECRET_JWT"])
             is_blacklisted_token = BlacklistToken.check_blacklist(auth_token)
             if is_blacklisted_token:
-                return "Token blacklisted. Please log in again."
+                raise TokenError("Token blacklisted. Please log in again.")
             else:
                 return payload["sub"]
         except jwt.ExpiredSignatureError:
-            return "Signature expired. Please log in again."
+            raise TokenError("Signature expired. Please log in again.")
         except jwt.InvalidTokenError:
-            return "Invalid token. Please log in again."
+            raise TokenError("Invalid token. Please log in again.")
 
     def to_dict(self):
         return {

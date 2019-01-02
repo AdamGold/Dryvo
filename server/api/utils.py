@@ -5,12 +5,19 @@ import traceback
 import flask
 from flask.json import jsonify
 from server.consts import DEBUG_MODE
+from datetime import datetime, timedelta
 
 
 class RouteError(Exception):
     def __init__(self, msg, code=400):
         self.msg = msg
         self.code = code
+
+
+class TokenError(RouteError):
+    def __init__(self, msg):
+        self.code = 401
+        self.msg = msg
 
 
 def jsonify_response(func):
@@ -77,7 +84,7 @@ def paginate(func):
     return func_wrapper
 
 
-def get_slots(hours, appointments, duration):
+def get_slots(hours: (datetime, datetime), appointments: [tuple], duration: timedelta):
     minimum = (hours[0], hours[0])
     maximum = (hours[1], hours[1])
     available_lessons = []

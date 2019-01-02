@@ -8,7 +8,7 @@ from flask_login import login_user, current_user
 from sqlalchemy.orm.exc import NoResultFound
 
 from server.api.database.models import User, BlacklistToken, OAuth, Provider
-from server.api.utils import RouteError, jsonify_response
+from server.api.utils import RouteError, TokenError, jsonify_response
 from server.extensions import login_manager
 from server.consts import DEBUG_MODE
 
@@ -24,20 +24,21 @@ def load_user(user_id):
 @login_manager.request_loader
 def load_user_from_request(request):
     # get the auth token
+    if not request.headers.get("Authorization"):
+        return None
+    from_token = token_tuple(request)
+    return User.query.filter_by(id=from_token).first()
+
+
+def token_tuple(request):
     auth_header = request.headers.get("Authorization")
+    auth_token = ""
     if auth_header:
         try:
             auth_token = auth_header.split(" ")[1]
         except IndexError:
-            raise RouteError("Bearer token malformed.", 401)
-    else:
-        auth_token = ""
-    if auth_token:
-        resp = User.decode_auth_token(auth_token)
-        if not isinstance(resp, str):
-            return User.query.filter_by(id=resp).first()
-        raise RouteError(resp, 401)
-    return None
+            raise TokenError("Auth code malformed.")
+    return User.from_token(auth_token)
 
 
 @login_routes.route("/direct", methods=["POST"])
@@ -54,12 +55,11 @@ def direct_login():
                 "message": "You logged in successfully.",
                 "auth_token": auth_token.decode(),
             }
-    else:
-        # User does not exist. Therefore, we return an error message
-        raise RouteError("Invalid email or password.", 401)
+    # User does not exist. Therefore, we return an error message
+    raise RouteError("Invalid email or password.", 401)
 
 
-@login_routes.route("/logout", methods=["POST"])
+@login_routes.route("/logout")
 @jsonify_response
 def logout():
     auth_header = flask.request.headers.get("Authorization")
