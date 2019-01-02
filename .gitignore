@@ -13,3 +13,4 @@ dist/
 build/
 
 .coverage
+tests/test-reports/
