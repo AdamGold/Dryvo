@@ -3,16 +3,22 @@ import flask
 import string
 import random
 import requests
+import re
 from flask import Blueprint
-from flask_login import login_user, current_user
+from flask_login import login_required, login_user, current_user
 from sqlalchemy.orm.exc import NoResultFound
 
 from server.api.database.models import User, BlacklistToken, OAuth, Provider
-from server.api.utils import RouteError, TokenError, jsonify_response
+from server.api.utils import jsonify_response
+from server.error_handling import RouteError, TokenError
 from server.extensions import login_manager
 from server.consts import DEBUG_MODE
 
 login_routes = Blueprint("login", __name__, url_prefix="/login")
+
+
+def init_app(app):
+    app.register_blueprint(login_routes)
 
 
 @login_manager.user_loader
@@ -48,9 +54,9 @@ def direct_login():
     user = User.query.filter_by(email=data.get("email")).first()
     # Try to authenticate the found user using their password
     if user and user.check_password(data.get("password")):
-        auth_token = user.encode_auth_token(user.id)
+        auth_token = user.encode_auth_token()
         if auth_token:
-            login_user(user, remember=True)
+            #login_user(user, remember=True)
             return {
                 "message": "You logged in successfully.",
                 "auth_token": auth_token.decode(),
@@ -61,6 +67,7 @@ def direct_login():
 
 @login_routes.route("/logout")
 @jsonify_response
+@login_required
 def logout():
     auth_header = flask.request.headers.get("Authorization")
     auth_token = auth_header.split(" ")[1]
@@ -78,16 +85,26 @@ def register():
     email = post_data.get("email")
     name = post_data.get("name")
     area = post_data.get("area")
+    password = post_data.get("password")
+    if not email:
+        raise RouteError("Email is required.")
+    if not name:
+        raise RouteError("Name is required.")
+    if not area:
+        raise RouteError("Area is required.")
+    if not password:
+        raise RouteError("Password is required.")
+    if not re.match(r"[^@]+@[^@]+\.[^@]+", email):
+        raise RouteError("Email is not valid.")
     # Query to see if the user already exists
     user = User.query.filter_by(email=email).first()
-    if email and name and area and not user:
+    if not user:
         # There is no user so we'll try to register them
         # Register the user
-        password = post_data.get("password")
         user = User(email=email, password=password, name=name, area=area)
         user.save()
         # generate auth token
-        auth_token = user.encode_auth_token(user.id)
+        auth_token = user.encode_auth_token()
         # return a response notifying the user that they registered successfully
         return (
             {
@@ -99,7 +116,7 @@ def register():
     else:
         # There is an existing user. We don't want to register users twice
         # Return a message to the user telling them that they they already exist
-        raise RouteError("Can not create user.")
+        raise RouteError("Email is already registered.")
 
 
 @login_routes.route("/facebook", methods=["GET"])
@@ -187,7 +204,7 @@ def facebook_authorized():
         # Log in the new local user account
         login_user(user)
 
-    auth_token = user.encode_auth_token(user.id)
+    auth_token = user.encode_auth_token()
     if auth_token:
         return (
             {

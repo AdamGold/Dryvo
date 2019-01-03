@@ -3,11 +3,16 @@ from flask import Blueprint
 from flask_login import current_user, login_required, logout_user
 from datetime import datetime
 
-from server.api.utils import jsonify_response, RouteError, paginate
+from server.api.utils import jsonify_response, paginate
+from server.error_handling import RouteError
 from server.api.database.models import Stage, Topic
 
 
 stages_routes = Blueprint("stages", __name__, url_prefix="/stages")
+
+
+def init_app(app):
+    app.register_blueprint(stages_routes)
 
 
 @stages_routes.route("/", methods=["GET"])

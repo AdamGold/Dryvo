@@ -42,7 +42,7 @@ def db_instance(app: flask.Flask):
 @pytest.fixture
 def user(app: flask.Flask):
     with app.app_context():
-        yield User.query.filter_by(username='test').one()
+        yield User.query.filter_by(email='t@test.com').one()
 
 
 class Requester:
@@ -80,20 +80,20 @@ class AuthActions(object):
         self._client = client
 
     def login(self, email='t@test.com', password='test'):
-        return self._client.post(
-            '/login/direct',
-            json={'email': email, 'password': password}
-        )
+        return self._client.start_auth_session("POST",
+                                               '/login/direct',
+                                               json={'email': email, 'password': password})
 
     def register(self, email='test@test.com', password='test', name='test', area='test'):
-        return self._client.post(
-            'login/register',
-            json={'email': email, 'password': password,
-                  'name': name, 'area': area}
-        )
+        return self._client.start_auth_session("POST",
+                                               '/login/register',
+                                               json={'email': email, 'password': password,
+                                                     'name': name, 'area': area})
 
-    def logout(self):
-        return self._client.get('/login/logout')
+    def logout(self, **kwargs):
+        logout = self._client.get('/login/logout', **kwargs)
+        self._client.headers['Authorization'] = ''
+        return logout
 
 
 @pytest.fixture

@@ -4,13 +4,18 @@ from flask_login import current_user, login_required, logout_user
 from datetime import datetime
 
 from server.api.database.consts import LESSONS_PER_PAGE
-from server.api.utils import jsonify_response, RouteError, paginate
+from server.api.utils import jsonify_response, paginate
+from server.error_handling import RouteError
 from server.api.database.models import Teacher, Lesson, Student
 from server.consts import DATE_FORMAT, DEBUG_MODE
 from server.api.blueprints import teacher_required
 
 
 lessons_routes = Blueprint("lessons", __name__, url_prefix="/lessons")
+
+
+def init_app(app):
+    app.register_blueprint(lessons_routes)
 
 
 def get_lesson_data():

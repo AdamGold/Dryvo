@@ -8,38 +8,17 @@ from server.consts import DEBUG_MODE
 from datetime import datetime, timedelta
 
 
-class RouteError(Exception):
-    def __init__(self, msg, code=400):
-        self.msg = msg
-        self.code = code
-
-
-class TokenError(RouteError):
-    def __init__(self, msg):
-        self.code = 401
-        self.msg = msg
-
-
 def jsonify_response(func):
     @wraps(func)
     def func_wrapper(*args, **kwargs):
-        try:
-            response = func(*args, **kwargs)
-            if not response:
-                return flask.make_response(), 400
-            elif isinstance(response, tuple):
-                (data, code) = response
-            else:
-                data = response
-                code = 200
-        except RouteError as e:
-            data = {"message": e.msg}
-            code = e.code
-        except Exception:
-            if not DEBUG_MODE:
-                raise
-            data = {"message": traceback.format_exc()}
-            code = 500
+        response = func(*args, **kwargs)
+        if not response:
+            return flask.make_response(), 400
+        elif isinstance(response, tuple):
+            (data, code) = response
+        else:
+            data = response
+            code = 200
 
         return flask.make_response(jsonify(data)), code
 

@@ -5,11 +5,16 @@ from functools import wraps
 from datetime import datetime
 
 from server.api.database.consts import DAYS_PER_PAGE
-from server.api.utils import jsonify_response, RouteError, paginate
+from server.api.utils import jsonify_response, paginate
+from server.error_handling import RouteError
 from server.api.database.models import Teacher, Student, WorkDay, Day
 
 
 teacher_routes = Blueprint("teacher", __name__, url_prefix="/teacher")
+
+
+def init_app(app):
+    app.register_blueprint(teacher_routes)
 
 
 def teacher_required(func):

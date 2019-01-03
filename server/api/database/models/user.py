@@ -16,7 +16,7 @@ from server.api.database.mixins import (
 )
 from server.api.database.models import BlacklistToken
 from server.api.database.consts import TOKEN_EXPIRY
-from server.api.utils import TokenError
+from server.error_handling import TokenError
 
 HASH_NAME = "sha1"
 HASH_ROUNDS = 1000
@@ -64,7 +64,7 @@ class User(UserMixin, SurrogatePK, Model):
         passhash = self._prepare_password(value, self.salt)[1]
         return passhash == self.password
 
-    def encode_auth_token(self, user_id):
+    def encode_auth_token(self):
         """
         Generates the Auth Token
         :return: string
@@ -73,7 +73,7 @@ class User(UserMixin, SurrogatePK, Model):
             payload = {
                 "exp": datetime.utcnow() + timedelta(days=TOKEN_EXPIRY),
                 "iat": datetime.utcnow(),
-                "sub": user_id,
+                "sub": self.id,
             }
             return jwt.encode(payload, os.environ["SECRET_JWT"], algorithm="HS256")
         except Exception as e:

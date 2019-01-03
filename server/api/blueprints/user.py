@@ -2,11 +2,16 @@ import flask
 from flask import Blueprint
 from flask_login import current_user, login_required, logout_user
 
-from server.api.utils import jsonify_response, RouteError
+from server.api.utils import jsonify_response
+from server.error_handling import RouteError
 from server.api.database.models import User, Teacher, Student
 
 
 user_routes = Blueprint("user", __name__, url_prefix="/user")
+
+
+def init_app(app):
+    app.register_blueprint(user_routes)
 
 
 @user_routes.route("/make_student", methods=["POST"])
