@@ -14,3 +14,4 @@ build/
 
 .coverage
 tests/test-reports/
+.pytest_cache

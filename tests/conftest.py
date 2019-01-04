@@ -5,7 +5,7 @@ import tempfile
 import json
 
 from server.extensions import db
-from server.api.database.models import User
+from server.api.database.models import User, Student, Teacher
 from server import create_app, init_db
 
 
@@ -23,26 +23,32 @@ def app() -> flask.Flask:
         with app.app_context():
             db.init_app(app)
             init_db(db)
-            setup_db(db)
+            setup_db(app)
 
         yield app
 
 
-def setup_db(db_instance):
-    user = User(email='t@test.com', password='test', name='test', area='test')
-    user.save()
-
-
-@pytest.fixture
-def db_instance(app: flask.Flask):
+def setup_db(app):
     with app.app_context():
-        yield db
+        User(email='t@test.com', password='test', name='test', area='test').save()
+        User(email='admin@test.com', password='test', name='admin', area='test', is_admin=True).save()
+        teacher_user = User(email='teacher@test.com', password='test', name='teacher', area='test').save()
+        teacher = Teacher(user_id=teacher_user.id, price=100, phone="055555555",
+                          lesson_duration=40).save()
+        student_user = User(email='student@test.com', password='test', name='student', area='test').save()
+        Student(user_id=student_user.id, teacher_id=teacher.id).save()
 
 
 @pytest.fixture
 def user(app: flask.Flask):
     with app.app_context():
         yield User.query.filter_by(email='t@test.com').one()
+
+
+@pytest.fixture
+def admin(app: flask.Flask):
+    with app.app_context():
+        yield User.query.filter_by(email='admin@test.com').one()
 
 
 class Requester:
@@ -109,3 +115,15 @@ def requester(client):
 @pytest.fixture
 def auth(requester):
     return AuthActions(requester)
+
+
+@pytest.fixture
+def teacher(app):
+    with app.app_context():
+        yield Teacher.query.filter_by(user_id=3).one()
+
+
+@pytest.fixture
+def student(app):
+    with app.app_context():
+        yield Student.query.filter_by(user_id=4).one()

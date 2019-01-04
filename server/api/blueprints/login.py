@@ -5,7 +5,7 @@ import random
 import requests
 import re
 from flask import Blueprint
-from flask_login import login_required, login_user, current_user
+from flask_login import login_required, login_user, current_user, logout_user
 from sqlalchemy.orm.exc import NoResultFound
 
 from server.api.database.models import User, BlacklistToken, OAuth, Provider
@@ -75,6 +75,7 @@ def logout():
     blacklist_token = BlacklistToken(token=auth_token)
     # insert the token
     blacklist_token.save()
+    logout_user()
     return {"message": "Logged out successfully."}
 
 

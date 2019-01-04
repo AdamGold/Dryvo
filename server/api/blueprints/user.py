@@ -1,6 +1,6 @@
 import flask
 from flask import Blueprint
-from flask_login import current_user, login_required, logout_user
+from flask_login import current_user, login_required
 
 from server.api.utils import jsonify_response
 from server.error_handling import RouteError
@@ -58,6 +58,9 @@ def make_teacher():
     if not price or not phone:
         raise RouteError("Empty fields.")
 
+    if price <= 0:
+        raise RouteError("Price must be above 0.")
+
     teacher = Teacher(
         user_id=user_id,
         price=price,
@@ -66,11 +69,3 @@ def make_teacher():
     )
     teacher.save()
     return {"message": "Teacher created successfully."}, 201
-
-
-@user_routes.route("/logout")
-@jsonify_response
-@login_required
-def logout():
-    logout_user()
-    return {"message": "Logout successfully."}
