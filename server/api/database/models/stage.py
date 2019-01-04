@@ -4,10 +4,10 @@ from server.api.database.mixins import (
     Column,
     Model,
     SurrogatePK,
-    db,
     relationship,
     reference_col,
 )
+from server.api.database import db
 from server.api.database.models import Topic
 
 from sqlalchemy.orm import backref

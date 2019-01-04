@@ -10,10 +10,10 @@ from server.api.database.mixins import (
     Column,
     Model,
     SurrogatePK,
-    db,
     relationship,
     reference_col,
 )
+from server.api.database import db
 from server.api.database.models import BlacklistToken
 from server.api.database.consts import TOKEN_EXPIRY
 from server.error_handling import TokenError

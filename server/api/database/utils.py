@@ -1,5 +1,5 @@
 from flask_sqlalchemy import BaseQuery
-from server.api.database.mixins import db
+from server.api.database import db
 
 from datetime import timedelta
 

@@ -4,7 +4,7 @@ import flask.testing
 import tempfile
 import json
 
-from server.extensions import db
+from server.api.database import db
 from server.api.database.models import User, Student, Teacher
 from server import create_app, init_db
 
@@ -40,15 +40,21 @@ def setup_db(app):
 
 
 @pytest.fixture
+def db_instance(app: flask.Flask):
+    with app.app_context():
+        yield db
+
+
+@pytest.fixture
 def user(app: flask.Flask):
     with app.app_context():
-        yield User.query.filter_by(email='t@test.com').one()
+        return User.query.filter_by(email='t@test.com').one()
 
 
 @pytest.fixture
 def admin(app: flask.Flask):
     with app.app_context():
-        yield User.query.filter_by(email='admin@test.com').one()
+        return User.query.filter_by(email='admin@test.com').one()
 
 
 class Requester:

@@ -48,11 +48,12 @@ def test_make_student_invalid_teacher(admin, user, auth, requester):
     assert resp.json.get("message") == "Teacher not found."
 
 
-def test_make_student_already_assigned(app, admin, student, teacher, auth, requester):
-    auth.login(admin.email, 'test')
-    resp = requester.post('/user/make_student',
-                          json={'user_id': student.user_id, 'teacher_id': 1})
-    assert resp.json.get("message") == "Already student or teacher."
-    resp = requester.post('/user/make_student',
-                          json={'user_id': teacher.user_id, 'teacher_id': 1})
-    assert resp.json.get("message") == "Already student or teacher."
+def test_make_student_already_assigned(app, admin, student, teacher, auth, requester, db_instance):
+    with app.app_context():
+        auth.login(admin.email, 'test')
+        resp = requester.post('/user/make_student',
+                              json={'user_id': student.user_id, 'teacher_id': 1})
+        assert resp.json.get("message") == "Already student or teacher."
+        resp = requester.post('/user/make_student',
+                              json={'user_id': teacher.user_id, 'teacher_id': 1})
+        assert resp.json.get("message") == "Already student or teacher."
