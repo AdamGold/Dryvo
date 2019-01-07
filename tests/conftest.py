@@ -71,6 +71,9 @@ class Requester:
     def put(self, url, **kwargs):
         return self.request("PUT", url, **kwargs)
 
+    def delete(self, url, **kwargs):
+        return self.request("DELETE", url, **kwargs)
+
     def request(self, method, url, **kwargs):
         # overwrite instance auth header with the params?
         if 'headers' in kwargs:

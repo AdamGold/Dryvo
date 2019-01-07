@@ -45,9 +45,9 @@ class Teacher(SurrogatePK, Model):
         if not requested_date:
             return available
         weekday = requested_date.isoweekday()
-        work_hours = self.work_days.filter_by(on_date=requested_date).all()
-        if not work_hours:
-            work_hours = self.work_days.filter_by(day=weekday).all()
+        work_days = self.work_days.filter_by(on_date=requested_date).all()
+        if not work_days:
+            work_days = self.work_days.filter_by(day=weekday).all()
         existing_lessons = self.lessons.filter(
             func.extract("day", Lesson.date) == requested_date.day
         ).filter(func.extract("month", Lesson.date) == requested_date.month)
@@ -55,8 +55,8 @@ class Teacher(SurrogatePK, Model):
             (lesson.date, lesson.date + timedelta(minutes=lesson.duration))
             for lesson in existing_lessons.filter(Lesson.student_id != None).all()
         ]
-        work_hours.sort(key=lambda x: x.from_hour)  # sort from early to late
-        for day in work_hours:
+        work_days.sort(key=lambda x: x.from_hour)  # sort from early to late
+        for day in work_days:
             hours = (
                 requested_date.replace(hour=day.from_hour, minute=day.from_minutes),
                 requested_date.replace(hour=day.to_hour, minute=day.to_minutes),

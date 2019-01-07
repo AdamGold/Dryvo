@@ -48,13 +48,23 @@ def new_work_day():
     day = data.get("day")
     if not isinstance(day, int):
         day = getattr(Day, day, 1)
+    date_input = data.get("on_date")
+    date = datetime.strptime(date_input, '%Y-%m-%d')
+    from_hour = max(min(data.get("from_hour"), 24), 0)
+    to_hour = max(min(data.get("to_hour"), 24), 0)
+    from_minutes = max(min(data.get("from_minutes"), 60), 0)
+    to_minutes = max(min(data.get("to_minutes"), 60), 0)
+    from_time = datetime.strptime(f"{from_hour}:{from_minutes}", "%H:%M")
+    to_time = datetime.strptime(f"{to_hour}:{to_minutes}", "%H:%M")
+    if from_time >= to_time:
+        raise RouteError("There must be a bigger difference between the two times.")
     day = WorkDay(
         day=day,
-        from_hour=max(min(data.get("from_hour"), 24), 0),
-        from_minutes=max(min(data.get("from_minutes"), 60), 0),
-        to_hour=max(min(data.get("to_hour"), 24), 0),
-        to_minutes=max(min(data.get("to_minutes"), 60), 0),
-        on_date=data.get("on_date"),
+        from_hour=from_hour,
+        from_minutes=from_minutes,
+        to_hour=to_hour,
+        to_minutes=to_minutes,
+        on_date=date,
     )
     current_user.teacher.work_days.append(day)
     day.save()
@@ -95,4 +105,4 @@ def delete_work_day(day_id):
 def available_hours(teacher_id):
     data = flask.request.get_json()
     teacher = Teacher.get_by_id(teacher_id)
-    return teacher.available_hours(datetime.strptime(data.get("date"), "%Y-%m-%d"))
+    return {'data': teacher.available_hours(datetime.strptime(data.get("date"), "%Y-%m-%d"))}
