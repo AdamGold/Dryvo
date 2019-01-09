@@ -9,6 +9,7 @@ from server.api.database import db
 from sqlalchemy.orm import backref
 from sqlalchemy import func
 from sqlalchemy.ext.hybrid import hybrid_method
+from loguru import logger
 
 from server.api.database.models import Lesson
 from server.api.utils import get_slots
@@ -45,9 +46,14 @@ class Teacher(SurrogatePK, Model):
         if not requested_date:
             return available
         weekday = requested_date.isoweekday()
-        work_days = self.work_days.filter_by(on_date=requested_date).all()
+        work_days = self.work_days.filter_by(
+            on_date=requested_date.date()).all()
+        logger.debug(
+            f"found these work days on the specific date: {work_days}")
         if not work_days:
             work_days = self.work_days.filter_by(day=weekday).all()
+            logger.debug(
+                f"No specific days found. Going with default {work_days}")
         existing_lessons = self.lessons.filter(
             func.extract("day", Lesson.date) == requested_date.day
         ).filter(func.extract("month", Lesson.date) == requested_date.month)
@@ -58,11 +64,14 @@ class Teacher(SurrogatePK, Model):
         work_days.sort(key=lambda x: x.from_hour)  # sort from early to late
         for day in work_days:
             hours = (
-                requested_date.replace(hour=day.from_hour, minute=day.from_minutes),
-                requested_date.replace(hour=day.to_hour, minute=day.to_minutes),
+                requested_date.replace(
+                    hour=day.from_hour, minute=day.from_minutes),
+                requested_date.replace(
+                    hour=day.to_hour, minute=day.to_minutes),
             )
             available.extend(
-                get_slots(hours, taken_lessons, timedelta(minutes=self.lesson_duration))
+                get_slots(hours, taken_lessons, timedelta(
+                    minutes=self.lesson_duration))
             )
 
         for lesson in existing_lessons.filter_by(student_id=None).all():
@@ -82,9 +91,11 @@ class Teacher(SurrogatePK, Model):
         if "deleted" in filter_args:
             deleted = True
         if filter_args.get("show") == "history":
-            lessons_query = lessons_query.filter(Lesson.date < datetime.today())
+            lessons_query = lessons_query.filter(
+                Lesson.date < datetime.today())
         else:
-            lessons_query = lessons_query.filter(Lesson.date > datetime.today())
+            lessons_query = lessons_query.filter(
+                Lesson.date > datetime.today())
 
         order_by_args = filter_args.get("order_by", "date desc").split()
         order_by = getattr(Lesson, order_by_args[0])

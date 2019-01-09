@@ -1,5 +1,6 @@
 import os
 import flask
+from loguru import logger
 
 from server.consts import DEBUG_MODE
 from server.app_config import Config
@@ -28,6 +29,7 @@ def create_app(**test_config):
     :param config: The configuration object to use.
     """
     flask_app = flask.Flask(__name__)
+    logger.debug("Starting Flask app")
     config = Config()
     config.update(test_config)
     flask_app.config.from_object(config)

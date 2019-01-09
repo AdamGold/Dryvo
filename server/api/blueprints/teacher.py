@@ -69,7 +69,7 @@ def new_work_day():
     current_user.teacher.work_days.append(day)
     day.save()
 
-    return {"message": "Day created successfully."}, 201
+    return {"message": "Day created successfully.", "data": day.to_dict()}, 201
 
 
 @teacher_routes.route("/work_days/<int:day_id>", methods=["POST"])

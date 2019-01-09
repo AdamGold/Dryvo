@@ -1,6 +1,7 @@
 import traceback
 import flask
 import werkzeug
+from loguru import logger
 
 from server.api.utils import jsonify_response
 from server.consts import DEBUG_MODE
@@ -15,12 +16,14 @@ def init_app(app):
 
 @jsonify_response
 def handle_verified_exception(e):
+    logger.debug(f"Exception! {e.msg}")
     return {"message": e.msg}, e.code
 
 
 @jsonify_response
 def handle_unverified_exception(e):
     msg = traceback.format_exc()
+    logger.error(msg)
     if not DEBUG_MODE:
         msg = "Something went wrong. Please try again later."
     data = {"message": msg}
@@ -29,6 +32,7 @@ def handle_unverified_exception(e):
 
 @jsonify_response
 def handle_not_found(e):
+    logger.debug(f"{flask.request.full_path} Not found! {e.msg}")
     return ({"message": f"Endpoint {flask.request.full_path} doesn't exist"},
             404)
 

@@ -26,6 +26,7 @@ def test_add_work_day(teacher, auth, requester):
     }
     resp = requester.post("/teacher/work_days", json=data)
     assert "Day created" in resp.json['message']
+    assert resp.json['data']
     assert resp.status_code == 201
     assert WorkDay.query.first().from_hour == data['from_hour']
 

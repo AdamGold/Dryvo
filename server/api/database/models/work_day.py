@@ -47,5 +47,5 @@ class WorkDay(SurrogatePK, Model):
             "day": self.day.name,
             "from_hour": self.from_hour,
             "to_hour": self.to_hour,
-            "on_date": self.date,
+            "on_date": self.on_date,
         }

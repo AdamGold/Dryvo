@@ -42,7 +42,6 @@ def test_blacklist_token(app, auth: AuthActions):
         blacklist_token = BlacklistToken(token=resp_login.json["auth_token"])
         blacklist_token.save()
         resp = auth.logout()
-        print(resp.json)
         assert "Token blacklisted" in str(resp.json)
 
 

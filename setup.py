@@ -20,7 +20,8 @@ setup(name='dryvo',
           'flask-sqlalchemy',
           'flask-script',
           'flask-session',
-          'pyjwt==1.4.2'
+          'pyjwt==1.4.2',
+          'loguru==0.2.4'
       ],
       tests_require=test_req,
       setup_requires=['pytest-runner==4.2'],

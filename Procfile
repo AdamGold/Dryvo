@@ -1,1 +1,1 @@
-web: gunicorn  --chdir ./dryvo/dryvo app:app
+web: gunicorn  --chdir ./server app:app
