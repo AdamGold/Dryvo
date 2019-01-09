@@ -32,7 +32,7 @@ def handle_unverified_exception(e):
 
 @jsonify_response
 def handle_not_found(e):
-    logger.debug(f"{flask.request.full_path} Not found! {e.msg}")
+    logger.debug(f"{flask.request.full_path} Not found!")
     return ({"message": f"Endpoint {flask.request.full_path} doesn't exist"},
             404)
 

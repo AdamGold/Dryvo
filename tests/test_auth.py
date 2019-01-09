@@ -1,7 +1,12 @@
 from tests import AuthActions
 from server.error_handling import RouteError, TokenError
 import pytest
+import flask
+import flask_login
+from urllib import parse
+
 from server.api.database.models import User, BlacklistToken
+from server.api.blueprints.login import handle_facebook
 
 
 def test_normal_register(app, auth: AuthActions):
@@ -31,6 +36,7 @@ def test_decode_auth_token(user):
 def test_logout(auth: AuthActions):
     login = auth.login()
     resp = auth.logout()
+    print(resp.__dict__)
     assert "Logged out successfully" in resp.json.get("message")
     # check that token was blacklisted
     assert login.json.get("auth_token") == BlacklistToken.query.first().token
@@ -66,5 +72,41 @@ def test_register_validate_input(auth: AuthActions, email, password, name, area,
     assert message in resp.json.get("message")
 
 
-def test_facebook_auth():
+def test_facebook_first_step(client, auth, requester):
+    with client:
+        auth.login()
+        resp = requester.get("/login/facebook")
+        assert resp.status_code == 302  # redirect
+        assert flask.session['state']
+        auth.logout()
+        assert flask_login.current_user.is_authenticated
+    assert not flask_login.current_user.is_authenticated
+
+
+"""def assert_facebook_redirect_url(url, user):
+    "Asserts that the url redirecting to the app is correctly formed"
+    url = parse.urlsplit(url)
+    url_args = dict(parse.parse_qsl(parse.urlsplit(url).query))
+    assert User.from_token(url_args["token"]) == user.id
+
+def test_login_with_facebook(client, requester):
+    with client:  # to keep the session
+        pass
+
+
+def test_register_with_facebook(client, requester):
     pass
+
+
+def test_assosicate_with_facebook(client, requester):
+    pass
+
+
+def test_remove_session(client, requester, auth):
+    with client:
+        auth.login()
+        resp = requester.get("/login/facebook")
+        print(resp.__dict__)
+        handle_facebook(state, code, "test")
+        assert not flask_login.current_user.is_authenticated
+"""
