@@ -4,10 +4,10 @@ from server.api.database.mixins import (
     Column,
     Model,
     SurrogatePK,
-    db,
     relationship,
     reference_col,
 )
+from server.api.database import db
 from server.api.database.utils import QueryWithSoftDelete
 
 from sqlalchemy.orm import backref
@@ -50,7 +50,7 @@ class Lesson(SurrogatePK, Model):
             "meetup": self.meetup,
             "is_approved": self.is_approved,
             "comments": self.comments,
-            "topic": self.topic.to_dict(),
+            "topic": self.topic.to_dict() if self.topic else [],
             "mark_topic": self.mark_topic,
             "created_at": self.created_at,
         }

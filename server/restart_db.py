@@ -1,4 +1,4 @@
-from server.extensions import db
+from server.api.database import db
 from server.app import create_app
 from server.api.database.models import *
 

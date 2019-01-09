@@ -10,12 +10,13 @@ from server.api.database.mixins import (
     Column,
     Model,
     SurrogatePK,
-    db,
     relationship,
     reference_col,
 )
+from server.api.database import db
 from server.api.database.models import BlacklistToken
 from server.api.database.consts import TOKEN_EXPIRY
+from server.error_handling import TokenError
 
 HASH_NAME = "sha1"
 HASH_ROUNDS = 1000
@@ -28,12 +29,14 @@ class User(UserMixin, SurrogatePK, Model):
     __tablename__ = "users"
     email = Column(db.String(80), unique=True, nullable=False)
     password = Column(db.String(120), nullable=True)
-    created_at = Column(db.DateTime, nullable=False, default=dt.datetime.utcnow)
-    last_login = Column(db.DateTime, nullable=False, default=dt.datetime.utcnow)
+    created_at = Column(db.DateTime, nullable=False,
+                        default=dt.datetime.utcnow)
+    last_login = Column(db.DateTime, nullable=False,
+                        default=dt.datetime.utcnow)
     salt = Column(db.String(80), nullable=False)
     name = Column(db.String(80), nullable=False)
     is_admin = Column(db.Boolean, nullable=False, default=False)
-    area = Column(db.String(80), nullable=False)
+    area = Column(db.String(80), nullable=True)
 
     def __init__(self, email, password="", **kwargs):
         if not password:
@@ -63,7 +66,7 @@ class User(UserMixin, SurrogatePK, Model):
         passhash = self._prepare_password(value, self.salt)[1]
         return passhash == self.password
 
-    def encode_auth_token(self, user_id):
+    def encode_auth_token(self):
         """
         Generates the Auth Token
         :return: string
@@ -72,14 +75,14 @@ class User(UserMixin, SurrogatePK, Model):
             payload = {
                 "exp": datetime.utcnow() + timedelta(days=TOKEN_EXPIRY),
                 "iat": datetime.utcnow(),
-                "sub": user_id,
+                "sub": self.id,
             }
             return jwt.encode(payload, os.environ["SECRET_JWT"], algorithm="HS256")
         except Exception as e:
             return e
 
     @staticmethod
-    def decode_auth_token(auth_token):
+    def from_token(auth_token):
         """
         Decodes the auth token
         :param auth_token:
@@ -89,13 +92,13 @@ class User(UserMixin, SurrogatePK, Model):
             payload = jwt.decode(auth_token, os.environ["SECRET_JWT"])
             is_blacklisted_token = BlacklistToken.check_blacklist(auth_token)
             if is_blacklisted_token:
-                return "Token blacklisted. Please log in again."
+                raise TokenError("Token blacklisted. Please log in again.")
             else:
                 return payload["sub"]
         except jwt.ExpiredSignatureError:
-            return "Signature expired. Please log in again."
+            raise TokenError("Signature expired. Please log in again.")
         except jwt.InvalidTokenError:
-            return "Invalid token. Please log in again."
+            raise TokenError("Invalid token. Please log in again.")
 
     def to_dict(self):
         return {

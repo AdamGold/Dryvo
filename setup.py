@@ -1,7 +1,7 @@
 from setuptools import setup, find_packages
 
-test_req = ['pytest-flask==0.14.0', 'pytest-cov==2.6.0',
-            'responses==0.9.0', "testing.postgresql"]
+test_req = ['pytest==4.0.2', 'pytest-flask==0.14.0', 'pytest-cov==2.6.0',
+            'responses==0.9.0', "coverage==4.5.2", "testing.postgresql"]
 
 setup(name='dryvo',
       version='0.2',
@@ -20,7 +20,8 @@ setup(name='dryvo',
           'flask-sqlalchemy',
           'flask-script',
           'flask-session',
-          'pyjwt==1.4.2'
+          'pyjwt==1.4.2',
+          'loguru==0.2.4'
       ],
       tests_require=test_req,
       setup_requires=['pytest-runner==4.2'],

@@ -5,11 +5,16 @@ from functools import wraps
 from datetime import datetime
 
 from server.api.database.consts import LESSONS_PER_PAGE, DAYS_PER_PAGE
-from server.api.utils import jsonify_response, RouteError, paginate
+from server.api.utils import jsonify_response, paginate
+from server.error_handling import RouteError
 from server.api.database.models import Stage, Topic, Student
 
 
 student_routes = Blueprint("student", __name__, url_prefix="/student")
+
+
+def init_app(app):
+    app.register_blueprint(student_routes)
 
 
 def student_required(func):

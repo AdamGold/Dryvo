@@ -2,15 +2,21 @@ import flask
 from flask import Blueprint
 from flask_login import current_user, login_required, logout_user
 from datetime import datetime
+from loguru import logger
 
 from server.api.database.consts import LESSONS_PER_PAGE
-from server.api.utils import jsonify_response, RouteError, paginate
+from server.api.utils import jsonify_response, paginate
+from server.error_handling import RouteError
 from server.api.database.models import Teacher, Lesson, Student
 from server.consts import DATE_FORMAT, DEBUG_MODE
 from server.api.blueprints import teacher_required
 
 
 lessons_routes = Blueprint("lessons", __name__, url_prefix="/lessons")
+
+
+def init_app(app):
+    app.register_blueprint(lessons_routes)
 
 
 def get_lesson_data():
@@ -25,6 +31,10 @@ def get_lesson_data():
         duration = current_user.student.teacher.lesson_duration
         student_id = current_user.student.id
         if date:
+            logger.debug(f"Available hours for teacher {current_user.student.teacher.id} "
+                         f"in date {date}:"
+                         f"{current_user.student.teacher.available_hours(date)}"
+                         )
             flag = False
             for lesson_tuple in current_user.student.teacher.available_hours(date):
                 if lesson_tuple[0] == date:
@@ -72,9 +82,9 @@ def lessons():
 def new_lesson():
     if not flask.request.get_json().get("date"):
         raise RouteError("Please insert the date of the lesson.")
-    lesson = Lesson(**get_lesson_data()).save()
+    lesson = Lesson.create(**get_lesson_data())
 
-    return {"message": "Lesson created successfully."}, 201
+    return {"message": "Lesson created successfully.", "data": lesson.to_dict()}, 201
 
 
 @lessons_routes.route("/<int:lesson_id>", methods=["DELETE"])

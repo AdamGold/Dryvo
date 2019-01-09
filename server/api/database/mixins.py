@@ -1,7 +1,7 @@
 """Database module, including the SQLAlchemy database object and DB-related utilities.
 from: https://github.com/sloria/cookiecutter-flask/
 """
-from server.extensions import db
+from server.api.database import db
 
 # Alias common SQLAlchemy names
 Column = db.Column
