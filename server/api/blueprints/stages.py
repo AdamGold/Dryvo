@@ -37,10 +37,10 @@ def new_topic():
     stage = Stage.get_by_id(data.get("stage_id"))
     if not stage:
         raise RouteError("Stage does not exist.")
-    topic = Topic(
+    topic = Topic.create(
         title=data.get("title"), stage_id=stage.id, order=data.get("order")
-    ).save()
-    return {"message": "Topic created successfully."}, 201
+    )
+    return {"message": "Topic created successfully.", "data": topic.to_dict()}, 201
 
 
 @stages_routes.route("/", methods=["POST"])
@@ -50,5 +50,5 @@ def new_stage():
     if not current_user.is_admin:
         raise RouteError("Admin required.")
     data = flask.request.get_json()
-    stage = Stage(title=data.get("title"), order=data.get("order")).save()
-    return {"message": "Stage created successfully."}, 201
+    stage = Stage.create(title=data.get("title"), order=data.get("order"))
+    return {"message": "Stage created successfully.", "data": stage.to_dict()}, 201

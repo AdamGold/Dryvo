@@ -64,3 +64,7 @@ def test_invalid_token(auth: AuthActions):
 def test_register_validate_input(auth: AuthActions, email, password, name, area, message):
     resp = auth.register(email=email, password=password, name=name, area=area)
     assert message in resp.json.get("message")
+
+
+def test_facebook_auth():
+    pass
