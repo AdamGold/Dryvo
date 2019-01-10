@@ -13,7 +13,7 @@ from server.api.database.models import User, BlacklistToken, OAuth, Provider
 from server.api.utils import jsonify_response
 from server.error_handling import RouteError, TokenError
 from server.extensions import login_manager
-from server.consts import DEBUG_MODE, MOBILE_LINK
+from server.consts import DEBUG_MODE, MOBILE_LINK, FACEBOOK_SCOPES
 
 login_routes = Blueprint("login", __name__, url_prefix="/login")
 
@@ -138,7 +138,7 @@ def oauth_facebook():
             os.environ["FACEBOOK_CLIENT_ID"],
             redirect,
             state,
-            os.environ["FACEBOOK_SCOPES"],
+            FACEBOOK_SCOPES,
         )
     )
     # Store the state so the callback can verify the auth server response.

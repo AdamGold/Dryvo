@@ -26,13 +26,11 @@ pipelines:
                           curl -n -X PATCH https://api.heroku.com/apps/$HEROKU_APP_NAME/config-vars
                           -d '{
                           "FLASK_ENV": "$FLASK_ENV",
-                          "DATABASE_URL": "$DATABASE_URL",
                           "FACEBOOK_CLIENT_ID": "$FACEBOOK_CLIENT_ID",
                           "FACEBOOK_CLIENT_SECRET": "$FACEBOOK_CLIENT_SECRET",                       
                           "FACEBOOK_SCOPES": "$FACEBOOK_SCOPES",
                           "FACEBOOK_TOKEN": "$FACEBOOK_TOKEN",
                           "FLASK_APP": "$FLASK_APP",
-                          "FLASK_DEBUG": "$FLASK_DEBUG",
                           "SECRET_JWT": "$SECRET_JWT"
                           }'
                           -H "Content-Type: application/json"
