@@ -14,6 +14,10 @@ pipelines:
     branches:
         master:
             - step:
+                  name: Build and Test
+                  script:
+                      - python setup.py test --addopts="--cov-config=./setup.cfg"
+            - step:
                   name: Migrate Database
                   script:
                       - python setup.py install
@@ -25,13 +29,13 @@ pipelines:
                       - >-
                           curl -n -X PATCH https://api.heroku.com/apps/$HEROKU_APP_NAME/config-vars
                           -d "{
-                          'FLASK_ENV': {{$FLASK_ENV}},
-                          'FACEBOOK_CLIENT_ID': $FACEBOOK_CLIENT_ID,
-                          'FACEBOOK_CLIENT_SECRET': $FACEBOOK_CLIENT_SECRET,
-                          'FACEBOOK_SCOPES': $FACEBOOK_SCOPES,
-                          'FACEBOOK_TOKEN': $FACEBOOK_TOKEN,
-                          'FLASK_APP': $FLASK_APP,
-                          'SECRET_JWT': $SECRET_JWT
+                          'FLASK_ENV': '$FLASK_ENV',
+                          'FACEBOOK_CLIENT_ID': '$FACEBOOK_CLIENT_ID',
+                          'FACEBOOK_CLIENT_SECRET': '$FACEBOOK_CLIENT_SECRET',
+                          'FACEBOOK_SCOPES': '$FACEBOOK_SCOPES',
+                          'FACEBOOK_TOKEN': '$FACEBOOK_TOKEN',
+                          'FLASK_APP': '$FLASK_APP',
+                          'SECRET_JWT': '$SECRET_JWT'
                           }"
                           -H "Content-Type: application/json"
                           -H "Accept: application/vnd.heroku+json; version=3"
