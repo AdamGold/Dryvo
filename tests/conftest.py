@@ -4,9 +4,9 @@ import flask.testing
 import tempfile
 import json
 
-from server.api.database import db
+from server.api.database import db, reset_db
 from server.api.database.models import User, Student, Teacher
-from server import create_app, init_db
+from server import create_app
 
 
 @pytest.fixture
@@ -22,7 +22,7 @@ def app() -> flask.Flask:
 
         with app.app_context():
             db.init_app(app)
-            init_db(db)
+            reset_db(db)
             setup_db(app)
 
         yield app
@@ -30,12 +30,16 @@ def app() -> flask.Flask:
 
 def setup_db(app):
     with app.app_context():
-        User(email='t@test.com', password='test', name='test', area='test').save()
-        User(email='admin@test.com', password='test', name='admin', area='test', is_admin=True).save()
-        teacher_user = User(email='teacher@test.com', password='test', name='teacher', area='test').save()
+        User(email='t@test.com', password='test',
+             name='test', area='test').save()
+        User(email='admin@test.com', password='test',
+             name='admin', area='test', is_admin=True).save()
+        teacher_user = User(email='teacher@test.com',
+                            password='test', name='teacher', area='test').save()
         teacher = Teacher(user_id=teacher_user.id, price=100, phone="055555555",
                           lesson_duration=40).save()
-        student_user = User(email='student@test.com', password='test', name='student', area='test').save()
+        student_user = User(email='student@test.com',
+                            password='test', name='student', area='test').save()
         Student(user_id=student_user.id, teacher_id=teacher.id).save()
 
 
