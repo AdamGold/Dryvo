@@ -14,6 +14,11 @@ pipelines:
     branches:
         master:
             - step:
+                  name: Migrate Database
+                  script:
+                      - python setup.py install
+                      - flask db upgrade
+            - step:
                   name: Push to Heroku
                   script:
                       - git push https://heroku:$HEROKU_API_KEY@git.heroku.com/$HEROKU_APP_NAME.git $BITBUCKET_BRANCH:master
