@@ -5,8 +5,13 @@ dryvo.egg-info
 
 *.pyc
 
-dryvo/dryvo/flask_session
+flask_session/
 
 .history/
 
 dist/
+build/
+
+.coverage
+tests/test-reports/
+.pytest_cache
