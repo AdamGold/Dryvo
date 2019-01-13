@@ -8,7 +8,7 @@ from server.consts import DATE_FORMAT
 
 def test_lessons(auth, teacher, student, requester):
     auth.login(email=student.user.email)
-    Lesson.create(teacher_id=teacher.id, student_id=student.id,
+    Lesson.create(teacher_id=teacher.id, student_id=student.id, creator_id=student.user.id,
                   duration=40, date=datetime(year=2018, month=11, day=27, hour=13, minute=00))
     resp = requester.get("/lessons/")
     assert isinstance(resp.json['data'], list)
@@ -39,7 +39,7 @@ def test_new_lesson(auth, teacher, student, requester):
 def test_delete_lesson(auth, teacher, student, requester):
     auth.login(email=student.user.email)
     lesson = Lesson.create(teacher_id=teacher.id, student_id=student.id,
-                           duration=40, date=datetime.now())
+                           creator_id=student.user.id, duration=40, date=datetime.now())
     resp = requester.delete(f"/lessons/{lesson.id}")
     assert "successfully" in resp.json['message']
 
@@ -47,7 +47,7 @@ def test_delete_lesson(auth, teacher, student, requester):
 def test_approve_lesson(auth, teacher, student, requester):
     auth.login(email=teacher.user.email)
     lesson = Lesson.create(teacher_id=teacher.id, student_id=student.id,
-                           duration=40, date=datetime.now())
+                           creator_id=teacher.user.id, duration=40, date=datetime.now())
     resp = requester.get(f"/lessons/{lesson.id}/approve")
     assert "approved" in resp.json['message']
     resp = requester.get(f"/lessons/7/approve")

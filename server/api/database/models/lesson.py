@@ -11,6 +11,7 @@ from server.api.database import db
 from server.api.database.utils import QueryWithSoftDelete
 
 from sqlalchemy.orm import backref
+from flask_login import current_user
 
 
 class Lesson(SurrogatePK, Model):
@@ -19,22 +20,30 @@ class Lesson(SurrogatePK, Model):
     __tablename__ = "lessons"
     query_class = QueryWithSoftDelete
     teacher_id = reference_col("teachers", nullable=False)
-    teacher = relationship("Teacher", backref=backref("lessons", lazy="dynamic"))
+    teacher = relationship(
+        "Teacher", backref=backref("lessons", lazy="dynamic"))
     student_id = reference_col("students", nullable=True)
-    student = relationship("Student", backref=backref("lessons", lazy="dynamic"))
+    student = relationship(
+        "Student", backref=backref("lessons", lazy="dynamic"))
     topic_id = reference_col("topics", nullable=True)
     topic = relationship("Topic")
     duration = Column(db.Integer, nullable=False)
     date = Column(db.DateTime, nullable=False)
-    created_at = Column(db.DateTime, nullable=False, default=dt.datetime.utcnow)
+    created_at = Column(db.DateTime, nullable=False,
+                        default=dt.datetime.utcnow)
     meetup = Column(db.String, nullable=True)
     is_approved = Column(db.Boolean, nullable=False, default=True)
     comments = Column(db.Text, nullable=True)
     mark_topic = Column(db.Boolean, default=False, nullable=False)
     deleted = Column(db.Boolean, nullable=False, default=False)
+    creator_id = reference_col(
+        "users", nullable=False)
+    creator = relationship("User")
 
     def __init__(self, **kwargs):
         """Create instance."""
+        if not kwargs.get('creator_id') and current_user.is_authenticated:
+            self.creator_id = current_user.id
         db.Model.__init__(self, **kwargs)
 
     def update_only_changed_fields(self, **kwargs):

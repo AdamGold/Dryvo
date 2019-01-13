@@ -10,7 +10,7 @@ from server.error_handling import RouteError
 from server.api.database.models import Teacher, Lesson, Student
 from server.consts import DATE_FORMAT, DEBUG_MODE
 from server.api.blueprints import teacher_required
-
+from server.api.push_notifications import get_fcm_service
 
 lessons_routes = Blueprint("lessons", __name__, url_prefix="/lessons")
 
@@ -82,9 +82,17 @@ def lessons():
 def new_lesson():
     if not flask.request.get_json().get("date"):
         raise RouteError("Please insert the date of the lesson.")
-    lesson = Lesson.create(**get_lesson_data())
-    # TODO send notification to student / teacher
 
+    lesson = Lesson.create(**get_lesson_data())
+    # send to the user who wasn't the one creating the lesson
+    user_to_send_to = lesson.teacher.user
+    if lesson.creator == lesson.teacher.user:
+        user_to_send_to = lesson.student.user
+    if user_to_send_to.firebase_token:
+        get_fcm_service().notify_single_device(
+            registration_id=user_to_send_to.firebase_token,
+            message_title="New Lesson",
+            message_body=f"New lesson at {lesson.date}")
     return {"message": "Lesson created successfully.", "data": lesson.to_dict()}, 201
 
 
@@ -102,7 +110,14 @@ def delete_lesson(lesson_id):
 
     lesson.update(deleted=True)
 
-    # TODO send notification
+    user_to_send_to = lesson.teacher.user
+    if current_user == lesson.teacher.user:
+        user_to_send_to = lesson.student.user
+    if user_to_send_to.firebase_token:
+        get_fcm_service().notify_single_device(
+            registration_id=user_to_send_to.firebase_token,
+            message_title="Lesson Deleted",
+            message_body=f"The lesson at {lesson.date} has been deleted.")
 
     return {"message": "Lesson deleted successfully."}
 
@@ -125,7 +140,14 @@ def update_lesson(lesson_id):
 
     lesson.update_only_changed_fields()
 
-    # TODO send notification
+    user_to_send_to = lesson.teacher.user
+    if current_user.user == lesson.teacher.user:
+        user_to_send_to = lesson.student.user
+    if user_to_send_to.firebase_token:
+        get_fcm_service().notify_single_device(
+            registration_id=user_to_send_to.firebase_token,
+            message_title="Lesson Updated",
+            message_body=f"Lesson with {lesson.student.user.name} updated to {lesson.date}")
 
     return {"message": "Lesson updated successfully."}
 
@@ -140,6 +162,10 @@ def approve_lesson(lesson_id):
         raise RouteError("Lesson does not exist", 404)
     lesson.update(is_approved=True)
 
-    # TODO send notification to student
+    if lesson.student.user.firebase_token:
+        get_fcm_service().notify_single_device(
+            registration_id=lesson.student.user.firebase_token,
+            message_title="Lesson Approved",
+            message_body=f"Lesson at {lesson.date} has been approved!")
 
     return {"message": "Lesson approved."}
