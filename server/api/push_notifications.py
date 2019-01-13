@@ -1,7 +1,7 @@
 from pyfcm import FCMNotification
 from flask import current_app
 from flask import _app_ctx_stack as stack
-from server.api.utils import RouteError
+from server.error_handling import RouteError
 
 
 class NotificationError(RouteError):
@@ -20,15 +20,14 @@ class FCM(object):
 
     def notify_single_device(self, *args, **kwargs):
         response = self.service.notify_single_device(*args, **kwargs)
-        if int(response['failure']) > 0:
-            self._handle_failure()
+        self._handle_failure(response.get('failure'))
         return response
 
     def notify_multiple_devices(self, *args, **kwargs):
         response = self.service.notify_multiple_devices(*args, **kwargs)
-        if int(response['failure']) > 0:
-            self._handle_failure()
+        self._handle_failure(response.get('failure'))
         return response
 
-    def _handle_failure(self):
-        raise NotificationError("Failed to send notification")
+    def _handle_failure(self, error):
+        if error:
+            raise NotificationError(error)
