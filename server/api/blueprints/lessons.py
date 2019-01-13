@@ -83,6 +83,7 @@ def new_lesson():
     if not flask.request.get_json().get("date"):
         raise RouteError("Please insert the date of the lesson.")
     lesson = Lesson.create(**get_lesson_data())
+    # TODO send notification to student / teacher
 
     return {"message": "Lesson created successfully.", "data": lesson.to_dict()}, 201
 
@@ -100,6 +101,8 @@ def delete_lesson(lesson_id):
         raise RouteError("Lesson does not exist.")
 
     lesson.update(deleted=True)
+
+    # TODO send notification
 
     return {"message": "Lesson deleted successfully."}
 
@@ -122,6 +125,8 @@ def update_lesson(lesson_id):
 
     lesson.update_only_changed_fields()
 
+    # TODO send notification
+
     return {"message": "Lesson updated successfully."}
 
 
@@ -134,5 +139,7 @@ def approve_lesson(lesson_id):
     if not lesson:
         raise RouteError("Lesson does not exist", 404)
     lesson.update(is_approved=True)
+
+    # TODO send notification to student
 
     return {"message": "Lesson approved."}
