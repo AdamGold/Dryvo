@@ -15,12 +15,14 @@ from server.api.blueprints import (
 from server.extensions import login_manager
 from server.api.database import database
 from server import error_handling
+from server.api import push_notifications
 
 
 def register_extensions_and_blueprints(flask_app):
     """Register Flask extensions and blueprints (each has init_app method)."""
     for module in (database, login_manager, error_handling, login,
-                   lessons, stages, user, teacher, student):
+                   lessons, stages, user, teacher,
+                   student, push_notifications):
         module.init_app(flask_app)
 
 

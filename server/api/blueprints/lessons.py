@@ -10,7 +10,7 @@ from server.error_handling import RouteError
 from server.api.database.models import Teacher, Lesson, Student
 from server.consts import DATE_FORMAT, DEBUG_MODE
 from server.api.blueprints import teacher_required
-from server.api.push_notifications import get_fcm_service
+from server.api.push_notifications import FCM
 
 lessons_routes = Blueprint("lessons", __name__, url_prefix="/lessons")
 
@@ -89,10 +89,10 @@ def new_lesson():
     if lesson.creator == lesson.teacher.user and lesson.student:
         user_to_send_to = lesson.student.user
     if user_to_send_to.firebase_token:
-        get_fcm_service().notify_single_device(
-            registration_id=user_to_send_to.firebase_token,
-            message_title="New Lesson",
-            message_body=f"New lesson at {lesson.date}")
+        FCM.notify(
+            token=user_to_send_to.firebase_token,
+            title="New Lesson",
+            body=f"New lesson at {lesson.date}")
     return {"message": "Lesson created successfully.", "data": lesson.to_dict()}, 201
 
 
@@ -114,10 +114,10 @@ def delete_lesson(lesson_id):
     if current_user == lesson.teacher.user:
         user_to_send_to = lesson.student.user
     if user_to_send_to.firebase_token:
-        get_fcm_service().notify_single_device(
-            registration_id=user_to_send_to.firebase_token,
-            message_title="Lesson Deleted",
-            message_body=f"The lesson at {lesson.date} has been deleted.")
+        FCM.notify(
+            token=user_to_send_to.firebase_token,
+            title="Lesson Deleted",
+            body=f"The lesson at {lesson.date} has been deleted.")
 
     return {"message": "Lesson deleted successfully."}
 
@@ -140,10 +140,10 @@ def update_lesson(lesson_id):
     if current_user == lesson.teacher.user:
         user_to_send_to = lesson.student.user
     if user_to_send_to.firebase_token:
-        get_fcm_service().notify_single_device(
-            registration_id=user_to_send_to.firebase_token,
-            message_title="Lesson Updated",
-            message_body=f"Lesson with {lesson.student.user.name} updated to {lesson.date}")
+        FCM.notify(
+            token=user_to_send_to.firebase_token,
+            title="Lesson Updated",
+            body=f"Lesson with {lesson.student.user.name} updated to {lesson.date}")
 
     return {"message": "Lesson updated successfully.", "data": lesson.to_dict()}
 
@@ -159,9 +159,9 @@ def approve_lesson(lesson_id):
     lesson.update(is_approved=True)
 
     if lesson.student.user.firebase_token:
-        get_fcm_service().notify_single_device(
-            registration_id=lesson.student.user.firebase_token,
-            message_title="Lesson Approved",
-            message_body=f"Lesson at {lesson.date} has been approved!")
+        FCM.notify(
+            token=lesson.student.user.firebase_token,
+            title="Lesson Approved",
+            body=f"Lesson at {lesson.date} has been approved!")
 
     return {"message": "Lesson approved."}
