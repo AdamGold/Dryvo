@@ -47,7 +47,7 @@ class Lesson(SurrogatePK, Model):
         db.Model.__init__(self, **kwargs)
 
     def update_only_changed_fields(self, **kwargs):
-        args = {k: v for k, v in kwargs.items() if v}
+        args = {k: v for k, v in kwargs.items() if v or isinstance(v, bool)}
         self.update(**args)
 
     def to_dict(self):

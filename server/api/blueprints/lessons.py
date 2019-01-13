@@ -86,7 +86,7 @@ def new_lesson():
     lesson = Lesson.create(**get_lesson_data())
     # send to the user who wasn't the one creating the lesson
     user_to_send_to = lesson.teacher.user
-    if lesson.creator == lesson.teacher.user:
+    if lesson.creator == lesson.teacher.user and lesson.student:
         user_to_send_to = lesson.student.user
     if user_to_send_to.firebase_token:
         get_fcm_service().notify_single_device(
@@ -134,14 +134,10 @@ def update_lesson(lesson_id):
     if not lesson:
         raise RouteError("Lesson does not exist", 404)
 
-    for k, v in get_lesson_data().items():
-        if v:
-            setattr(lesson, k, v)
-
-    lesson.update_only_changed_fields()
+    lesson.update_only_changed_fields(**get_lesson_data())
 
     user_to_send_to = lesson.teacher.user
-    if current_user.user == lesson.teacher.user:
+    if current_user == lesson.teacher.user:
         user_to_send_to = lesson.student.user
     if user_to_send_to.firebase_token:
         get_fcm_service().notify_single_device(
@@ -149,7 +145,7 @@ def update_lesson(lesson_id):
             message_title="Lesson Updated",
             message_body=f"Lesson with {lesson.student.user.name} updated to {lesson.date}")
 
-    return {"message": "Lesson updated successfully."}
+    return {"message": "Lesson updated successfully.", "data": lesson.to_dict()}
 
 
 @lessons_routes.route("/<int:lesson_id>/approve", methods=["GET"])

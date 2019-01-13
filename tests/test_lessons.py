@@ -16,7 +16,7 @@ def test_lessons(auth, teacher, student, requester):
     assert 'prev_url' in resp.json
 
 
-def test_new_lesson(auth, teacher, student, requester):
+def test_student_new_lesson(auth, teacher, student, requester):
     auth.login(email=student.user.email)
     date = "2018-11-27T13:00Z"
     kwargs = {
@@ -36,6 +36,15 @@ def test_new_lesson(auth, teacher, student, requester):
     assert not resp.json['data']['is_approved']
 
 
+def test_teacher_new_lesson(auth, teacher, student, requester):
+    auth.login(email=teacher.user.email)
+    date = "2018-11-27T13:00Z"
+    resp = requester.post("/lessons/",
+                          json={'date': date})
+    assert 'successfully' in resp.json['message']
+    assert resp.json['data']['is_approved']
+
+
 def test_delete_lesson(auth, teacher, student, requester):
     auth.login(email=student.user.email)
     lesson = Lesson.create(teacher_id=teacher.id, student_id=student.id,
@@ -53,3 +62,14 @@ def test_approve_lesson(auth, teacher, student, requester):
     resp = requester.get(f"/lessons/7/approve")
     assert "not exist" in resp.json['message']
     assert lesson.is_approved
+
+
+def test_user_edit_lesson(app, auth, student, teacher, requester):
+    """ test that is_approved turns false when user edits lesson"""
+    auth.login(email=student.user.email)
+    lesson = Lesson.create(teacher_id=teacher.id, student_id=student.id,
+                           creator_id=student.user.id, duration=40, date=datetime.now())
+    resp = requester.post(f"/lessons/{lesson.id}",
+                          json={'meetup': 'nowhere'})
+    assert 'successfully' in resp.json['message']
+    assert not resp.json['data']['is_approved']
