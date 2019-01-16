@@ -78,7 +78,8 @@ def test_available_hours(teacher, student, auth, requester):
     # now let's add a lesson
     Lesson.create(teacher_id=teacher.id, student_id=student.id,
                   creator_id=teacher.user.id, duration=40,
-                  date=datetime.strptime(time_and_date, DATE_FORMAT))
+                  date=datetime.strptime(time_and_date, DATE_FORMAT),
+                  meetup='test', dropoff='test')
     resp = requester.post(f"/teacher/{teacher.id}/available_hours",
                           json={'date': date})
     assert isinstance(resp.json['data'], list)

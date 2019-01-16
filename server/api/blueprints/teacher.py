@@ -35,7 +35,8 @@ def teacher_required(func):
 @paginate
 def work_days():
     page = flask.request.args.get("page", 1, type=int)
-    pagination = current_user.teacher.work_days.paginate(page, DAYS_PER_PAGE, False)
+    pagination = current_user.teacher.work_days.paginate(
+        page, DAYS_PER_PAGE, False)
     return pagination
 
 
@@ -57,7 +58,8 @@ def new_work_day():
     from_time = datetime.strptime(f"{from_hour}:{from_minutes}", "%H:%M")
     to_time = datetime.strptime(f"{to_hour}:{to_minutes}", "%H:%M")
     if from_time >= to_time:
-        raise RouteError("There must be a bigger difference between the two times.")
+        raise RouteError(
+            "There must be a bigger difference between the two times.")
     day = WorkDay(
         day=day,
         from_hour=from_hour,
@@ -105,4 +107,4 @@ def delete_work_day(day_id):
 def available_hours(teacher_id):
     data = flask.request.get_json()
     teacher = Teacher.get_by_id(teacher_id)
-    return {'data': teacher.available_hours(datetime.strptime(data.get("date"), "%Y-%m-%d"))}
+    return {'data': list(teacher.available_hours(datetime.strptime(data.get("date"), "%Y-%m-%d")))}

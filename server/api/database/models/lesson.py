@@ -26,7 +26,8 @@ class Lesson(SurrogatePK, Model):
     date = Column(db.DateTime, nullable=False)
     created_at = Column(db.DateTime, nullable=False,
                         default=dt.datetime.utcnow)
-    meetup = Column(db.String, nullable=True)
+    meetup = Column(db.String, nullable=False)
+    dropoff = Column(db.String, nullable=False)
     is_approved = Column(db.Boolean, nullable=False, default=True)
     comments = Column(db.Text, nullable=True)
     mark_topic = Column(db.Boolean, default=False, nullable=False)

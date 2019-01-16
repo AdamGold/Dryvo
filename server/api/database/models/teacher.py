@@ -64,17 +64,11 @@ class Teacher(SurrogatePK, Model):
                 requested_date.replace(
                     hour=day.to_hour, minute=day.to_minutes),
             )
-            available.extend(
-                get_slots(hours, taken_lessons, timedelta(
-                    minutes=self.lesson_duration))
-            )
+            yield from get_slots(hours, taken_lessons, timedelta(
+                minutes=self.lesson_duration))
 
         for lesson in existing_lessons.filter_by(student_id=None).all():
-            available.append(
-                (lesson.date, lesson.date + timedelta(minutes=lesson.duration))
-            )
-
-        return sorted(available)
+            yield (lesson.date, lesson.date + timedelta(minutes=lesson.duration))
 
     @hybrid_method
     def filter_lessons(self, filter_args):

@@ -50,6 +50,7 @@ def get_lesson_data():
     return {
         "date": date,
         "meetup": data.get("meetup"),
+        "dropoff": data.get("dropoff"),
         "student_id": student_id,
         "teacher_id": teacher_id,
         "duration": duration,
