@@ -3,6 +3,7 @@ from flask import Blueprint
 from flask_login import current_user, login_required, logout_user
 from datetime import datetime
 from loguru import logger
+import itertools
 
 from server.api.database.consts import LESSONS_PER_PAGE
 from server.api.utils import jsonify_response, paginate
@@ -35,11 +36,10 @@ def get_lesson_data():
                          f"in date {date}:"
                          f"{current_user.student.teacher.available_hours(date)}"
                          )
-            flag = False
-            for lesson_tuple in current_user.student.teacher.available_hours(date):
-                if lesson_tuple[0] == date:
-                    flag = True
-            if not flag:
+            available_hours = itertools.takewhile(
+                lambda hour_with_date: hour_with_date[0] == date,
+                current_user.student.teacher.available_hours(date))
+            if not list(available_hours):
                 raise RouteError("This hour is not available.")
         teacher_id = current_user.student.teacher.id
     elif current_user.teacher:
