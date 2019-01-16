@@ -1,21 +1,17 @@
 import binascii
-import jwt
 import datetime as dt
 import hashlib
 import os
 from datetime import datetime, timedelta
+
+import jwt
 from flask_login import UserMixin
 
-from server.api.database.mixins import (
-    Column,
-    Model,
-    SurrogatePK,
-    relationship,
-    reference_col,
-)
 from server.api.database import db
-from server.api.database.models import BlacklistToken
 from server.api.database.consts import TOKEN_EXPIRY
+from server.api.database.mixins import (Column, Model, SurrogatePK,
+                                        reference_col, relationship)
+from server.api.database.models import BlacklistToken
 from server.error_handling import TokenError
 
 HASH_NAME = "sha1"
