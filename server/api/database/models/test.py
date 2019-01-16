@@ -1,15 +1,10 @@
 import datetime as dt
 
-from server.api.database.mixins import (
-    Column,
-    Model,
-    SurrogatePK,
-    relationship,
-    reference_col,
-)
-from server.api.database import db
-
 from sqlalchemy.orm import backref
+
+from server.api.database import db
+from server.api.database.mixins import (Column, Model, SurrogatePK,
+                                        reference_col, relationship)
 
 
 class Test(SurrogatePK, Model):
@@ -21,7 +16,8 @@ class Test(SurrogatePK, Model):
     result = Column(db.Boolean, default=False, nullable=False)
     content = Column(db.Text, nullable=True)
     time = Column(db.DateTime, nullable=False, default=dt.datetime.utcnow)
-    created_at = Column(db.DateTime, nullable=False, default=dt.datetime.utcnow)
+    created_at = Column(db.DateTime, nullable=False,
+                        default=dt.datetime.utcnow)
 
     def __init__(self, **kwargs):
         """Create instance."""

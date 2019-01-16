@@ -1,20 +1,15 @@
-from server.api.database.mixins import (
-    Column,
-    Model,
-    SurrogatePK,
-    relationship,
-    reference_col,
-)
-from server.api.database import db
-from sqlalchemy.orm import backref
+from datetime import datetime, timedelta
+
+from loguru import logger
 from sqlalchemy import func
 from sqlalchemy.ext.hybrid import hybrid_method
-from loguru import logger
+from sqlalchemy.orm import backref
 
+from server.api.database import db
+from server.api.database.mixins import (Column, Model, SurrogatePK,
+                                        reference_col, relationship)
 from server.api.database.models import Lesson
 from server.api.utils import get_slots
-
-from datetime import datetime, timedelta
 
 
 class Teacher(SurrogatePK, Model):

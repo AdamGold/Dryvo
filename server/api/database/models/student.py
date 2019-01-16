@@ -1,18 +1,13 @@
 import os
 from datetime import datetime
 
-from server.api.database.mixins import (
-    Column,
-    Model,
-    SurrogatePK,
-    relationship,
-    reference_col,
-)
-from server.api.database import db
-from server.api.database.models import Lesson
-
-from sqlalchemy.orm import backref
 from sqlalchemy.ext.hybrid import hybrid_method
+from sqlalchemy.orm import backref
+
+from server.api.database import db
+from server.api.database.mixins import (Column, Model, SurrogatePK,
+                                        reference_col, relationship)
+from server.api.database.models import Lesson
 
 
 class Student(SurrogatePK, Model):
@@ -20,7 +15,8 @@ class Student(SurrogatePK, Model):
 
     __tablename__ = "students"
     teacher_id = reference_col("teachers", nullable=False)
-    teacher = relationship("Teacher", backref=backref("students", lazy="dynamic"))
+    teacher = relationship(
+        "Teacher", backref=backref("students", lazy="dynamic"))
     user_id = reference_col("users", nullable=False)
     user = relationship(
         "User", backref=backref("student", uselist=False), uselist=False
@@ -34,9 +30,11 @@ class Student(SurrogatePK, Model):
     def filter_lessons(self, filter_args):
         lessons_query = self.lessons
         if filter_args.get("show") == "history":
-            lessons_query = lessons_query.filter(Lesson.date < datetime.today())
+            lessons_query = lessons_query.filter(
+                Lesson.date < datetime.today())
         else:
-            lessons_query = lessons_query.filter(Lesson.date > datetime.today())
+            lessons_query = lessons_query.filter(
+                Lesson.date > datetime.today())
 
         order_by_args = filter_args.get("order_by", "date desc").split()
         order_by = getattr(Lesson, order_by_args[0])

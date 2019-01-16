@@ -1,17 +1,12 @@
 import datetime as dt
 
-from server.api.database.mixins import (
-    Column,
-    Model,
-    SurrogatePK,
-    relationship,
-    reference_col,
-)
-from server.api.database import db
-from server.api.database.utils import QueryWithSoftDelete
-
-from sqlalchemy.orm import backref
 from flask_login import current_user
+from sqlalchemy.orm import backref
+
+from server.api.database import db
+from server.api.database.mixins import (Column, Model, SurrogatePK,
+                                        reference_col, relationship)
+from server.api.database.utils import QueryWithSoftDelete
 
 
 class Lesson(SurrogatePK, Model):

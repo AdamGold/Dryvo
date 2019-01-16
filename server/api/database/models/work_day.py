@@ -1,16 +1,12 @@
 import datetime as dt
+import enum
 
-from server.api.database.mixins import (
-    Column,
-    Model,
-    SurrogatePK,
-    relationship,
-    reference_col,
-)
-from server.api.database import db
 from sqlalchemy.orm import backref
 from sqlalchemy_utils import ChoiceType
-import enum
+
+from server.api.database import db
+from server.api.database.mixins import (Column, Model, SurrogatePK,
+                                        reference_col, relationship)
 
 
 class Day(enum.Enum):
@@ -28,7 +24,8 @@ class WorkDay(SurrogatePK, Model):
 
     __tablename__ = "work_days"
     teacher_id = reference_col("teachers", nullable=False)
-    teacher = relationship("Teacher", backref=backref("work_days", lazy="dynamic"))
+    teacher = relationship(
+        "Teacher", backref=backref("work_days", lazy="dynamic"))
     day = Column(ChoiceType(Day, impl=db.Integer()), nullable=False)
     from_hour = Column(db.Integer, nullable=False)
     from_minutes = Column(db.Integer, nullable=False, default=0)
