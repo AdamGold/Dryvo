@@ -15,3 +15,4 @@ build/
 .coverage
 tests/test-reports/
 .pytest_cache
+firebase_cred.json

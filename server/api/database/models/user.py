@@ -37,6 +37,7 @@ class User(UserMixin, SurrogatePK, Model):
     name = Column(db.String(80), nullable=False)
     is_admin = Column(db.Boolean, nullable=False, default=False)
     area = Column(db.String(80), nullable=True)
+    firebase_token = Column(db.Text, nullable=True)
 
     def __init__(self, email, password="", **kwargs):
         if not password:

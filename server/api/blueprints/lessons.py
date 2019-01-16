@@ -10,7 +10,7 @@ from server.error_handling import RouteError
 from server.api.database.models import Teacher, Lesson, Student
 from server.consts import DATE_FORMAT, DEBUG_MODE
 from server.api.blueprints import teacher_required
-
+from server.api.push_notifications import FCM
 
 lessons_routes = Blueprint("lessons", __name__, url_prefix="/lessons")
 
@@ -82,8 +82,17 @@ def lessons():
 def new_lesson():
     if not flask.request.get_json().get("date"):
         raise RouteError("Please insert the date of the lesson.")
-    lesson = Lesson.create(**get_lesson_data())
 
+    lesson = Lesson.create(**get_lesson_data())
+    # send to the user who wasn't the one creating the lesson
+    user_to_send_to = lesson.teacher.user
+    if lesson.creator == lesson.teacher.user and lesson.student:
+        user_to_send_to = lesson.student.user
+    if user_to_send_to.firebase_token:
+        FCM.notify(
+            token=user_to_send_to.firebase_token,
+            title="New Lesson",
+            body=f"New lesson at {lesson.date}")
     return {"message": "Lesson created successfully.", "data": lesson.to_dict()}, 201
 
 
@@ -101,6 +110,15 @@ def delete_lesson(lesson_id):
 
     lesson.update(deleted=True)
 
+    user_to_send_to = lesson.teacher.user
+    if current_user == lesson.teacher.user:
+        user_to_send_to = lesson.student.user
+    if user_to_send_to.firebase_token:
+        FCM.notify(
+            token=user_to_send_to.firebase_token,
+            title="Lesson Deleted",
+            body=f"The lesson at {lesson.date} has been deleted.")
+
     return {"message": "Lesson deleted successfully."}
 
 
@@ -116,13 +134,18 @@ def update_lesson(lesson_id):
     if not lesson:
         raise RouteError("Lesson does not exist", 404)
 
-    for k, v in get_lesson_data().items():
-        if v:
-            setattr(lesson, k, v)
+    lesson.update_only_changed_fields(**get_lesson_data())
 
-    lesson.update_only_changed_fields()
+    user_to_send_to = lesson.teacher.user
+    if current_user == lesson.teacher.user:
+        user_to_send_to = lesson.student.user
+    if user_to_send_to.firebase_token:
+        FCM.notify(
+            token=user_to_send_to.firebase_token,
+            title="Lesson Updated",
+            body=f"Lesson with {lesson.student.user.name} updated to {lesson.date}")
 
-    return {"message": "Lesson updated successfully."}
+    return {"message": "Lesson updated successfully.", "data": lesson.to_dict()}
 
 
 @lessons_routes.route("/<int:lesson_id>/approve", methods=["GET"])
@@ -134,5 +157,11 @@ def approve_lesson(lesson_id):
     if not lesson:
         raise RouteError("Lesson does not exist", 404)
     lesson.update(is_approved=True)
+
+    if lesson.student.user.firebase_token:
+        FCM.notify(
+            token=lesson.student.user.firebase_token,
+            title="Lesson Approved",
+            body=f"Lesson at {lesson.date} has been approved!")
 
     return {"message": "Lesson approved."}

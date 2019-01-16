@@ -74,10 +74,11 @@ def test_available_hours(teacher, student, auth, requester):
         "to_minutes": 0,
         "on_date": date
     }
-    requester.post("/teacher/work_days", json=data) # we add a day
+    requester.post("/teacher/work_days", json=data)  # we add a day
     # now let's add a lesson
     Lesson.create(teacher_id=teacher.id, student_id=student.id,
-                  duration=40, date=datetime.strptime(time_and_date, DATE_FORMAT))
+                  creator_id=teacher.user.id, duration=40,
+                  date=datetime.strptime(time_and_date, DATE_FORMAT))
     resp = requester.post(f"/teacher/{teacher.id}/available_hours",
                           json={'date': date})
     assert isinstance(resp.json['data'], list)

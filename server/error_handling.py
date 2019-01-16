@@ -8,7 +8,7 @@ from server.consts import DEBUG_MODE
 
 
 def init_app(app):
-    for exception in (RouteError, TokenError):
+    for exception in (RouteError, TokenError, NotificationError):
         app.register_error_handler(exception, handle_verified_exception)
     app.register_error_handler(Exception, handle_unverified_exception)
     app.register_error_handler(404, handle_not_found)
@@ -47,3 +47,7 @@ class TokenError(RouteError):
     def __init__(self, msg):
         self.code = 401
         self.msg = msg
+
+
+class NotificationError(RouteError):
+    pass

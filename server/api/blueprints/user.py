@@ -69,3 +69,15 @@ def make_teacher():
     )
     teacher.save()
     return {"message": "Teacher created successfully."}, 201
+
+
+@user_routes.route("/register_token", methods=["POST"])
+@jsonify_response
+@login_required
+def register_token():
+    token = flask.request.get_json()['token']
+    if not token:
+        raise RouteError('Token is not valid.')
+
+    current_user.update(firebase_token=token)
+    return {'message': 'Token updated successfully.'}
