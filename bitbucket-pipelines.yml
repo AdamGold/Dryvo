@@ -9,18 +9,24 @@ pipelines:
     default:
         - step:
               name: Build and Test
+              caches:
+                  - pip
               script:
-                  - python setup.py test --addopts="--cov-config=./setup.cfg"
+                  - pip install -U .[test]
+                  - pytest --cov-config=./setup.cfg
+
     branches:
         master:
             - step:
+                  caches:
+                      - pip
                   name: Build and Test
                   script:
-                      - python setup.py test --addopts="--cov-config=./setup.cfg"
+                      - pip install -U .[test]
+                      - pytest --cov-config=./setup.cfg
             - step:
                   name: Migrate Database
                   script:
-                      - python setup.py install
                       - flask db upgrade
             - step:
                   name: Push to Heroku
