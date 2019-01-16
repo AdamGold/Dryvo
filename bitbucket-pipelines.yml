@@ -20,13 +20,10 @@ pipelines:
             - step:
                   caches:
                       - pip
-                  name: Build and Test
+                  name: Build, Test and Migrate
                   script:
                       - pip install -U .[test]
                       - pytest --cov-config=./setup.cfg
-            - step:
-                  name: Migrate Database
-                  script:
                       - flask db upgrade
             - step:
                   name: Push to Heroku
