@@ -1,7 +1,6 @@
-import os
 from datetime import datetime
 
-from sqlalchemy.ext.hybrid import hybrid_method
+from sqlalchemy.ext.hybrid import hybrid_method, hybrid_property
 from sqlalchemy.orm import backref
 
 from server.api.database import db
@@ -40,6 +39,14 @@ class Student(SurrogatePK, Model):
         order_by = getattr(Lesson, order_by_args[0])
         order_by = getattr(order_by, order_by_args[1])()
         return lessons_query.filter_by(deleted=False).order_by(order_by)
+
+    @hybrid_property
+    def common_meetup(self):
+        pass
+
+    @hybrid_property
+    def common_dropoff(self):
+        pass
 
     def to_dict(self):
         return {"id": self.id, "teacher_id": self.teacher_id, "user_id": self.user_id}

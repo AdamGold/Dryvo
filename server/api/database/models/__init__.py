@@ -9,3 +9,4 @@ from .teacher import Teacher
 from .test import Test
 from .user import User
 from .work_day import WorkDay, Day
+from .place import Place

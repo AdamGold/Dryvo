@@ -3,7 +3,7 @@ from server.api.database.models import WorkDay, Lesson
 from server.consts import DATE_FORMAT
 
 import pytest
-from datetime import datetime
+from datetime import datetime, timedelta
 
 
 def test_work_days(teacher, auth, requester):
@@ -62,7 +62,7 @@ def test_delete_work_day(teacher, auth, requester):
     assert "not exist" in resp.json['message']
 
 
-def test_available_hours(teacher, student, auth, requester):
+def test_available_hours_route(teacher, student, auth, requester):
     auth.login(email=teacher.user.email)
     date = "2018-11-27"
     time_and_date = date + "T13:30Z"
@@ -84,3 +84,21 @@ def test_available_hours(teacher, student, auth, requester):
                           json={'date': date})
     assert isinstance(resp.json['data'], list)
     assert "14:10" in resp.json['data'][0][0]
+
+
+def test_teacher_available_hours(auth, teacher, student, requester):
+    date = "2018-11-27"
+    time_and_date = date + "T13:30Z"
+    kwargs = {
+        "teacher_id": teacher.id,
+        "day": 1,
+        "from_hour": 13,
+        "from_minutes": 30,
+        "to_hour": 17,
+        "to_minutes": 0,
+        "on_date": datetime(year=2018, month=11, day=27)
+    }
+    WorkDay.create(**kwargs)
+    req_day = datetime.strptime(time_and_date, DATE_FORMAT)
+    assert next(teacher.available_hours(
+        req_day))[0] == req_day

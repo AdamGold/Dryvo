@@ -1,4 +1,5 @@
 from datetime import datetime, timedelta
+from typing import Iterable, Tuple
 
 from loguru import logger
 from sqlalchemy import func
@@ -31,7 +32,20 @@ class Teacher(SurrogatePK, Model):
         """Create instance."""
         db.Model.__init__(self, **kwargs)
 
-    def available_hours(self, requested_date):
+    def work_hours_for_date(self, date: datetime):
+        work_hours = self.work_days.filter_by(
+            on_date=date.date()).all()
+        if not work_hours:
+            weekday = date.isoweekday()
+            work_hours = self.work_days.filter_by(day=weekday).all()
+            logger.debug(
+                f"No specific days found. Going with default")
+
+        logger.debug(
+            f"found these work days on the specific date: {work_hours}")
+        return work_hours
+
+    def available_hours(self, requested_date: datetime) -> Iterable[Tuple[datetime, datetime]]:
         """
         1. calculate available hours - decrease existing lessons times from work hours
         2. calculate lesson hours from available hours by default lesson duration
@@ -40,15 +54,8 @@ class Teacher(SurrogatePK, Model):
         available = []
         if not requested_date:
             return available
-        weekday = requested_date.isoweekday()
-        work_days = self.work_days.filter_by(
-            on_date=requested_date.date()).all()
-        logger.debug(
-            f"found these work days on the specific date: {work_days}")
-        if not work_days:
-            work_days = self.work_days.filter_by(day=weekday).all()
-            logger.debug(
-                f"No specific days found. Going with default {work_days}")
+
+        work_hours = self.work_hours_for_date(requested_date)
         existing_lessons = self.lessons.filter(
             func.extract("day", Lesson.date) == requested_date.day
         ).filter(func.extract("month", Lesson.date) == requested_date.month)
@@ -56,8 +63,8 @@ class Teacher(SurrogatePK, Model):
             (lesson.date, lesson.date + timedelta(minutes=lesson.duration))
             for lesson in existing_lessons.filter(Lesson.student_id != None).all()
         ]
-        work_days.sort(key=lambda x: x.from_hour)  # sort from early to late
-        for day in work_days:
+        work_hours.sort(key=lambda x: x.from_hour)  # sort from early to late
+        for day in work_hours:
             hours = (
                 requested_date.replace(
                     hour=day.from_hour, minute=day.from_minutes),

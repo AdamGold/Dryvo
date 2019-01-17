@@ -32,14 +32,12 @@ def get_lesson_data():
         duration = current_user.student.teacher.lesson_duration
         student_id = current_user.student.id
         if date:
-            logger.debug(f"Available hours for teacher {current_user.student.teacher.id} "
-                         f"in date {date}:"
-                         f"{current_user.student.teacher.available_hours(date)}"
-                         )
             available_hours = itertools.takewhile(
                 lambda hour_with_date: hour_with_date[0] == date,
                 current_user.student.teacher.available_hours(date))
-            if not list(available_hours):
+            try:
+                next(available_hours)
+            except StopIteration:
                 raise RouteError("This hour is not available.")
         teacher_id = current_user.student.teacher.id
     elif current_user.teacher:
