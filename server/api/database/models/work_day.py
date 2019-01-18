@@ -5,8 +5,13 @@ from sqlalchemy.orm import backref
 from sqlalchemy_utils import ChoiceType
 
 from server.api.database import db
-from server.api.database.mixins import (Column, Model, SurrogatePK,
-                                        reference_col, relationship)
+from server.api.database.mixins import (
+    Column,
+    Model,
+    SurrogatePK,
+    reference_col,
+    relationship,
+)
 
 
 class Day(enum.Enum):
@@ -24,8 +29,7 @@ class WorkDay(SurrogatePK, Model):
 
     __tablename__ = "work_days"
     teacher_id = reference_col("teachers", nullable=False)
-    teacher = relationship(
-        "Teacher", backref=backref("work_days", lazy="dynamic"))
+    teacher = relationship("Teacher", backref=backref("work_days", lazy="dynamic"))
     day = Column(ChoiceType(Day, impl=db.Integer()), nullable=False)
     from_hour = Column(db.Integer, nullable=False)
     from_minutes = Column(db.Integer, nullable=False, default=0)
@@ -46,3 +50,6 @@ class WorkDay(SurrogatePK, Model):
             "to_hour": self.to_hour,
             "on_date": self.on_date,
         }
+
+    def __repr__(self):
+        return f"<WorkDay {self.day}, {self.from_hour}:{self.from_minutes}-{self.to_hour}-{self.to_minutes}, {self.on_date}>"

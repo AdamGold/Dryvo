@@ -57,7 +57,7 @@ def direct_login():
     if user and user.check_password(data.get("password")):
         auth_token = user.encode_auth_token()
         if auth_token:
-            #login_user(user, remember=True)
+            # login_user(user, remember=True)
             return {
                 "message": "You logged in successfully.",
                 "auth_token": auth_token.decode(),
@@ -129,16 +129,12 @@ def oauth_facebook():
     # If authenticated from JWT, login using a session
     if current_user.is_authenticated:
         login_user(current_user, remember=True)
-    state = "".join(random.choices(
-        string.ascii_uppercase + string.digits, k=6))
+    state = "".join(random.choices(string.ascii_uppercase + string.digits, k=6))
     redirect = flask.url_for(".facebook_authorized", _external=True)
     auth_url = (
         "https://www.facebook.com/v3.2/dialog/oauth?client_id={}"
         "&redirect_uri={}&state={}&scope={}".format(
-            os.environ["FACEBOOK_CLIENT_ID"],
-            redirect,
-            state,
-            FACEBOOK_SCOPES,
+            os.environ["FACEBOOK_CLIENT_ID"], redirect, state, FACEBOOK_SCOPES
         )
     )
     # Store the state so the callback can verify the auth server response.
@@ -150,8 +146,7 @@ def oauth_facebook():
 @jsonify_response
 def facebook_authorized():
     data = flask.request.values
-    handle_facebook(state=data.get("state"), code=data.get(
-        "code"))
+    handle_facebook(state=data.get("state"), code=data.get("code"))
 
 
 def handle_facebook(state, code):
@@ -184,8 +179,7 @@ def handle_facebook(state, code):
 
     # Find this OAuth token in the database, or create it
     query = OAuth.query.filter_by(
-        provider=Provider.facebook, provider_user_id=validate_token_resp.get(
-            "user_id")
+        provider=Provider.facebook, provider_user_id=validate_token_resp.get("user_id")
     )
 
     try:
@@ -210,13 +204,11 @@ def handle_facebook(state, code):
 
         logger.debug(f"profile of user is {profile}")
 
-        if not profile.get('email'):
+        if not profile.get("email"):
             raise RouteError("Can not get email from user.")
 
         # Create a new local user account for this user
-        user = User(
-            email=profile.get("email"), name=profile.get("name")
-        ).save()
+        user = User(email=profile.get("email"), name=profile.get("name")).save()
         oauth.user = user
         oauth.save()
         logger.debug(f"creating new user {user}")

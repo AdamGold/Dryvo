@@ -28,7 +28,8 @@ def test_add_work_day(teacher, auth, requester):
     assert "Day created" in resp.json['message']
     assert resp.json['data']
     assert resp.status_code == 201
-    assert WorkDay.query.first().from_hour == data['from_hour']
+    assert WorkDay.query.filter_by(
+        from_hour=13).first().from_hour == data['from_hour']
 
 
 def test_add_work_day_invalid_values(teacher, auth, requester):

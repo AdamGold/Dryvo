@@ -16,8 +16,8 @@ def init_app(app):
 
 @jsonify_response
 def handle_verified_exception(e):
-    logger.debug(f"Exception! {e.msg}")
-    return {"message": e.msg}, e.code
+    logger.debug(f"Exception! {e.description}")
+    return {"message": e.description}, e.code
 
 
 @jsonify_response
@@ -33,20 +33,19 @@ def handle_unverified_exception(e):
 @jsonify_response
 def handle_not_found(e):
     logger.debug(f"{flask.request.full_path} Not found!")
-    return ({"message": f"Endpoint {flask.request.full_path} doesn't exist"},
-            404)
+    return ({"message": f"Endpoint {flask.request.full_path} doesn't exist"}, 404)
 
 
 class RouteError(werkzeug.exceptions.HTTPException):
-    def __init__(self, msg, code=400):
-        self.msg = msg
+    def __init__(self, description, code=400):
+        self.description = description
         self.code = code
 
 
 class TokenError(RouteError):
-    def __init__(self, msg):
+    def __init__(self, description):
         self.code = 401
-        self.msg = msg
+        self.description = description
 
 
 class NotificationError(RouteError):

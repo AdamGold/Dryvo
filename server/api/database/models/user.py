@@ -9,8 +9,13 @@ from flask_login import UserMixin
 
 from server.api.database import db
 from server.api.database.consts import TOKEN_EXPIRY
-from server.api.database.mixins import (Column, Model, SurrogatePK,
-                                        reference_col, relationship)
+from server.api.database.mixins import (
+    Column,
+    Model,
+    SurrogatePK,
+    reference_col,
+    relationship,
+)
 from server.api.database.models import BlacklistToken
 from server.error_handling import TokenError
 
@@ -25,10 +30,8 @@ class User(UserMixin, SurrogatePK, Model):
     __tablename__ = "users"
     email = Column(db.String(80), unique=True, nullable=False)
     password = Column(db.String(120), nullable=True)
-    created_at = Column(db.DateTime, nullable=False,
-                        default=dt.datetime.utcnow)
-    last_login = Column(db.DateTime, nullable=False,
-                        default=dt.datetime.utcnow)
+    created_at = Column(db.DateTime, nullable=False, default=dt.datetime.utcnow)
+    last_login = Column(db.DateTime, nullable=False, default=dt.datetime.utcnow)
     salt = Column(db.String(80), nullable=False)
     name = Column(db.String(80), nullable=False)
     is_admin = Column(db.Boolean, nullable=False, default=False)

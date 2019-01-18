@@ -5,8 +5,13 @@ from sqlalchemy.orm import backref
 from sqlalchemy_utils import ChoiceType, JSONType
 
 from server.api.database import db
-from server.api.database.mixins import (Column, Model, SurrogatePK,
-                                        reference_col, relationship)
+from server.api.database.mixins import (
+    Column,
+    Model,
+    SurrogatePK,
+    reference_col,
+    relationship,
+)
 from server.api.database.models.user import User
 
 
@@ -24,8 +29,7 @@ class OAuth(SurrogatePK, Model):
     user = relationship(User)
     provider = Column(ChoiceType(Provider, impl=db.Integer()), nullable=False)
     token = Column(JSONType, nullable=False, default=dt.datetime.utcnow)
-    created_at = Column(db.DateTime, nullable=False,
-                        default=dt.datetime.utcnow)
+    created_at = Column(db.DateTime, nullable=False, default=dt.datetime.utcnow)
 
     def __init__(self, **kwargs):
         """Create instance."""

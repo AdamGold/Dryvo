@@ -3,9 +3,10 @@ import flask
 import flask.testing
 import tempfile
 import json
+from datetime import datetime, timedelta
 
 from server.api.database import db, reset_db
-from server.api.database.models import User, Student, Teacher, Place, PlaceType
+from server.api.database.models import User, Student, Teacher, Place, PlaceType, WorkDay
 from server import create_app
 
 
@@ -46,6 +47,9 @@ def setup_db(app):
                      student=student)
         Place.create(name="test", used_as=PlaceType.dropoff.value,
                      student=student)
+        WorkDay.create(teacher=teacher, day=1, from_hour=00,
+                       to_hour=23, to_minutes=59,
+                       on_date=(datetime.now() + timedelta(days=2)).date())  # 2 days from now
 
 
 @pytest.fixture

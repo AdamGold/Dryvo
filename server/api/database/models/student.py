@@ -4,8 +4,13 @@ from sqlalchemy.ext.hybrid import hybrid_method, hybrid_property
 from sqlalchemy.orm import backref
 
 from server.api.database import db
-from server.api.database.mixins import (Column, Model, SurrogatePK,
-                                        reference_col, relationship)
+from server.api.database.mixins import (
+    Column,
+    Model,
+    SurrogatePK,
+    reference_col,
+    relationship,
+)
 from server.api.database.models import Lesson, Place, PlaceType
 
 
@@ -14,8 +19,7 @@ class Student(SurrogatePK, Model):
 
     __tablename__ = "students"
     teacher_id = reference_col("teachers", nullable=False)
-    teacher = relationship(
-        "Teacher", backref=backref("students", lazy="dynamic"))
+    teacher = relationship("Teacher", backref=backref("students", lazy="dynamic"))
     user_id = reference_col("users", nullable=False)
     user = relationship(
         "User", backref=backref("student", uselist=False), uselist=False
@@ -29,11 +33,9 @@ class Student(SurrogatePK, Model):
     def filter_lessons(self, filter_args):
         lessons_query = self.lessons
         if filter_args.get("show") == "history":
-            lessons_query = lessons_query.filter(
-                Lesson.date < datetime.today())
+            lessons_query = lessons_query.filter(Lesson.date < datetime.today())
         else:
-            lessons_query = lessons_query.filter(
-                Lesson.date > datetime.today())
+            lessons_query = lessons_query.filter(Lesson.date > datetime.today())
 
         order_by_args = filter_args.get("order_by", "date desc").split()
         order_by = getattr(Lesson, order_by_args[0])
@@ -42,13 +44,19 @@ class Student(SurrogatePK, Model):
 
     @hybrid_property
     def common_meetup(self):
-        return (self.places.filter_by(used_as=PlaceType.meetup.value).
-                order_by(Place.times_used.desc()).first())
+        return (
+            self.places.filter_by(used_as=PlaceType.meetup.value)
+            .order_by(Place.times_used.desc())
+            .first()
+        )
 
     @hybrid_property
     def common_dropoff(self):
-        return (self.places.filter_by(used_as=PlaceType.dropoff.value).
-                order_by(Place.times_used.desc()).first())
+        return (
+            self.places.filter_by(used_as=PlaceType.dropoff.value)
+            .order_by(Place.times_used.desc())
+            .first()
+        )
 
     def to_dict(self):
         return {"id": self.id, "teacher_id": self.teacher_id, "user_id": self.user_id}

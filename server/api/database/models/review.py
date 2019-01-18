@@ -3,8 +3,13 @@ import datetime as dt
 from sqlalchemy.orm import backref
 
 from server.api.database import db
-from server.api.database.mixins import (Column, Model, SurrogatePK,
-                                        reference_col, relationship)
+from server.api.database.mixins import (
+    Column,
+    Model,
+    SurrogatePK,
+    reference_col,
+    relationship,
+)
 
 
 class Review(SurrogatePK, Model):
@@ -12,17 +17,14 @@ class Review(SurrogatePK, Model):
 
     __tablename__ = "reviews"
     teacher_id = reference_col("teachers", nullable=False)
-    teacher = relationship(
-        "Teacher", backref=backref("reviews", lazy="dynamic"))
+    teacher = relationship("Teacher", backref=backref("reviews", lazy="dynamic"))
     student_id = reference_col("students", nullable=False)
-    student = relationship(
-        "Student", backref=backref("reviews", lazy="dynamic"))
+    student = relationship("Student", backref=backref("reviews", lazy="dynamic"))
     content = Column(db.Text, nullable=True)
     price_rating = Column(db.Float, nullable=False)
     availability_rating = Column(db.Float, nullable=False)
     content_rating = Column(db.Float, nullable=False)
-    created_at = Column(db.DateTime, nullable=False,
-                        default=dt.datetime.utcnow)
+    created_at = Column(db.DateTime, nullable=False, default=dt.datetime.utcnow)
 
     def __init__(self, **kwargs):
         """Create instance."""
