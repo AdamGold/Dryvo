@@ -5,7 +5,7 @@ import tempfile
 import json
 
 from server.api.database import db, reset_db
-from server.api.database.models import User, Student, Teacher
+from server.api.database.models import User, Student, Teacher, Place, PlaceType
 from server import create_app
 
 
@@ -30,17 +30,22 @@ def app() -> flask.Flask:
 
 def setup_db(app):
     with app.app_context():
-        User(email='t@test.com', password='test',
-             name='test', area='test').save()
-        User(email='admin@test.com', password='test',
-             name='admin', area='test', is_admin=True).save()
-        teacher_user = User(email='teacher@test.com',
-                            password='test', name='teacher', area='test').save()
-        teacher = Teacher(user_id=teacher_user.id, price=100, phone="055555555",
-                          lesson_duration=40).save()
-        student_user = User(email='student@test.com',
-                            password='test', name='student', area='test').save()
-        Student(user_id=student_user.id, teacher_id=teacher.id).save()
+        User.create(email='t@test.com', password='test',
+                    name='test', area='test')
+        User.create(email='admin@test.com', password='test',
+                    name='admin', area='test', is_admin=True)
+        teacher_user = User.create(email='teacher@test.com',
+                                   password='test', name='teacher', area='test')
+        teacher = Teacher.create(user_id=teacher_user.id, price=100, phone="055555555",
+                                 lesson_duration=40)
+        student_user = User.create(email='student@test.com',
+                                   password='test', name='student', area='test')
+        student = Student.create(
+            user_id=student_user.id, teacher_id=teacher.id)
+        Place.create(name="test", used_as=PlaceType.meetup.value,
+                     student=student)
+        Place.create(name="test", used_as=PlaceType.dropoff.value,
+                     student=student)
 
 
 @pytest.fixture
@@ -132,11 +137,19 @@ def auth(requester):
 
 @pytest.fixture
 def teacher(app):
-    with app.app_context():
-        yield Teacher.query.filter_by(user_id=3).one()
+    return Teacher.query.first()
 
 
 @pytest.fixture
 def student(app):
-    with app.app_context():
-        yield Student.query.filter_by(user_id=4).one()
+    return Student.query.first()
+
+
+@pytest.fixture
+def meetup(app, student):
+    return Place.query.filter_by(student=student).filter_by(used_as=PlaceType.meetup.value).first()
+
+
+@pytest.fixture
+def dropoff(app, student):
+    return Place.query.filter_by(student=student).filter_by(used_as=PlaceType.dropoff.value).first()

@@ -26,9 +26,9 @@ class Lesson(SurrogatePK, Model):
     date = Column(db.DateTime, nullable=False)
     created_at = Column(db.DateTime, nullable=False,
                         default=dt.datetime.utcnow)
-    meetup_place_id = reference_col("places", nullable=False)
+    meetup_place_id = reference_col("places", nullable=True)
     meetup_place = relationship("Place", foreign_keys=[meetup_place_id])
-    dropoff_place_id = reference_col("places", nullable=False)
+    dropoff_place_id = reference_col("places", nullable=True)
     dropoff_place = relationship("Place", foreign_keys=[dropoff_place_id])
     is_approved = Column(db.Boolean, nullable=False, default=True)
     comments = Column(db.Text, nullable=True)
@@ -54,7 +54,8 @@ class Lesson(SurrogatePK, Model):
             "teacher_id": self.teacher_id,
             "student_id": self.student_id,
             "date": self.date,
-            "meetup": self.meetup,
+            "meetup_place": self.meetup_place.to_dict() if self.meetup_place else None,
+            "dropoff_place": self.dropoff_place.to_dict() if self.dropoff_place else None,
             "is_approved": self.is_approved,
             "comments": self.comments,
             "topic": self.topic.to_dict() if self.topic else [],

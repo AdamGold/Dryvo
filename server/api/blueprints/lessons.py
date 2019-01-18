@@ -3,12 +3,13 @@ from flask import Blueprint
 from flask_login import current_user, login_required, logout_user
 from datetime import datetime
 from loguru import logger
+from typing import Tuple
 import itertools
 
 from server.api.database.consts import LESSONS_PER_PAGE
 from server.api.utils import jsonify_response, paginate
 from server.error_handling import RouteError
-from server.api.database.models import Teacher, Lesson, Student
+from server.api.database.models import Teacher, Lesson, Student, Place, PlaceType
 from server.consts import DATE_FORMAT, DEBUG_MODE
 from server.api.blueprints import teacher_required
 from server.api.push_notifications import FCM
@@ -18,6 +19,14 @@ lessons_routes = Blueprint("lessons", __name__, url_prefix="/lessons")
 
 def init_app(app):
     app.register_blueprint(lessons_routes)
+
+
+def handle_places(student) -> Tuple[Place, Place]:
+    if not student:
+        return None, None
+    data = flask.request.get_json()
+    return (Place.create_or_find(data.get("meetup_place"), PlaceType.meetup, student),
+            Place.create_or_find(data.get("dropoff_place"), PlaceType.dropoff, student))
 
 
 def get_lesson_data():
@@ -30,7 +39,7 @@ def get_lesson_data():
 
     if current_user.student:
         duration = current_user.student.teacher.lesson_duration
-        student_id = current_user.student.id
+        student = current_user.student
         if date:
             available_hours = itertools.takewhile(
                 lambda hour_with_date: hour_with_date[0] == date,
@@ -43,13 +52,16 @@ def get_lesson_data():
     elif current_user.teacher:
         duration = data.get("duration", current_user.teacher.lesson_duration)
         teacher_id = current_user.teacher.id
-        student_id = data.get("student_id")
+        student = Student.get_by_id(data.get("student_id"))
+        if not student and data.get("student_id"):
+            raise RouteError("No student with this ID.")
 
+    meetup, dropoff = handle_places(student)
     return {
         "date": date,
-        "meetup": data.get("meetup"),
-        "dropoff": data.get("dropoff"),
-        "student_id": student_id,
+        "meetup_place": meetup,
+        "dropoff_place": dropoff,
+        "student": student,
         "teacher_id": teacher_id,
         "duration": duration,
         "topic_id": data.get("topic_id"),
@@ -81,7 +93,7 @@ def lessons():
 def new_lesson():
     if not flask.request.get_json().get("date"):
         raise RouteError("Please insert the date of the lesson.")
-
+    print(get_lesson_data())
     lesson = Lesson.create(**get_lesson_data())
     # send to the user who wasn't the one creating the lesson
     user_to_send_to = lesson.teacher.user

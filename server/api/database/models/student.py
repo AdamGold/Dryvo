@@ -6,7 +6,7 @@ from sqlalchemy.orm import backref
 from server.api.database import db
 from server.api.database.mixins import (Column, Model, SurrogatePK,
                                         reference_col, relationship)
-from server.api.database.models import Lesson
+from server.api.database.models import Lesson, Place, PlaceType
 
 
 class Student(SurrogatePK, Model):
@@ -42,11 +42,13 @@ class Student(SurrogatePK, Model):
 
     @hybrid_property
     def common_meetup(self):
-        pass
+        return (self.places.filter_by(used_as=PlaceType.meetup.value).
+                order_by(Place.times_used.desc()).first())
 
     @hybrid_property
     def common_dropoff(self):
-        pass
+        return (self.places.filter_by(used_as=PlaceType.dropoff.value).
+                order_by(Place.times_used.desc()).first())
 
     def to_dict(self):
         return {"id": self.id, "teacher_id": self.teacher_id, "user_id": self.user_id}

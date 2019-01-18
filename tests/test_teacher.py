@@ -62,7 +62,7 @@ def test_delete_work_day(teacher, auth, requester):
     assert "not exist" in resp.json['message']
 
 
-def test_available_hours_route(teacher, student, auth, requester):
+def test_available_hours_route(teacher, student, meetup, dropoff, auth, requester):
     auth.login(email=teacher.user.email)
     date = "2018-11-27"
     time_and_date = date + "T13:30Z"
@@ -79,7 +79,7 @@ def test_available_hours_route(teacher, student, auth, requester):
     Lesson.create(teacher_id=teacher.id, student_id=student.id,
                   creator_id=teacher.user.id, duration=40,
                   date=datetime.strptime(time_and_date, DATE_FORMAT),
-                  meetup='test', dropoff='test')
+                  meetup_place=meetup, dropoff_place=dropoff)
     resp = requester.post(f"/teacher/{teacher.id}/available_hours",
                           json={'date': date})
     assert isinstance(resp.json['data'], list)
