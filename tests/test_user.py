@@ -61,6 +61,6 @@ def test_make_student_already_assigned(app, admin, student, teacher, auth, reque
 
 def test_register_token(auth, requester):
     auth.login()
-    resp = requester.post('/user/register_token',
+    resp = requester.post('/user/register_firebase_token',
                           json={'token': 'some token'})
     assert 'successfully' in resp.json.get('message')

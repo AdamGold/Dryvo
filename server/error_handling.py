@@ -8,7 +8,12 @@ from server.consts import DEBUG_MODE
 
 
 def init_app(app):
-    for exception in (RouteError, TokenError, NotificationError):
+    for exception in (RouteError,
+                      TokenError,
+                      NotificationError,
+                      werkzeug.exceptions.MethodNotAllowed,
+                      werkzeug.exceptions.Unauthorized,
+                      werkzeug.exceptions.BadRequest,):
         app.register_error_handler(exception, handle_verified_exception)
     app.register_error_handler(Exception, handle_unverified_exception)
     app.register_error_handler(404, handle_not_found)
