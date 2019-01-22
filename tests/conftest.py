@@ -93,35 +93,39 @@ class Requester:
             self.headers.update(kwargs.pop("headers"))
         return self._client.open(url, method=method, headers=self.headers, **kwargs)
 
-    def start_auth_session(self, method, endpoint, **kwargs):
-        """ Inserts the response token to the header
-        for continue using that instance as authorized user"""
-        req = self.request(method, endpoint, **kwargs)
-        auth_token = req.json.get("auth_token")
-        if auth_token:
-            self.headers["Authorization"] = "Bearer " + auth_token
-        return req
-
 
 class AuthActions(object):
     def __init__(self, client):
         self._client = client
+        self.refresh_token = ""
 
     def login(self, email='t@test.com', password='test'):
-        return self._client.start_auth_session("POST",
-                                               '/login/direct',
-                                               json={'email': email, 'password': password})
+        return self.start_auth_session("POST",
+                                       '/login/direct',
+                                       json={'email': email, 'password': password})
 
     def register(self, email='test@test.com', password='test', name='test', area='test'):
-        return self._client.start_auth_session("POST",
-                                               '/login/register',
-                                               json={'email': email, 'password': password,
-                                                     'name': name, 'area': area})
+        return self.start_auth_session("POST",
+                                       '/login/register',
+                                       json={'email': email, 'password': password,
+                                             'name': name, 'area': area})
 
     def logout(self, **kwargs):
-        logout = self._client.get('/login/logout', **kwargs)
+        logout = self._client.post('/login/logout',
+                                   json={'refresh_token': self.refresh_token},
+                                   **kwargs)
         self._client.headers['Authorization'] = ''
         return logout
+
+    def start_auth_session(self, method, endpoint, **kwargs):
+        """ Inserts the response token to the header
+        for continue using that instance as authorized user"""
+        req = self._client.request(method, endpoint, **kwargs)
+        auth_token = req.json.get("auth_token")
+        self.refresh_token = req.json.get("refresh_token")
+        if auth_token:
+            self._client.headers["Authorization"] = "Bearer " + auth_token
+        return req
 
 
 @pytest.fixture

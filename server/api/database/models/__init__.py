@@ -8,5 +8,5 @@ from .topic import Topic
 from .stage import Stage
 from .teacher import Teacher
 from .test import Test
-from .user import User
+from .user import User, TokenScope
 from .work_day import WorkDay, Day
