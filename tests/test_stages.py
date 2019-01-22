@@ -5,19 +5,16 @@ from loguru import logger
 from server.api.database.models import Stage, Topic
 
 
-def test_stages(auth, requester):
+def test_stages(app, auth, requester, stage: Stage):
     auth.login()
-    stage = Stage.create(title="test", order=1)
     resp = requester.get("/stages/")
     assert isinstance(resp.json['data'], list)
-    assert stage.to_dict() in resp.json['data']
     assert 'next_url' in resp.json
     assert 'prev_url' in resp.json
 
 
-def test_new_topic(auth, admin, requester):
+def test_new_topic(auth, admin, requester, stage: Stage):
     auth.login(email=admin.email)
-    stage = Stage.create(title="test", order=1)
     resp = requester.post("/stages/topic",
                           json={'title': "test",
                                 "order": 1,
