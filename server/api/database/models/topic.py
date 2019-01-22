@@ -3,8 +3,13 @@ import datetime as dt
 from sqlalchemy.orm import backref
 
 from server.api.database import db
-from server.api.database.mixins import (Column, Model, SurrogatePK,
-                                        reference_col, relationship)
+from server.api.database.mixins import (
+    Column,
+    Model,
+    SurrogatePK,
+    reference_col,
+    relationship,
+)
 from server.api.database.models import Lesson
 
 
@@ -16,8 +21,7 @@ class Topic(SurrogatePK, Model):
     stage = relationship("Stage", backref=backref("topics", lazy="dynamic"))
     title = Column(db.String, default=False, nullable=False)
     order = Column(db.Integer, nullable=True)
-    created_at = Column(db.DateTime, nullable=False,
-                        default=dt.datetime.utcnow)
+    created_at = Column(db.DateTime, nullable=False, default=dt.datetime.utcnow)
 
     def __init__(self, **kwargs):
         """Create instance."""
