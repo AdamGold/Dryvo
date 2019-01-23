@@ -8,8 +8,8 @@ import pytest
 
 from server import create_app
 from server.api.database import db, reset_db
-from server.api.database.models import (Place, PlaceType, Stage, Student,
-                                        Teacher, User, WorkDay)
+from server.api.database.models import (Place, PlaceType, Student,
+                                        Teacher, User, WorkDay, Topic)
 
 
 @pytest.fixture
@@ -51,7 +51,9 @@ def setup_db(app):
     WorkDay.create(teacher=teacher, day=1, from_hour=00,
                    to_hour=23, to_minutes=59,
                    on_date=(datetime.now() + timedelta(days=2)).date())  # 2 days from now
-    Stage.create(title="test", order=1)
+    Topic.create(title="topic test",
+                 min_lesson_number=1,
+                 max_lesson_number=5)
 
 
 @pytest.fixture
@@ -166,5 +168,5 @@ def dropoff(app, student):
 
 
 @pytest.fixture
-def stage(app):
-    return Stage.query.first()
+def topic(app):
+    return Topic.query.first()
