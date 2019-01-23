@@ -1,13 +1,15 @@
-import pytest
-import flask
-import flask.testing
-import tempfile
 import json
+import tempfile
 from datetime import datetime, timedelta
 
-from server.api.database import db, reset_db
-from server.api.database.models import User, Student, Teacher, Place, PlaceType, WorkDay
+import flask
+import flask.testing
+import pytest
+
 from server import create_app
+from server.api.database import db, reset_db
+from server.api.database.models import (Lesson, Place, PlaceType, Student,
+                                        Teacher, Topic, User, WorkDay)
 
 
 @pytest.fixture
@@ -30,26 +32,32 @@ def app() -> flask.Flask:
 
 
 def setup_db(app):
-    with app.app_context():
-        User.create(email='t@test.com', password='test',
-                    name='test', area='test')
-        User.create(email='admin@test.com', password='test',
-                    name='admin', area='test', is_admin=True)
-        teacher_user = User.create(email='teacher@test.com',
-                                   password='test', name='teacher', area='test')
-        teacher = Teacher.create(user_id=teacher_user.id, price=100, phone="055555555",
-                                 lesson_duration=40)
-        student_user = User.create(email='student@test.com',
-                                   password='test', name='student', area='test')
-        student = Student.create(
-            user_id=student_user.id, teacher_id=teacher.id)
-        Place.create(name="test", used_as=PlaceType.meetup.value,
-                     student=student)
-        Place.create(name="test", used_as=PlaceType.dropoff.value,
-                     student=student)
-        WorkDay.create(teacher=teacher, day=1, from_hour=00,
-                       to_hour=23, to_minutes=59,
-                       on_date=(datetime.now() + timedelta(days=2)).date())  # 2 days from now
+    User.create(email='t@test.com', password='test',
+                name='test', area='test')
+    User.create(email='admin@test.com', password='test',
+                name='admin', area='test', is_admin=True)
+    teacher_user = User.create(email='teacher@test.com',
+                               password='test', name='teacher', area='test')
+    teacher = Teacher.create(user_id=teacher_user.id, price=100, phone="055555555",
+                             lesson_duration=40)
+    student_user = User.create(email='student@test.com',
+                               password='test', name='student', area='test')
+    student = Student.create(
+        user_id=student_user.id, teacher_id=teacher.id)
+    meetup = Place.create(name="test", used_as=PlaceType.meetup.value,
+                          student=student)
+    dropoff = Place.create(name="test", used_as=PlaceType.dropoff.value,
+                           student=student)
+    WorkDay.create(teacher=teacher, day=1, from_hour=00,
+                   to_hour=23, to_minutes=59,
+                   on_date=(datetime.now() + timedelta(days=2)).date())  # 2 days from now
+    Topic.create(title="topic test",
+                 min_lesson_number=1,
+                 max_lesson_number=5)
+    Lesson.create(teacher=teacher, student=student,
+                  # schedule to 5 days from now to it won't bother with no test
+                  creator=teacher.user, duration=40, date=(datetime.now() + timedelta(days=5)),
+                  meetup_place=meetup, dropoff_place=dropoff)
 
 
 @pytest.fixture
@@ -161,3 +169,13 @@ def meetup(app, student):
 @pytest.fixture
 def dropoff(app, student):
     return Place.query.filter_by(student=student).filter_by(used_as=PlaceType.dropoff.value).first()
+
+
+@pytest.fixture
+def topic(app):
+    return Topic.query.first()
+
+
+@pytest.fixture
+def lesson(app):
+    return Lesson.query.first()

@@ -1,18 +1,20 @@
+import itertools
+from datetime import datetime
+from typing import Tuple
+
 import flask
 from flask import Blueprint
 from flask_login import current_user, login_required, logout_user
-from datetime import datetime
 from loguru import logger
-from typing import Tuple
-import itertools
 
-from server.api.database.consts import LESSONS_PER_PAGE
-from server.api.utils import jsonify_response, paginate
-from server.error_handling import RouteError
-from server.api.database.models import Teacher, Lesson, Student, Place, PlaceType, User
-from server.consts import DATE_FORMAT, DEBUG_MODE
 from server.api.blueprints import teacher_required
+from server.api.database.consts import LESSONS_PER_PAGE
+from server.api.database.models import (Lesson, LessonTopic, Place, PlaceType,
+                                        Student, Teacher, Topic, User)
 from server.api.push_notifications import FCM
+from server.api.utils import jsonify_response, paginate
+from server.consts import DATE_FORMAT, DEBUG_MODE
+from server.error_handling import RouteError
 
 lessons_routes = Blueprint("lessons", __name__, url_prefix="/lessons")
 
@@ -53,10 +55,10 @@ def get_lesson_data(data: dict, user: User) -> dict:
                 next(available_hours)
             except StopIteration:
                 raise RouteError("This hour is not available.")
-        teacher_id = user.student.teacher.id
+        teacher = user.student.teacher
     elif user.teacher:
         duration = data.get("duration", user.teacher.lesson_duration)
-        teacher_id = user.teacher.id
+        teacher = user.teacher
         student = Student.get_by_id(data.get("student_id"))
         if not student and data.get("student_id") is not None:
             raise RouteError("No student with this ID.")
@@ -69,9 +71,8 @@ def get_lesson_data(data: dict, user: User) -> dict:
         "meetup_place": meetup,
         "dropoff_place": dropoff,
         "student": student,
-        "teacher_id": teacher_id,
+        "teacher": teacher,
         "duration": duration,
-        "topic_id": data.get("topic_id"),
         "comments": data.get("comments"),
         "is_approved": True if user.teacher else False,
     }
@@ -102,17 +103,49 @@ def new_lesson():
     if not data.get("date"):
         raise RouteError("Please insert the date of the lesson.")
     lesson = Lesson.create(**get_lesson_data(data, current_user))
-    # send to the user who wasn't the one creating the lesson
+
+    # send fcm to the user who wasn't the one creating the lesson
     user_to_send_to = lesson.teacher.user
     if lesson.creator == lesson.teacher.user and lesson.student:
         user_to_send_to = lesson.student.user
     if user_to_send_to.firebase_token:
+        logger.debug(f"sending fcm to {user_to_send_to}")
         FCM.notify(
             token=user_to_send_to.firebase_token,
             title="New Lesson",
             body=f"New lesson at {lesson.date}",
         )
-    return {"message": "Lesson created successfully.", "data": lesson.to_dict()}, 201
+    return {"data": lesson.to_dict()}, 201
+
+
+@lessons_routes.route("/<int:lesson_id>/topics", methods=["POST"])
+@jsonify_response
+@login_required
+@teacher_required
+def update_topics(lesson_id):
+    """update or add lesson topics
+    accepts {'progress': [topics in progress], 'finished': [finished topics]}"""
+    data = flask.request.get_json()
+    FINISHED_KEY = "finished"
+    lesson = Lesson.get_by_id(lesson_id)
+    if not lesson:
+        raise RouteError("Lesson does not exist.")
+    if not lesson.student:
+        raise RouteError("Lesson must have a student assigned.")
+    appended_ids = []
+    for key, topic_ids in data.get("topics").items():
+        for topic_id in topic_ids:
+            if not Topic.get_by_id(topic_id):
+                raise RouteError("Invalid topic id.")
+            if topic_id in appended_ids:  # we don't want the same topic twice
+                continue
+            is_finished = True if key == FINISHED_KEY else False
+            lesson_topic = LessonTopic(
+                is_finished=is_finished, topic_id=topic_id)
+            lesson.topics.append(lesson_topic)
+            appended_ids.append(topic_id)
+
+    return {"data": lesson.to_dict()}, 201
 
 
 @lessons_routes.route("/<int:lesson_id>", methods=["DELETE"])

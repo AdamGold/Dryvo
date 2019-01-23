@@ -4,7 +4,7 @@ from loguru import logger
 
 from server.consts import DEBUG_MODE
 from server.app_config import Config
-from server.api.blueprints import login, user, teacher, student, lessons, stages
+from server.api.blueprints import login, user, teacher, student, lessons, topics
 from server.extensions import login_manager
 from server.api.database import database
 from server import error_handling
@@ -19,7 +19,7 @@ def register_extensions_and_blueprints(flask_app):
         error_handling,
         login,
         lessons,
-        stages,
+        topics,
         user,
         teacher,
         student,
