@@ -11,10 +11,18 @@ from flask_login import UserMixin
 from sqlalchemy.orm.exc import NoResultFound
 
 from server.api.database import db
-from server.api.database.consts import (EXCHANGE_TOKEN_EXPIRY,
-                                        REFRESH_TOKEN_EXPIRY, TOKEN_EXPIRY)
-from server.api.database.mixins import (Column, Model, SurrogatePK,
-                                        reference_col, relationship)
+from server.api.database.consts import (
+    EXCHANGE_TOKEN_EXPIRY,
+    REFRESH_TOKEN_EXPIRY,
+    TOKEN_EXPIRY,
+)
+from server.api.database.mixins import (
+    Column,
+    Model,
+    SurrogatePK,
+    reference_col,
+    relationship,
+)
 from server.api.database.models import BlacklistToken
 from server.error_handling import TokenError
 
@@ -43,10 +51,8 @@ class User(UserMixin, SurrogatePK, Model):
     __tablename__ = "users"
     email = Column(db.String(80), unique=True, nullable=False)
     password = Column(db.String(120), nullable=True)
-    created_at = Column(db.DateTime, nullable=False,
-                        default=dt.datetime.utcnow)
-    last_login = Column(db.DateTime, nullable=False,
-                        default=dt.datetime.utcnow)
+    created_at = Column(db.DateTime, nullable=False, default=dt.datetime.utcnow)
+    last_login = Column(db.DateTime, nullable=False, default=dt.datetime.utcnow)
     salt = Column(db.String(80), nullable=False)
     name = Column(db.String(80), nullable=False)
     is_admin = Column(db.Boolean, nullable=False, default=False)
@@ -97,9 +103,7 @@ class User(UserMixin, SurrogatePK, Model):
             },
             **kwargs,
         )
-        return jwt.encode(
-            payload, os.environ.get("SECRET_JWT"), algorithm="HS256"
-        )
+        return jwt.encode(payload, os.environ.get("SECRET_JWT"), algorithm="HS256")
 
     def encode_exchange_token(self) -> bytes:
         """Generates an exchange token for current user"""
@@ -107,9 +111,7 @@ class User(UserMixin, SurrogatePK, Model):
 
     def encode_auth_token(self) -> bytes:
         """Generates a login token"""
-        return self._encode_jwt(
-            TokenScope.LOGIN, email=self.email
-        )
+        return self._encode_jwt(TokenScope.LOGIN, email=self.email)
 
     def encode_refresh_token(self) -> bytes:
         """Generates a refresh token."""
@@ -136,8 +138,7 @@ class User(UserMixin, SurrogatePK, Model):
     def decode_token(auth_token: str) -> dict:
         """Decode JWT or raise familiar exceptions"""
         try:
-            payload = jwt.decode(
-                auth_token, os.environ.get("SECRET_JWT"))
+            payload = jwt.decode(auth_token, os.environ.get("SECRET_JWT"))
             if BlacklistToken.check_blacklist(auth_token):
                 raise TokenError("BLACKLISTED_TOKEN")
             return payload

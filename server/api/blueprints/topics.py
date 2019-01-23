@@ -31,7 +31,7 @@ def topics():
 @login_required
 def new_topic():
     if not current_user.is_admin:
-        raise RouteError("Admin required.")
+        raise RouteError("Admin required.", 401)
 
     data = flask.request.get_json()
     topic = Topic.create(
@@ -47,7 +47,7 @@ def new_topic():
 @login_required
 def delete_topic(topic_id):
     if not current_user.is_admin:
-        raise RouteError("Admin required.")
+        raise RouteError("Admin required.", 401)
     topic = Topic.get_by_id(topic_id)
     if not topic:
         raise RouteError("Topic does not exist", 404)

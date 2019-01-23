@@ -7,10 +7,14 @@ from sqlalchemy.ext.hybrid import hybrid_method, hybrid_property
 from sqlalchemy.orm import backref
 
 from server.api.database import db
-from server.api.database.mixins import (Column, Model, SurrogatePK,
-                                        reference_col, relationship)
-from server.api.database.models import (Lesson, LessonTopic, Place, PlaceType,
-                                        Topic)
+from server.api.database.mixins import (
+    Column,
+    Model,
+    SurrogatePK,
+    reference_col,
+    relationship,
+)
+from server.api.database.models import Lesson, LessonTopic, Place, PlaceType, Topic
 
 
 class Student(SurrogatePK, Model):
@@ -18,8 +22,7 @@ class Student(SurrogatePK, Model):
 
     __tablename__ = "students"
     teacher_id = reference_col("teachers", nullable=False)
-    teacher = relationship(
-        "Teacher", backref=backref("students", lazy="dynamic"))
+    teacher = relationship("Teacher", backref=backref("students", lazy="dynamic"))
     user_id = reference_col("users", nullable=False)
     user = relationship(
         "User", backref=backref("student", uselist=False), uselist=False
@@ -33,11 +36,9 @@ class Student(SurrogatePK, Model):
     def filter_lessons(self, filter_args):
         lessons_query = self.lessons
         if filter_args.get("show") == "history":
-            lessons_query = lessons_query.filter(
-                Lesson.date < datetime.today())
+            lessons_query = lessons_query.filter(Lesson.date < datetime.today())
         else:
-            lessons_query = lessons_query.filter(
-                Lesson.date > datetime.today())
+            lessons_query = lessons_query.filter(Lesson.date > datetime.today())
 
         order_by_args = filter_args.get("order_by", "date desc").split()
         order_by = getattr(Lesson, order_by_args[0])
@@ -52,10 +53,12 @@ class Student(SurrogatePK, Model):
 
     def _lesson_topics(self, is_finished: bool):
         lesson_ids = [lesson.id for lesson in self.lessons]
-        return LessonTopic.query.filter(and_(
-            LessonTopic.lesson_id.in_(lesson_ids),
-            LessonTopic.is_finished == is_finished)).order_by(
-                LessonTopic.created_at.desc())
+        return LessonTopic.query.filter(
+            and_(
+                LessonTopic.lesson_id.in_(lesson_ids),
+                LessonTopic.is_finished == is_finished,
+            )
+        ).order_by(LessonTopic.created_at.desc())
 
     def _topics_in_progress(self, lesson_topics: list) -> List[LessonTopic]:
         """loop through given lesson topics, check for rows
@@ -63,8 +66,14 @@ class Student(SurrogatePK, Model):
         these are the in progress topics.
         """
         topics = (Topic.get_by_id(lt.topic_id) for lt in lesson_topics.all())
-        in_progress_topics = itertools.dropwhile(lambda topic: (LessonTopic.query.filter_by(
-            topic_id=topic.id).filter_by(is_finished=True).first()), topics)
+        in_progress_topics = itertools.dropwhile(
+            lambda topic: (
+                LessonTopic.query.filter_by(topic_id=topic.id)
+                .filter_by(is_finished=True)
+                .first()
+            ),
+            topics,
+        )
         return list(set(in_progress_topics))
 
     def filter_topics(self, is_finished: bool) -> List[LessonTopic]:
@@ -76,8 +85,10 @@ class Student(SurrogatePK, Model):
         if is_finished:
             """if we check for is_finished,
             there should be one row with is_finished=True for each topic"""
-            return [Topic.query.filter_by(id=lt.topic_id).first()
-                    for lt in lesson_topics.all()]
+            return [
+                Topic.query.filter_by(id=lt.topic_id).first()
+                for lt in lesson_topics.all()
+            ]
         return self._topics_in_progress(lesson_topics)
 
     @hybrid_property
@@ -95,6 +106,13 @@ class Student(SurrogatePK, Model):
             .order_by(Place.times_used.desc())
             .first()
         )
+
+    @hybrid_property
+    def balance(self):
+        """calculate sum of payments minus
+        number of lessons taken * price"""
+        lessons_price = (self.new_lesson_number - 1) * self.teacher.price
+        return sum([payment.amount for payment in self.payments]) - lessons_price
 
     def to_dict(self):
         return {"id": self.id, "teacher_id": self.teacher_id, "user_id": self.user_id}
