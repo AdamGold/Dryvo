@@ -1,7 +1,21 @@
 from datetime import datetime, timedelta
 
-from server.api.database.models import Lesson, Place, PlaceType, Stage, Topic
+from flask_sqlalchemy import BaseQuery
+
+from server.api.database.models import (Lesson, LessonTopic, Place, PlaceType,
+                                        Topic)
 from server.consts import DATE_FORMAT
+
+
+def new_lesson(requester, date, student):
+    return requester.post("/lessons/",
+                          json={'date': date, 'student_id': student.id,
+                                'meetup_place': 'test', 'dropoff_place': 'test'})
+
+
+def new_topics(requester, topics, lesson_id):
+    return requester.post(f"/lessons/{lesson_id}/topics",
+                          json={'topics': topics})
 
 
 def test_commons(teacher, student, meetup, dropoff):
@@ -9,8 +23,8 @@ def test_commons(teacher, student, meetup, dropoff):
     and dropoff. check returns of common_meetup
     and common_dropoff"""
     for _ in range(2):
-        Lesson.create(teacher_id=teacher.id, student_id=student.id,
-                      creator_id=teacher.user_id, duration=40, date=datetime.now(),
+        Lesson.create(teacher=teacher, student=student,
+                      creator=teacher.user, duration=40, date=datetime.now(),
                       meetup_place=meetup, dropoff_place=dropoff)
 
     second_meetup = Place.create(name="other", used_as=PlaceType.meetup.value,
@@ -18,31 +32,117 @@ def test_commons(teacher, student, meetup, dropoff):
     second_dropoff = Place.create(name="other", used_as=PlaceType.dropoff.value,
                                   student=student)
 
-    Lesson.create(teacher_id=teacher.id, student_id=student.id,
-                  creator_id=teacher.user_id, duration=40, date=datetime.now(),
+    Lesson.create(teacher=teacher, student=student,
+                  creator=teacher.user, duration=40, date=datetime.now(),
                   meetup_place=second_meetup, dropoff_place=second_dropoff)
     assert student.common_meetup == meetup
     assert student.common_dropoff == dropoff
 
 
-def test_stages(auth, requester, student, stage: Stage):
-    auth.login()
-    resp = requester.get(f"/student/{student.id}/stages")
-    assert isinstance(resp.json['data'], list)
-    assert 'next_url' in resp.json
-    assert 'prev_url' in resp.json
+def test_topics(auth, requester, teacher, student, topic):
+    """create lesson with topic in progress and make sure
+    the response from topics include it in progress"""
+    auth.login(email=teacher.user.email)
+    date = ((datetime.now() + timedelta(days=1)
+             ).replace(hour=13, minute=00)).strftime(DATE_FORMAT)
+    resp = new_lesson(requester, date, student)
+    lesson_id = resp.json["data"]["id"]
+    new_topics(requester, {'progress': [topic.id], 'finished': []}, lesson_id)
+    resp = requester.get(f"/student/{student.id}/topics")
+    assert len(resp.json['data']["new"]) == 0
+    assert topic.title == resp.json["data"]["in_progress"][0]["title"]
 
 
-def test_invalid_edit_topic(auth, requester, student, stage: Stage):
-    """ Send wrong topic & a topic where no lesson
-    has been done and expect error"""
-    auth.login()
-    resp = requester.post(f"/student/{student.id}/topics/5")
-    assert "Topic does not exist" in resp.json["message"]
-    topic = Topic.create(stage=stage, title="test")
-    resp = requester.post(f"/student/{student.id}/topics/{topic.id}")
-    assert "No lesson has been done" in resp.json["message"]
+def test_new_lesson_topics(auth, requester, student, topic, teacher):
+    auth.login(email=teacher.user.email)
+    date = ((datetime.now() + timedelta(days=1)
+             ).replace(hour=13, minute=00)).strftime(DATE_FORMAT)
+    resp = new_lesson(requester, date, student)
+    lesson_id = resp.json["data"]["id"]
+    new_topics(requester, {'progress': [topic.id], 'finished': []}, lesson_id)
+    resp = requester.get(f"/student/{student.id}/new_lesson_topics")
+    assert topic.id == resp.json["data"][0]['id']
 
 
-def test_edit_topic():
-    pass
+def test_new_lesson_topics_with_finished_topic(auth, requester, student, topic, teacher):
+    auth.login(email=teacher.user.email)
+    date = ((datetime.now() + timedelta(days=1)
+             ).replace(hour=13, minute=00)).strftime(DATE_FORMAT)
+    resp = new_lesson(requester, date, student)
+    lesson_id = resp.json["data"]["id"]
+    new_topics(requester, {'finished': [topic.id]}, lesson_id)
+    resp = requester.get(f"/student/{student.id}/new_lesson_topics")
+    assert not resp.json["data"]
+
+
+def test_new_lesson_number(teacher, student, meetup, dropoff):
+    """create new lesson for student,
+    check new_lesson_number updates"""
+    old_lesson_number = student.new_lesson_number
+    Lesson.create(teacher=teacher, student=student,
+                  creator=teacher.user, duration=40,
+                  date=datetime.now(), meetup_place=meetup,
+                  dropoff_place=dropoff)
+    assert student.new_lesson_number == old_lesson_number + 1
+
+
+def test_filter_topics(teacher, student, meetup, dropoff, topic, lesson):
+    """make topic in-progress and check. then make it finished
+    and check again"""
+    topic2 = Topic.create(title="aa", min_lesson_number=3,
+                          max_lesson_number=5)
+    lesson_topic = LessonTopic(
+        is_finished=False, topic_id=topic.id)
+    lesson.topics.append(lesson_topic)
+    assert topic in student.filter_topics(is_finished=False)
+
+    # let's create another lesson with same topic
+    lesson = Lesson.create(teacher=teacher, student=student,
+                           creator=teacher.user, duration=40, date=datetime.now(),
+                           meetup_place=meetup, dropoff_place=dropoff)
+    lesson_topic = LessonTopic(
+        is_finished=True, topic_id=topic.id)
+    lesson.topics.append(lesson_topic)
+    lesson_topic2 = LessonTopic(
+        is_finished=False, topic_id=topic2.id)
+    lesson.topics.append(lesson_topic2)
+    assert topic in student.filter_topics(is_finished=True)
+    assert topic2 in student.filter_topics(is_finished=False)
+
+
+def test_lesson_topics(teacher, student, topic, meetup, dropoff):
+    lesson = Lesson.create(teacher=teacher, student=student,
+                           creator=teacher.user, duration=40, date=datetime.now(),
+                           meetup_place=meetup, dropoff_place=dropoff)
+    lesson_topic = LessonTopic(
+        is_finished=False, topic_id=topic.id)
+    lesson.topics.append(lesson_topic)
+    lt = student._lesson_topics(is_finished=False)
+    assert lesson_topic in lt
+    assert isinstance(lt, BaseQuery)
+
+
+def test_topics_in_progress(teacher, student, topic, meetup, dropoff, lesson):
+    lesson_topic = LessonTopic(
+        is_finished=False, topic_id=topic.id)
+    lesson.topics.append(lesson_topic)
+    lesson = Lesson.create(teacher=teacher, student=student,
+                           creator=teacher.user, duration=40, date=datetime.now(),
+                           meetup_place=meetup, dropoff_place=dropoff)
+    lesson_topic = LessonTopic(
+        is_finished=False, topic_id=topic.id)
+    lesson.topics.append(lesson_topic)
+
+    lt = student._lesson_topics(is_finished=False)
+    in_progress = student._topics_in_progress(lt)
+    assert topic in in_progress
+
+    lesson = Lesson.create(teacher=teacher, student=student,
+                           creator=teacher.user, duration=40, date=datetime.now(),
+                           meetup_place=meetup, dropoff_place=dropoff)
+    lesson_topic = LessonTopic(
+        is_finished=True, topic_id=topic.id)
+    lesson.topics.append(lesson_topic)
+    lt = student._lesson_topics(is_finished=False)
+    in_progress = student._topics_in_progress(lt)
+    assert len(in_progress) == 0
