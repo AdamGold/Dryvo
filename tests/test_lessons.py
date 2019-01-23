@@ -77,6 +77,7 @@ def test_invalid_update_topics(auth, teacher, requester, topic, student_id, topi
     lesson_id = resp.json["data"]["id"]
     resp = requester.post(f"/lessons/{lesson_id}/topics",
                           json={'topics': topics})
+    assert resp.status_code == 400
     assert resp.json["message"] == error
 
 

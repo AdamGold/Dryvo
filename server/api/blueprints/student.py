@@ -24,13 +24,19 @@ def topics(student_id: int):
     """show topics by: finished, unfinished or haven't started"""
     student = Student.get_by_id(student_id)
     if not student:
-        raise RouteError("Student does not exist.")
-    finished_topics = [topic.to_dict() for topic in student.filter_topics(
-        is_finished=True)]
-    in_progress_topics = [topic.to_dict() for topic in student.filter_topics(
-        is_finished=False)]
-    new_topics = [topic.to_dict() for topic in Topic.query.all(
-    ) if topic.to_dict() not in in_progress_topics and topic.to_dict() not in finished_topics]
+        raise RouteError("Student does not exist.", 404)
+    finished_topics = [
+        topic.to_dict() for topic in student.filter_topics(is_finished=True)
+    ]
+    in_progress_topics = [
+        topic.to_dict() for topic in student.filter_topics(is_finished=False)
+    ]
+    new_topics = [
+        topic.to_dict()
+        for topic in Topic.query.all()
+        if topic.to_dict() not in in_progress_topics
+        and topic.to_dict() not in finished_topics
+    ]
     return {
         "data": {
             "finished": finished_topics,
@@ -48,10 +54,12 @@ def new_lesson_topics(student_id: int):
     { Lesson.topics_for_lesson + student.in progress topics }"""
     student = Student.get_by_id(student_id)
     if not student:
-        raise RouteError("Student does not exist.")
-    topics_for_lesson = set(Lesson.topics_for_lesson(
-        student.new_lesson_number)) - set(student.filter_topics(is_finished=True))
+        raise RouteError("Student does not exist.", 404)
+    topics_for_lesson = set(Lesson.topics_for_lesson(student.new_lesson_number)) - set(
+        student.filter_topics(is_finished=True)
+    )
     in_progress_topics = student.filter_topics(is_finished=False)
-    non_duplicates = (list(topics_for_lesson) +
-                      list(set(in_progress_topics) - topics_for_lesson))
+    non_duplicates = list(topics_for_lesson) + list(
+        set(in_progress_topics) - topics_for_lesson
+    )
     return {"data": [topic.to_dict() for topic in non_duplicates]}

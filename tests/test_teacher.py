@@ -87,7 +87,7 @@ def test_available_hours_route(teacher, student, meetup, dropoff, auth, requeste
     assert "14:10" in resp.json['data'][0][0]
 
 
-def test_teacher_available_hours(auth, teacher, student, requester):
+def test_teacher_available_hours(teacher, student, requester):
     date = "2018-11-27"
     time_and_date = date + "T13:30Z"
     kwargs = {
@@ -103,3 +103,25 @@ def test_teacher_available_hours(auth, teacher, student, requester):
     req_day = datetime.strptime(time_and_date, DATE_FORMAT)
     assert next(teacher.available_hours(
         req_day))[0] == req_day
+
+
+def test_add_payment(auth, requester, teacher, student):
+    auth.login(email=teacher.user.email)
+    resp = requester.post("/teacher/add_payment",
+                          json={"amount": teacher.price, "student_id": student.id})
+    assert resp.json["data"]["amount"] == teacher.price
+
+
+@pytest.mark.parametrize(
+    ('amount, student_id, error'),
+    (
+        (None, 1, "Amount must be given."),
+        (100, 10000, "Student does not exist."),
+    ),
+)
+def test_add_invalid_payment(auth, requester, teacher, amount, student_id, error):
+    auth.login(email=teacher.user.email)
+    resp = requester.post("/teacher/add_payment",
+                          json={"amount": amount, "student_id": student_id})
+    assert resp.status_code == 400
+    assert resp.json["message"] == error

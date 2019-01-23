@@ -10,8 +10,7 @@ from flask_login import current_user, login_required, login_user, logout_user
 from loguru import logger
 from sqlalchemy.orm.exc import NoResultFound
 
-from server.api.database.models import (BlacklistToken, OAuth, Provider,
-                                        TokenScope, User)
+from server.api.database.models import BlacklistToken, OAuth, Provider, TokenScope, User
 from server.api.utils import jsonify_response
 from server.consts import DEBUG_MODE, FACEBOOK_SCOPES, MOBILE_LINK
 from server.error_handling import RouteError, TokenError
@@ -116,8 +115,7 @@ def oauth_facebook():
     # If authenticated from JWT, login using a session
     if current_user.is_authenticated:
         login_user(current_user, remember=True)
-    state = "".join(random.choices(
-        string.ascii_uppercase + string.digits, k=6))
+    state = "".join(random.choices(string.ascii_uppercase + string.digits, k=6))
     redirect = flask.url_for(".facebook_authorized", _external=True)
     auth_url = (
         "https://www.facebook.com/v3.2/dialog/oauth?client_id={}"
@@ -193,8 +191,7 @@ def handle_facebook(state, code):
 
     # Find this OAuth token in the database, or create it
     query = OAuth.query.filter_by(
-        provider=Provider.facebook, provider_user_id=validate_token_resp.get(
-            "user_id")
+        provider=Provider.facebook, provider_user_id=validate_token_resp.get("user_id")
     )
 
     try:
@@ -223,8 +220,7 @@ def handle_facebook(state, code):
             raise RouteError("Can not get email from user.")
 
         # Create a new local user account for this user
-        user = User(email=profile.get("email"),
-                    name=profile.get("name")).save()
+        user = User(email=profile.get("email"), name=profile.get("name")).save()
         oauth.user = user
         oauth.save()
         logger.debug(f"creating new user {user}")

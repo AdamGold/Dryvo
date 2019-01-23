@@ -9,8 +9,16 @@ from loguru import logger
 
 from server.api.blueprints import teacher_required
 from server.api.database.consts import LESSONS_PER_PAGE
-from server.api.database.models import (Lesson, LessonTopic, Place, PlaceType,
-                                        Student, Teacher, Topic, User)
+from server.api.database.models import (
+    Lesson,
+    LessonTopic,
+    Place,
+    PlaceType,
+    Student,
+    Teacher,
+    Topic,
+    User,
+)
 from server.api.push_notifications import FCM
 from server.api.utils import jsonify_response, paginate
 from server.consts import DATE_FORMAT, DEBUG_MODE
@@ -140,8 +148,7 @@ def update_topics(lesson_id):
             if topic_id in appended_ids:  # we don't want the same topic twice
                 continue
             is_finished = True if key == FINISHED_KEY else False
-            lesson_topic = LessonTopic(
-                is_finished=is_finished, topic_id=topic_id)
+            lesson_topic = LessonTopic(is_finished=is_finished, topic_id=topic_id)
             lesson.topics.append(lesson_topic)
             appended_ids.append(topic_id)
 

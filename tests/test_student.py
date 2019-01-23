@@ -3,7 +3,7 @@ from datetime import datetime, timedelta
 from flask_sqlalchemy import BaseQuery
 
 from server.api.database.models import (Lesson, LessonTopic, Place, PlaceType,
-                                        Topic)
+                                        Topic, Payment)
 from server.consts import DATE_FORMAT
 
 
@@ -146,3 +146,10 @@ def test_topics_in_progress(teacher, student, topic, meetup, dropoff, lesson):
     lt = student._lesson_topics(is_finished=False)
     in_progress = student._topics_in_progress(lt)
     assert len(in_progress) == 0
+
+
+def test_balance(teacher, student):
+    # we have one lesson currently and 0 payments
+    assert student.balance == -teacher.price
+    Payment.create(amount=teacher.price, teacher=teacher, student=student)
+    assert student.balance == 0

@@ -100,4 +100,11 @@ class Teacher(SurrogatePK, Model):
         return lessons_query.filter_by(deleted=deleted).order_by(order_by)
 
     def to_dict(self):
-        return {"id": self.id, "teacher_id": self.teacher_id, "user_id": self.user_id}
+        return {
+            "price": self.price,
+            "phone": self.phone,
+            "lesson_duration": self.lesson_duration,
+            "price_rating": self.price_rating,
+            "availabillity_rating": self.availabillity_rating,
+            "content_rating": self.content_rating,
+        }
