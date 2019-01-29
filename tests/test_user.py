@@ -66,3 +66,9 @@ def test_register_token(auth, requester):
     resp = requester.post('/user/register_firebase_token',
                           json={'token': 'some token'})
     assert 'successfully' in resp.json.get('message')
+
+
+def test_me(auth, user, requester):
+    auth.login()
+    resp = requester.get('/user/me')
+    assert user.id == resp.json["user"]["id"]
