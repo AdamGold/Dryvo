@@ -14,6 +14,13 @@ def init_app(app):
     app.register_blueprint(user_routes)
 
 
+@user_routes.route("/me", methods=["GET"])
+@jsonify_response
+@login_required
+def me():
+    return {"user": current_user.to_dict()}
+
+
 @user_routes.route("/make_student", methods=["POST"])
 @jsonify_response
 @login_required
