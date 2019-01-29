@@ -1,26 +1,48 @@
 import binascii
-import jwt
 import datetime as dt
 import hashlib
 import os
 from datetime import datetime, timedelta
-from flask_login import UserMixin
+from enum import Enum, auto
+from typing import Dict
 
+import jwt
+from flask_login import UserMixin
+from sqlalchemy.orm.exc import NoResultFound
+
+from server.api.database import db
+from server.api.database.consts import (
+    EXCHANGE_TOKEN_EXPIRY,
+    REFRESH_TOKEN_EXPIRY,
+    TOKEN_EXPIRY,
+)
 from server.api.database.mixins import (
     Column,
     Model,
     SurrogatePK,
-    relationship,
     reference_col,
+    relationship,
 )
-from server.api.database import db
 from server.api.database.models import BlacklistToken
-from server.api.database.consts import TOKEN_EXPIRY
 from server.error_handling import TokenError
 
 HASH_NAME = "sha1"
 HASH_ROUNDS = 1000
 SALT_LENGTH = 20
+
+
+class TokenScope(Enum):
+
+    EXCHANGE = auto()
+    LOGIN = auto()
+    REFRESH = auto()
+
+    def expiry(self) -> int:
+        return {
+            self.EXCHANGE: EXCHANGE_TOKEN_EXPIRY,
+            self.LOGIN: TOKEN_EXPIRY,
+            self.REFRESH: REFRESH_TOKEN_EXPIRY,
+        }[self]
 
 
 class User(UserMixin, SurrogatePK, Model):
@@ -29,14 +51,13 @@ class User(UserMixin, SurrogatePK, Model):
     __tablename__ = "users"
     email = Column(db.String(80), unique=True, nullable=False)
     password = Column(db.String(120), nullable=True)
-    created_at = Column(db.DateTime, nullable=False,
-                        default=dt.datetime.utcnow)
-    last_login = Column(db.DateTime, nullable=False,
-                        default=dt.datetime.utcnow)
+    created_at = Column(db.DateTime, nullable=False, default=dt.datetime.utcnow)
+    last_login = Column(db.DateTime, nullable=False, default=dt.datetime.utcnow)
     salt = Column(db.String(80), nullable=False)
     name = Column(db.String(80), nullable=False)
     is_admin = Column(db.Boolean, nullable=False, default=False)
     area = Column(db.String(80), nullable=True)
+    firebase_token = Column(db.Text, nullable=True)
 
     def __init__(self, email, password="", **kwargs):
         if not password:
@@ -66,39 +87,65 @@ class User(UserMixin, SurrogatePK, Model):
         passhash = self._prepare_password(value, self.salt)[1]
         return passhash == self.password
 
-    def encode_auth_token(self):
-        """
-        Generates the Auth Token
-        :return: string
-        """
-        try:
-            payload = {
-                "exp": datetime.utcnow() + timedelta(days=TOKEN_EXPIRY),
+    def generate_tokens(self) -> Dict[str, str]:
+        return {
+            "auth_token": self.encode_auth_token().decode(),
+            "refresh_token": self.encode_refresh_token().decode(),
+        }
+
+    def _encode_jwt(self, scope: TokenScope, **kwargs) -> bytes:
+        payload = dict(
+            **{
+                "exp": datetime.utcnow() + timedelta(days=scope.expiry()),
                 "iat": datetime.utcnow(),
-                "sub": self.id,
-            }
-            return jwt.encode(payload, os.environ["SECRET_JWT"], algorithm="HS256")
-        except Exception as e:
-            return e
+                "user_id": self.id,
+                "scope": scope.value,
+            },
+            **kwargs,
+        )
+        return jwt.encode(payload, os.environ.get("SECRET_JWT"), algorithm="HS256")
+
+    def encode_exchange_token(self) -> bytes:
+        """Generates an exchange token for current user"""
+        return self._encode_jwt(TokenScope.EXCHANGE)
+
+    def encode_auth_token(self) -> bytes:
+        """Generates a login token"""
+        return self._encode_jwt(TokenScope.LOGIN, email=self.email)
+
+    def encode_refresh_token(self) -> bytes:
+        """Generates a refresh token."""
+        return self._encode_jwt(TokenScope.REFRESH)
 
     @staticmethod
-    def from_token(auth_token):
-        """
-        Decodes the auth token
-        :param auth_token:
-        :return: integer|string
-        """
+    def from_payload(payload: dict) -> "User":
+        """Returns the user that owns the token"""
         try:
-            payload = jwt.decode(auth_token, os.environ["SECRET_JWT"])
-            is_blacklisted_token = BlacklistToken.check_blacklist(auth_token)
-            if is_blacklisted_token:
-                raise TokenError("Token blacklisted. Please log in again.")
-            else:
-                return payload["sub"]
+            return User.query.filter_by(id=payload["user_id"]).one()
+        except NoResultFound:
+            raise TokenError("No user associated with jwt token")
+
+    @staticmethod
+    def from_login_token(token: str) -> "User":
+        """Returns the user that owns the auth token.
+        only for auth (login) tokens and not for refresh."""
+        payload = User.decode_token(token)
+        if not payload["email"] or payload["scope"] != TokenScope.LOGIN.value:
+            raise TokenError("INVALID_TOKEN")
+        return User.from_payload(payload)
+
+    @staticmethod
+    def decode_token(auth_token: str) -> dict:
+        """Decode JWT or raise familiar exceptions"""
+        try:
+            payload = jwt.decode(auth_token, os.environ.get("SECRET_JWT"))
+            if BlacklistToken.check_blacklist(auth_token):
+                raise TokenError("BLACKLISTED_TOKEN")
+            return payload
         except jwt.ExpiredSignatureError:
-            raise TokenError("Signature expired. Please log in again.")
-        except jwt.InvalidTokenError:
-            raise TokenError("Invalid token. Please log in again.")
+            raise TokenError("EXPIRED_TOKEN")
+        except (jwt.InvalidTokenError, jwt.DecodeError):
+            raise TokenError("INVALID_TOKEN")
 
     def to_dict(self):
         return {

@@ -1,14 +1,14 @@
+from datetime import datetime
+from functools import wraps
+
 import flask
 from flask import Blueprint
 from flask_login import current_user, login_required, logout_user
-from functools import wraps
-from datetime import datetime
 
 from server.api.database.consts import DAYS_PER_PAGE
+from server.api.database.models import Day, Payment, Student, Teacher, WorkDay
 from server.api.utils import jsonify_response, paginate
 from server.error_handling import RouteError
-from server.api.database.models import Teacher, Student, WorkDay, Day
-
 
 teacher_routes = Blueprint("teacher", __name__, url_prefix="/teacher")
 
@@ -21,7 +21,7 @@ def teacher_required(func):
     @wraps(func)
     def func_wrapper(*args, **kwargs):
         if not current_user.teacher:
-            raise RouteError("User is not a teacher.")
+            raise RouteError("User is not a teacher.", 401)
 
         return func(*args, **kwargs)
 
@@ -49,7 +49,7 @@ def new_work_day():
     if not isinstance(day, int):
         day = getattr(Day, day, 1)
     date_input = data.get("on_date")
-    date = datetime.strptime(date_input, '%Y-%m-%d')
+    date = datetime.strptime(date_input, "%Y-%m-%d")
     from_hour = max(min(data.get("from_hour"), 24), 0)
     to_hour = max(min(data.get("to_hour"), 24), 0)
     from_minutes = max(min(data.get("from_minutes"), 60), 0)
@@ -105,4 +105,26 @@ def delete_work_day(day_id):
 def available_hours(teacher_id):
     data = flask.request.get_json()
     teacher = Teacher.get_by_id(teacher_id)
-    return {'data': teacher.available_hours(datetime.strptime(data.get("date"), "%Y-%m-%d"))}
+    return {
+        "data": list(
+            teacher.available_hours(datetime.strptime(data.get("date"), "%Y-%m-%d"))
+        )
+    }
+
+
+@teacher_routes.route("/add_payment", methods=["POST"])
+@jsonify_response
+@login_required
+@teacher_required
+def add_payment():
+    data = flask.request.get_json()
+    student = Student.get_by_id(data.get("student_id"))
+    if not student:
+        raise RouteError("Student does not exist.")
+    if not data.get("amount"):
+        raise RouteError("Amount must be given.")
+    payment = Payment.create(
+        teacher=current_user.teacher, student=student, amount=data.get("amount")
+    )
+
+    return {"data": payment.to_dict()}, 201

@@ -1,15 +1,15 @@
 import datetime as dt
 
+from sqlalchemy.orm import backref
+
+from server.api.database import db
 from server.api.database.mixins import (
     Column,
     Model,
     SurrogatePK,
-    relationship,
     reference_col,
+    relationship,
 )
-from server.api.database import db
-
-from sqlalchemy.orm import backref
 
 
 class Test(SurrogatePK, Model):

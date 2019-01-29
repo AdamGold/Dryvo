@@ -31,6 +31,7 @@ def test_invalid_make_teacher(admin, user, auth, requester, user_id, price, phon
     resp = requester.post('/user/make_teacher',
                           json={'user_id': user_id, 'price': price,
                                 'phone': phone})
+    assert resp.status_code == 400
     assert resp.json.get("message") == message
 
 
@@ -45,6 +46,7 @@ def test_make_student_invalid_teacher(admin, user, auth, requester):
     auth.login(admin.email, 'test')
     resp = requester.post('/user/make_student',
                           json={'user_id': user.id, 'teacher_id': 3})
+    assert resp.status_code == 400
     assert resp.json.get("message") == "Teacher not found."
 
 
@@ -57,3 +59,16 @@ def test_make_student_already_assigned(app, admin, student, teacher, auth, reque
         resp = requester.post('/user/make_student',
                               json={'user_id': teacher.user_id, 'teacher_id': 1})
         assert resp.json.get("message") == "Already student or teacher."
+
+
+def test_register_token(auth, requester):
+    auth.login()
+    resp = requester.post('/user/register_firebase_token',
+                          json={'token': 'some token'})
+    assert 'successfully' in resp.json.get('message')
+
+
+def test_me(auth, user, requester):
+    auth.login()
+    resp = requester.get('/user/me')
+    assert user.id == resp.json["user"]["id"]

@@ -1,18 +1,18 @@
 import datetime as dt
+import enum
 
+from sqlalchemy.orm import backref
+from sqlalchemy_utils import ChoiceType, JSONType
+
+from server.api.database import db
 from server.api.database.mixins import (
     Column,
     Model,
     SurrogatePK,
-    relationship,
     reference_col,
+    relationship,
 )
-from server.api.database import db
 from server.api.database.models.user import User
-
-from sqlalchemy.orm import backref
-from sqlalchemy_utils import ChoiceType, JSONType
-import enum
 
 
 class Provider(enum.Enum):
