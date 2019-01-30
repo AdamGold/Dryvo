@@ -22,7 +22,8 @@ class Student(SurrogatePK, Model):
 
     __tablename__ = "students"
     teacher_id = reference_col("teachers", nullable=False)
-    teacher = relationship("Teacher", backref=backref("students", lazy="dynamic"))
+    teacher = relationship(
+        "Teacher", backref=backref("students", lazy="dynamic"))
     user_id = reference_col("users", nullable=False)
     user = relationship(
         "User", backref=backref("student", uselist=False), uselist=False
@@ -36,9 +37,11 @@ class Student(SurrogatePK, Model):
     def filter_lessons(self, filter_args):
         lessons_query = self.lessons
         if filter_args.get("show") == "history":
-            lessons_query = lessons_query.filter(Lesson.date < datetime.today())
+            lessons_query = lessons_query.filter(
+                Lesson.date < datetime.today())
         else:
-            lessons_query = lessons_query.filter(Lesson.date > datetime.today())
+            lessons_query = lessons_query.filter(
+                Lesson.date > datetime.today())
 
         order_by_args = filter_args.get("order_by", "date desc").split()
         order_by = getattr(Lesson, order_by_args[0])
@@ -115,4 +118,4 @@ class Student(SurrogatePK, Model):
         return sum([payment.amount for payment in self.payments]) - lessons_price
 
     def to_dict(self):
-        return {"id": self.id, "teacher_id": self.teacher_id, "user_id": self.user_id}
+        return {"student_id": self.id, "my_teacher": self.teacher.to_dict()}

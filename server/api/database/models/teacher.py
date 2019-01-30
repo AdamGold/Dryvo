@@ -44,7 +44,8 @@ class Teacher(SurrogatePK, Model):
             work_hours = self.work_days.filter_by(day=weekday).all()
             logger.debug(f"No specific days found. Going with default")
 
-        logger.debug(f"found these work days on the specific date: {work_hours}")
+        logger.debug(
+            f"found these work days on the specific date: {work_hours}")
         return work_hours
 
     def available_hours(
@@ -70,8 +71,10 @@ class Teacher(SurrogatePK, Model):
         work_hours.sort(key=lambda x: x.from_hour)  # sort from early to late
         for day in work_hours:
             hours = (
-                requested_date.replace(hour=day.from_hour, minute=day.from_minutes),
-                requested_date.replace(hour=day.to_hour, minute=day.to_minutes),
+                requested_date.replace(
+                    hour=day.from_hour, minute=day.from_minutes),
+                requested_date.replace(
+                    hour=day.to_hour, minute=day.to_minutes),
             )
             yield from get_slots(
                 hours, taken_lessons, timedelta(minutes=self.lesson_duration)
@@ -90,9 +93,11 @@ class Teacher(SurrogatePK, Model):
         if "deleted" in filter_args:
             deleted = True
         if filter_args.get("show") == "history":
-            lessons_query = lessons_query.filter(Lesson.date < datetime.today())
+            lessons_query = lessons_query.filter(
+                Lesson.date < datetime.today())
         else:
-            lessons_query = lessons_query.filter(Lesson.date > datetime.today())
+            lessons_query = lessons_query.filter(
+                Lesson.date > datetime.today())
 
         order_by_args = filter_args.get("order_by", "date desc").split()
         order_by = getattr(Lesson, order_by_args[0])
@@ -101,6 +106,7 @@ class Teacher(SurrogatePK, Model):
 
     def to_dict(self):
         return {
+            "teacher_id": self.id,
             "price": self.price,
             "phone": self.phone,
             "lesson_duration": self.lesson_duration,
