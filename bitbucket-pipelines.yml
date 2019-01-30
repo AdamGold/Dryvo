@@ -37,7 +37,8 @@ pipelines:
                           "FACEBOOK_CLIENT_SECRET": "'"$FACEBOOK_CLIENT_SECRET"'",                       
                           "FACEBOOK_TOKEN": "'"$FACEBOOK_TOKEN"'",
                           "FLASK_APP": "'"$FLASK_APP"'",
-                          "SECRET_JWT": "'"$SECRET_JWT"'"
+                          "SECRET_JWT": "'"$SECRET_JWT"'",
+                          "FIREBASE_JSON": "'"$FIREBASE_JSON"'"
                           }'
                           -H "Content-Type: application/json"
                           -H "Accept: application/vnd.heroku+json; version=3"

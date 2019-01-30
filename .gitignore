@@ -16,3 +16,4 @@ build/
 tests/test-reports/
 .pytest_cache
 firebase_cred.json
+logs/dryvo_log.log
