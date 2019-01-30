@@ -161,10 +161,9 @@ def refresh_token():
 
 
 @login_routes.route("/facebook/authorized", methods=["GET"])
-@jsonify_response
 def facebook_authorized():
     data = flask.request.values
-    handle_facebook(state=data.get("state"), code=data.get("code"))
+    return handle_facebook(state=data.get("state"), code=data.get("code"))
 
 
 def handle_facebook(state, code):
