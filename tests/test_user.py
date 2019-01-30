@@ -68,7 +68,22 @@ def test_register_token(auth, requester):
     assert 'successfully' in resp.json.get('message')
 
 
-def test_me(auth, user, requester):
+def test_me_student(auth, user, requester, student):
+    auth.login(email=student.user.email)
+    resp = requester.get('/user/me')
+    assert student.user.id == resp.json["user"]["id"]
+    assert student.id == resp.json["user"]["student_id"]
+    assert student.teacher_id == resp.json["user"]["my_teacher"]["teacher_id"]
+
+
+def test_me_teacher(auth, user, requester, teacher):
+    auth.login(email=teacher.user.email)
+    resp = requester.get('/user/me')
+    assert teacher.user.id == resp.json["user"]["id"]
+    assert teacher.id == resp.json["user"]["teacher_id"]
+
+
+def test_me_not_teacher_or_student(auth, user, requester):
     auth.login()
     resp = requester.get('/user/me')
     assert user.id == resp.json["user"]["id"]

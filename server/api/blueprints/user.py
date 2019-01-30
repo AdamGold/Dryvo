@@ -18,7 +18,10 @@ def init_app(app):
 @jsonify_response
 @login_required
 def me():
-    return {"user": current_user.to_dict()}
+    info = current_user.teacher or current_user.student or {}
+    if info:
+        info = info.to_dict()
+    return {"user": dict(**current_user.to_dict(), **info)}
 
 
 @user_routes.route("/make_student", methods=["POST"])
