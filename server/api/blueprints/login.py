@@ -118,6 +118,7 @@ def oauth_facebook():
     if auth_token:
         user = User.from_login_token(auth_token)
         BlacklistToken.create(token=auth_token)
+        logger.debug("logged wih token, creating session...")
         login_user(user, remember=True)
     state = "".join(random.choices(
         string.ascii_uppercase + string.digits, k=6))
@@ -233,5 +234,7 @@ def handle_facebook(state, code):
         logger.debug(f"creating new user {user}")
 
     exchange_token = user.encode_exchange_token().decode()
+    logger.debug("Logging out of session")
     logout_user()
+    logger.debug(f"redirecting {user} to {MOBILE_LINK}?token=TOKEN")
     return flask.redirect(f"{MOBILE_LINK}?token={exchange_token}")
