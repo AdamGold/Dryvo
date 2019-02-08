@@ -14,14 +14,16 @@ def init_app(app):
     app.register_blueprint(user_routes)
 
 
+def get_user_info(user: User):
+    info = user.teacher or user.student or {}
+    return info.to_dict() if info else {}
+
+
 @user_routes.route("/me", methods=["GET"])
 @jsonify_response
 @login_required
 def me():
-    info = current_user.teacher or current_user.student or {}
-    if info:
-        info = info.to_dict()
-    return {"user": dict(**current_user.to_dict(), **info)}
+    return {"user": dict(**current_user.to_dict(), **get_user_info(current_user))}
 
 
 @user_routes.route("/make_student", methods=["POST"])
