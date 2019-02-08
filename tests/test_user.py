@@ -87,3 +87,9 @@ def test_me_not_teacher_or_student(auth, user, requester):
     auth.login()
     resp = requester.get('/user/me')
     assert user.id == resp.json["user"]["id"]
+
+
+def test_get_user_info(teacher):
+    info = user.get_user_info(teacher.user)
+    assert "teacher_id" in info
+    assert "price" in info

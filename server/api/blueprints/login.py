@@ -10,7 +10,9 @@ from flask_login import current_user, login_required, login_user, logout_user
 from loguru import logger
 from sqlalchemy.orm.exc import NoResultFound
 
-from server.api.database.models import BlacklistToken, OAuth, Provider, TokenScope, User
+from server.api.blueprints.user import get_user_info
+from server.api.database.models import (BlacklistToken, OAuth, Provider,
+                                        TokenScope, User)
 from server.api.utils import jsonify_response
 from server.consts import DEBUG_MODE, FACEBOOK_SCOPES, MOBILE_LINK
 from server.error_handling import RouteError, TokenError
@@ -54,7 +56,8 @@ def direct_login():
     # Try to authenticate the found user using their password
     if user and user.check_password(data.get("password")):
         tokens = user.generate_tokens()
-        return dict(**tokens, **{"user": user.to_dict()})
+        user_dict = dict(**user.to_dict(), **get_user_info(user))
+        return dict(**tokens, **{"user": user_dict})
     # User does not exist. Therefore, we return an error message
     raise RouteError("Invalid email or password.", 401)
 
