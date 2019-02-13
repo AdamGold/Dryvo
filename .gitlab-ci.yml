@@ -18,7 +18,11 @@ test:
 deploy:
     stage: deploy
     script:
+<<<<<<< HEAD
         - git push -q https://heroku:$HEROKU_API_KEY@git.heroku.com/$HEROKU_APP_NAME.git master
+=======
+        - git push -q https://heroku:$HEROKU_API_KEY@git.heroku.com/$HEROKU_APP_NAME.git master:master
+>>>>>>> 538716b1359ee1b45ed000338bef7dca79814343
         - >-
             curl -n -X PATCH https://api.heroku.com/apps/$HEROKU_APP_NAME/config-vars
             -d '{
