@@ -4,6 +4,7 @@ from pathlib import Path
 
 class Config(object):
     SECRET_KEY = os.urandom(24)
+    SECRET_JWT = os.environ.get("SECRET_JWT")
     SQLALCHEMY_TRACK_MODIFICATIONS = False
     SQLALCHEMY_DATABASE_URI = os.environ.get("DATABASE_URL")
     FIREBASE_JSON = os.environ.get("FIREBASE_JSON")

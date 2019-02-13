@@ -5,6 +5,8 @@ from datetime import datetime, timedelta
 import flask
 import flask.testing
 import pytest
+import json
+from pathlib import Path
 
 from server import create_app
 from server.api.database import db, reset_db
@@ -14,13 +16,16 @@ from server.api.database.models import (Lesson, Place, PlaceType, Student,
 
 @pytest.fixture
 def app() -> flask.Flask:
+    with open(Path.cwd() / "tests" / "service-account.json", "r") as f:
+        firebase_json = f.read()
     with tempfile.NamedTemporaryFile() as db_f:
         # create the app with common test config
         app = create_app(
             TESTING=True,
             SECRET_KEY='VERY_SECRET',
             SQLALCHEMY_DATABASE_URI=f"sqlite:///{db_f.name}",
-            JWT_SECRET='SUPER_SECRET',
+            FIREBASE_JSON=firebase_json,
+            SECRET_JWT="VERY_VERY_SECRET"
         )
 
         with app.app_context():
