@@ -17,15 +17,8 @@ test:
 
 deploy:
     stage: deploy
-    before_script:
-        - echo "deb http://toolbelt.heroku.com/ubuntu ./" > /etc/apt/sources.list.d/heroku.list
-        - wget -O- https://toolbelt.heroku.com/apt/release.key | apt-key add -
-        - apt-get update
-        - apt-get install -y heroku-toolbelt
-        - export HEROKU_API_KEY=$HEROKU_API_KEY
-        - heroku git:remote -a $HEROKU_APP_NAME
     script:
-        - git push heroku master
+        - git push -q https://heroku:$HEROKU_API_KEY@git.heroku.com/$HEROKU_APP_NAME.git master
         - >-
             curl -n -X PATCH https://api.heroku.com/apps/$HEROKU_APP_NAME/config-vars
             -d '{
