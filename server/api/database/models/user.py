@@ -9,6 +9,7 @@ from typing import Dict
 import jwt
 from flask_login import UserMixin
 from sqlalchemy.orm.exc import NoResultFound
+from flask import current_app
 
 from server.api.database import db
 from server.api.database.consts import (
@@ -105,7 +106,7 @@ class User(UserMixin, SurrogatePK, Model):
             },
             **kwargs,
         )
-        return jwt.encode(payload, os.environ.get("SECRET_JWT"), algorithm="HS256")
+        return jwt.encode(payload, current_app.config.get("SECRET_JWT"), algorithm="HS256")
 
     def encode_exchange_token(self) -> bytes:
         """Generates an exchange token for current user"""
@@ -140,7 +141,8 @@ class User(UserMixin, SurrogatePK, Model):
     def decode_token(auth_token: str) -> dict:
         """Decode JWT or raise familiar exceptions"""
         try:
-            payload = jwt.decode(auth_token, os.environ.get("SECRET_JWT"))
+            payload = jwt.decode(
+                auth_token, current_app.config.get("SECRET_JWT"))
             if BlacklistToken.check_blacklist(auth_token):
                 raise TokenError("BLACKLISTED_TOKEN")
             return payload
