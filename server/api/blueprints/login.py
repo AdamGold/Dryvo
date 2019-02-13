@@ -129,7 +129,8 @@ def oauth_facebook():
     auth_url = (
         "https://www.facebook.com/v3.2/dialog/oauth?client_id={}"
         "&redirect_uri={}&state={}&scope={}".format(
-            os.environ["FACEBOOK_CLIENT_ID"], redirect, state, FACEBOOK_SCOPES
+            flask.current_app.config.get(
+                "FACEBOOK_CLIENT_ID"), redirect, state, FACEBOOK_SCOPES
         )
     )
     # Store the state so the callback can verify the auth server response.
@@ -181,9 +182,9 @@ def handle_facebook(state, code):
     token_url = (
         "https://graph.facebook.com/v3.2/oauth/access_token?client_id="
         "{}&redirect_uri={}&client_secret={}&code={}".format(
-            os.environ["FACEBOOK_CLIENT_ID"],
+            flask.current_app.config.get("FACEBOOK_CLIENT_ID"),
             redirect,
-            os.environ["FACEBOOK_CLIENT_SECRET"],
+            flask.current_app.config.get("FACEBOOK_CLIENT_SECRET"),
             code,
         )
     )
@@ -192,7 +193,7 @@ def handle_facebook(state, code):
     logger.debug(f"got access token {access_token}")
 
     url = "https://graph.facebook.com/debug_token?input_token={}&access_token={}".format(
-        access_token, os.environ["FACEBOOK_TOKEN"]
+        access_token, flask.current_app.config.get("FACEBOOK_TOKEN")
     )
 
     validate_token_resp = requests.get(url).json()["data"]
