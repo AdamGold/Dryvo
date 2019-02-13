@@ -25,7 +25,11 @@ def app() -> flask.Flask:
             SECRET_KEY='VERY_SECRET',
             SQLALCHEMY_DATABASE_URI=f"sqlite:///{db_f.name}",
             FIREBASE_JSON=firebase_json,
-            SECRET_JWT="VERY_VERY_SECRET"
+            SECRET_JWT="VERY_VERY_SECRET",
+            FLASK_DEBUG=1,
+            FACEBOOK_TOKEN="test",
+            FACEBOOK_CLIENT_SECRET="test",
+            FACEBOOK_CLIENT_ID="test"
         )
 
         with app.app_context():
