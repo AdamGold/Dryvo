@@ -22,9 +22,10 @@ deploy:
         - wget -O- https://toolbelt.heroku.com/apt/release.key | apt-key add -
         - apt-get update
         - apt-get install -y heroku-toolbelt
-        - gem install dpl
+        - export HEROKU_API_KEY=$HEROKU_API_KEY
+        - heroku git:remote -a $HEROKU_APP_NAME
     script:
-        - dpl --provider=heroku --app=$HEROKU_APP_NAME --api-key=$HEROKU_API_KEY
+        - git push heroku master
         - >-
             curl -n -X PATCH https://api.heroku.com/apps/$HEROKU_APP_NAME/config-vars
             -d '{
