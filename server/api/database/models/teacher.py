@@ -1,21 +1,18 @@
 from datetime import datetime, timedelta
 from typing import Iterable, Tuple
 
+import werkzeug
 from loguru import logger
 from sqlalchemy import func
 from sqlalchemy.ext.hybrid import hybrid_method
 from sqlalchemy.orm import backref
 
 from server.api.database import db
-from server.api.database.mixins import (
-    Column,
-    Model,
-    SurrogatePK,
-    reference_col,
-    relationship,
-)
-from server.api.database.models import Lesson, LessonCreator
+from server.api.database.mixins import (Column, Model, SurrogatePK,
+                                        reference_col, relationship)
+from server.api.database.models import Lesson, LessonCreator, WorkDay
 from server.api.utils import get_slots
+from server.consts import WORKDAY_DATE_FORMAT
 
 
 class Teacher(SurrogatePK, LessonCreator):
@@ -78,6 +75,16 @@ class Teacher(SurrogatePK, LessonCreator):
 
         for lesson in existing_lessons.filter_by(student_id=None).all():
             yield (lesson.date, lesson.date + timedelta(minutes=lesson.duration))
+
+    @hybrid_method
+    def filter_work_days(self, args: werkzeug.datastructures.MultiDict):
+        if "on_date" not in args:
+            args["on_date"] = None
+
+        def custom_date_func(value):
+            return datetime.strptime(value, WORKDAY_DATE_FORMAT).date()
+        return WorkDay.filter_and_sort(args, default_sort_column="day",
+                                       query=self.work_days, custom_date=custom_date_func)
 
     def to_dict(self):
         return {

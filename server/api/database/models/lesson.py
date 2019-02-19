@@ -5,15 +5,10 @@ from sqlalchemy import and_
 from sqlalchemy.orm import backref
 
 from server.api.database import db
-from server.api.database.mixins import (
-    Column,
-    Model,
-    SurrogatePK,
-    reference_col,
-    relationship,
-)
-from server.api.database.utils import QueryWithSoftDelete
+from server.api.database.mixins import (Column, Model, SurrogatePK,
+                                        reference_col, relationship)
 from server.api.database.models import Topic
+from server.api.database.utils import QueryWithSoftDelete
 
 
 class Lesson(SurrogatePK, Model):
@@ -43,7 +38,8 @@ class Lesson(SurrogatePK, Model):
     creator = relationship("User")
     lesson_number = Column(db.Integer, nullable=True)
 
-    ALLOWED_FILTERS = ["date", "student_id", "created_at", "lesson_number"]
+    ALLOWED_FILTERS = ["deleted", "date",
+                       "student_id", "created_at", "lesson_number"]
 
     def __init__(self, **kwargs):
         """Create instance."""

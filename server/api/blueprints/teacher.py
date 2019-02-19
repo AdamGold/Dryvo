@@ -32,7 +32,10 @@ def teacher_required(func):
 @login_required
 @teacher_required
 def work_days():
-    return {"data": [day.to_dict() for day in current_user.teacher.work_days]}
+    """ return work days with filter - only on a specific date,
+    or with no date at all"""
+    return {"data": [day.to_dict() for day in
+                     current_user.teacher.filter_work_days(flask.request.args.copy())]}
 
 
 @teacher_routes.route("/work_days", methods=["POST"])

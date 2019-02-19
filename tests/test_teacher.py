@@ -1,15 +1,34 @@
 from server.api.blueprints import user
 from server.api.database.models import WorkDay, Lesson
-from server.consts import DATE_FORMAT
+from server.consts import DATE_FORMAT, WORKDAY_DATE_FORMAT
 
 import pytest
 from datetime import datetime, timedelta
 
 
 def test_work_days(teacher, auth, requester):
+    date = datetime.now() + timedelta(hours=10)
+    first_kwargs_hour = 13
+    kwargs = {
+        "teacher_id": teacher.id,
+        "day": 1,
+        "from_hour": first_kwargs_hour,
+        "from_minutes": 0,
+        "to_hour": 17,
+        "to_minutes": 0,
+        "on_date": date
+    }
+    day1 = WorkDay.create(**kwargs)
+    kwargs.pop("on_date")
+    kwargs["from_hour"] = 15
+    day2 = WorkDay.create(**kwargs)
     auth.login(email=teacher.user.email)
     resp = requester.get("/teacher/work_days").json
-    assert isinstance(resp['data'], list)
+    assert resp["data"][0]["from_hour"] == kwargs["from_hour"]
+    day = datetime.strptime("2019-02-20", WORKDAY_DATE_FORMAT).date()
+    resp = requester.get(
+        f"/teacher/work_days?on_date={day}").json
+    assert resp["data"][0]["from_hour"] == first_kwargs_hour
 
 
 def test_add_work_day(teacher, auth, requester):

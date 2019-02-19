@@ -37,12 +37,12 @@ def test_sort_data(teacher, student, meetup, dropoff):
                                      duration=40, date=datetime.now(),
                                      meetup_place=meetup, dropoff_place=dropoff))
     args = {"order_by": "created_at desc"}
-    lessons_from_db = Lesson.query.order_by(Model._sort_data(
-        Lesson, args, default_column="created_at")).all()
+    lessons_from_db = Lesson.query.order_by(Lesson._sort_data(
+        args, default_column="created_at")).all()
     assert lessons_from_db[0] == lessons[-1]
     args = {"order_by": ""}
-    lessons_from_db = Lesson.query.order_by(Model._sort_data(
-        Lesson, args, default_column="created_at", default_method="asc")).all()
+    lessons_from_db = Lesson.query.order_by(Lesson._sort_data(
+        args, default_column="created_at", default_method="asc")).all()
     assert lessons_from_db[-1] == lessons[-1]
 
 
@@ -53,14 +53,18 @@ def test_filter_data(teacher, student, meetup, dropoff):
                            meetup_place=meetup, dropoff_place=dropoff)
     # date=ge:DATE
     date = datetime.strftime(date, DATE_FORMAT)
-    lessons_from_db = Lesson.query.filter(Model._filter_data(
-        Lesson, "date", f"ge:{date}")).all()
+    lessons_from_db = Lesson.query.filter(Lesson._filter_data(
+        "date", f"ge:{date}")).all()
     assert lessons_from_db[0] == lesson
     # student_id=2
-    lessons_from_db = Lesson.query.filter(Model._filter_data(
-        Lesson, "student_id", 2)).all()
+    lessons_from_db = Lesson.query.filter(Lesson._filter_data(
+        "student_id", 2)).all()
     assert not lessons_from_db
     # date=gggg:DATE
-    lessons_from_db = Lesson.query.filter(Model._filter_data(
-        Lesson, "date", f"ggfggg:{date}")).all()  # supposed to translate to equal
+    lessons_from_db = Lesson.query.filter(Lesson._filter_data(
+        "date", f"ggfggg:{date}")).all()  # supposed to translate to equal
     assert lessons_from_db[0] == lesson
+
+
+def test_filter_and_sort(teacher, student, meetup, dropoff):
+    pass

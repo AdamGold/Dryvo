@@ -5,6 +5,7 @@ import operator
 from datetime import datetime
 
 import sqlalchemy
+import werkzeug
 
 from server.api.database import db
 from server.consts import DATE_FORMAT
@@ -47,8 +48,8 @@ class Model(CRUDMixin, db.Model):
 
     __abstract__ = True
 
-    @staticmethod
-    def _filter_data(model: object, column: str, filter_: str) -> sqlalchemy.sql.elements.BinaryExpression:
+    @classmethod
+    def _filter_data(cls, column: str, filter_: str, custom_date: callable = None) -> sqlalchemy.sql.elements.BinaryExpression:
         """get column and filter strings and return filtering function
         e.g get id=lt:200
         return operator.lt(Model.id, 200)"""
@@ -58,21 +59,27 @@ class Model(CRUDMixin, db.Model):
 
         method = "eq"
         value_to_compare = filter_
-        if len(fields) > 1:
+        if len(fields) == 2:
             method = fields[0]
             value_to_compare = fields[1]
         if fields[0] not in operators.keys():
             method = "eq"
 
-        if column in ("created_at", "date", ):
-            value_to_compare = datetime.strptime(value_to_compare, DATE_FORMAT)
-        return operators[method](getattr(model, column), value_to_compare)
+        if column == "created_at" or "date" in column and value_to_compare != None:
+            if custom_date:
+                value_to_compare = custom_date(value_to_compare)
+            else:
+                value_to_compare = datetime.strptime(
+                    value_to_compare, DATE_FORMAT)
 
-    @staticmethod
-    def _sort_data(model: object, args: dict, default_column: str, default_method: str = "asc"):
+        return operators[method](getattr(cls, column), value_to_compare)
+
+    @classmethod
+    def _sort_data(cls, args: werkzeug.datastructures.MultiDict,
+                   default_column: str, default_method: str = "asc"):
         """ get arguments and return order_by function.
         e.g get order_by=date desc
-        return Model.date.asc()
+        return cls.date.asc()
         """
         order_by_args = args.get("order_by", "").split()
         try:
@@ -83,7 +90,29 @@ class Model(CRUDMixin, db.Model):
             method = default_method
 
         return getattr(
-            getattr(model, column), method)()
+            getattr(cls, column), method)()
+
+    @classmethod
+    def filter_and_sort(cls, args: dict, default_sort_column: str, query=None,
+                        with_pagination: bool = False, custom_date: callable = None):
+        """allow filtering by student, date, lesson_number
+        eg. ?limit=20&page=2&student=1&date=lt:2019-01-20T13:20Z&lesson_number=lte:5"""
+        filters = {k: v for k, v in args.items()
+                   if k in cls.ALLOWED_FILTERS}
+        query = query or cls.query
+        for column, filter_ in filters.items():
+            query = query.filter(
+                cls._filter_data(column, filter_, custom_date))
+        order_by = cls._sort_data(
+            args, default_column=default_sort_column)
+
+        query = query.order_by(order_by)
+        if "limit" in args and with_pagination:
+            return query.paginate(
+                int(args.get("page", 1)[0]), int(args.get(
+                    "limit", 20)[0])
+            )
+        return query.all()
 
 
 # From Mike Bayer's "Building the app" talk

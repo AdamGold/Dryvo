@@ -94,7 +94,7 @@ def lessons():
     if not current_user.teacher:
         user = current_user.student
 
-    return user.filter_lessons(flask.request.args)
+    return user.filter_lessons(flask.request.args.copy(), current_user)
 
 
 @lessons_routes.route("/", methods=["POST"])
