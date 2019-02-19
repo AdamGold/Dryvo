@@ -158,4 +158,5 @@ class User(UserMixin, SurrogatePK, Model):
             "created_at": self.created_at,
             "last_login": self.last_login,
             "area": self.area,
+            "name": self.name,
         }
