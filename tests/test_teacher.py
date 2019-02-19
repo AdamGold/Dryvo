@@ -10,8 +10,6 @@ def test_work_days(teacher, auth, requester):
     auth.login(email=teacher.user.email)
     resp = requester.get("/teacher/work_days").json
     assert isinstance(resp['data'], list)
-    assert 'next_url' in resp
-    assert 'prev_url' in resp
 
 
 def test_add_work_day(teacher, auth, requester):

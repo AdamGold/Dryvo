@@ -1,20 +1,16 @@
+import itertools
 from datetime import datetime
 from typing import List
-import itertools
 
 from sqlalchemy import and_
 from sqlalchemy.ext.hybrid import hybrid_method, hybrid_property
 from sqlalchemy.orm import backref
 
 from server.api.database import db
-from server.api.database.mixins import (
-    Column,
-    Model,
-    SurrogatePK,
-    reference_col,
-    relationship,
-)
-from server.api.database.models import Lesson, LessonTopic, Place, PlaceType, Topic
+from server.api.database.mixins import (Column, Model, SurrogatePK,
+                                        reference_col, relationship)
+from server.api.database.models import (Lesson, LessonTopic, Place, PlaceType,
+                                        Topic)
 
 
 class Student(SurrogatePK, Model):
@@ -35,18 +31,24 @@ class Student(SurrogatePK, Model):
 
     @hybrid_method
     def filter_lessons(self, filter_args):
+        """allow filtering by student, date, lesson_number
+        eg. ?limit=20&page=2&student=1&date=lt:2019-01-20T13:20Z&lesson_number=lte:5"""
+        filters = {k: v for k, v in filter_args.items()
+                   if k in Lesson.ALLOWED_FILTERS}
         lessons_query = self.lessons
-        if filter_args.get("show") == "history":
+        for column, filter_ in filters.items():
             lessons_query = lessons_query.filter(
-                Lesson.date < datetime.today())
-        else:
-            lessons_query = lessons_query.filter(
-                Lesson.date > datetime.today())
-
-        order_by_args = filter_args.get("order_by", "date desc").split()
-        order_by = getattr(Lesson, order_by_args[0])
-        order_by = getattr(order_by, order_by_args[1])()
-        return lessons_query.filter_by(deleted=False).order_by(order_by)
+                self._filter_data(Lesson, column, filter_))
+        order_by = self._sort_data(
+            Lesson, filter_args, default_column="date")()
+        lessons_query = lessons_query.filter_by(
+            deleted=False).order_by(order_by)
+        if "limit" in filter_args:
+            return lessons_query.paginate(
+                filter_args.get("page", 1, type=int), filter_args.get(
+                    "limit", 20, type=int)
+            )
+        return lessons_query.all()
 
     @hybrid_property
     def new_lesson_number(self) -> int:

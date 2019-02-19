@@ -8,7 +8,6 @@ from flask_login import current_user, login_required, logout_user
 from loguru import logger
 
 from server.api.blueprints import teacher_required
-from server.api.database.consts import LESSONS_PER_PAGE
 from server.api.database.models import (
     Lesson,
     LessonTopic,
@@ -91,16 +90,11 @@ def get_lesson_data(data: dict, user: User) -> dict:
 @login_required
 @paginate
 def lessons():
-    filter_args = flask.request.args
-    page = flask.request.args.get("page", 1, type=int)
     user = current_user.teacher
     if not current_user.teacher:
         user = current_user.student
 
-    pagination = user.filter_lessons(filter_args).paginate(
-        page, LESSONS_PER_PAGE, False
-    )
-    return pagination
+    return user.filter_lessons(flask.request.args)
 
 
 @lessons_routes.route("/", methods=["POST"])
@@ -148,7 +142,8 @@ def update_topics(lesson_id):
             if topic_id in appended_ids:  # we don't want the same topic twice
                 continue
             is_finished = True if key == FINISHED_KEY else False
-            lesson_topic = LessonTopic(is_finished=is_finished, topic_id=topic_id)
+            lesson_topic = LessonTopic(
+                is_finished=is_finished, topic_id=topic_id)
             lesson.topics.append(lesson_topic)
             appended_ids.append(topic_id)
 
@@ -227,3 +222,7 @@ def approve_lesson(lesson_id):
         )
 
     return {"message": "Lesson approved."}
+
+
+def payments():
+    pass

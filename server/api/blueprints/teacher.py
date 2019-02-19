@@ -5,7 +5,6 @@ import flask
 from flask import Blueprint
 from flask_login import current_user, login_required, logout_user
 
-from server.api.database.consts import DAYS_PER_PAGE
 from server.api.database.models import Day, Payment, Student, Teacher, WorkDay
 from server.api.utils import jsonify_response, paginate
 from server.error_handling import RouteError
@@ -32,12 +31,8 @@ def teacher_required(func):
 @jsonify_response
 @login_required
 @teacher_required
-@paginate
 def work_days():
-    page = flask.request.args.get("page", 1, type=int)
-    pagination = current_user.teacher.work_days.paginate(
-        page, DAYS_PER_PAGE, False)
-    return pagination
+    return {"data": [day.to_dict() for day in current_user.teacher.work_days]}
 
 
 @teacher_routes.route("/work_days", methods=["POST"])

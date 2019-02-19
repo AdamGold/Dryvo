@@ -18,12 +18,8 @@ def init_app(app):
 @topics_routes.route("/", methods=["GET"])
 @jsonify_response
 @login_required
-@paginate
 def topics():
-    page = flask.request.args.get("page", 1, type=int)
-
-    pagination = Topic.query.paginate(page, 10, False)
-    return pagination
+    return {"data": [topic.to_dict() for topic in Topic.query.all()]}
 
 
 @topics_routes.route("/", methods=["POST"])

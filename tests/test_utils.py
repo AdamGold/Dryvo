@@ -24,3 +24,10 @@ def test_get_slots():
     slots = get_slots((from_hour, to_hour), taken, duration)
     assert slots == [(from_hour + timedelta(minutes=30), to_hour)]
 
+
+def test_sort_data():
+    pass
+
+
+def test_filter_data():
+    pass

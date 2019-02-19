@@ -2,6 +2,7 @@
 from: https://github.com/sloria/cookiecutter-flask/
 """
 from server.api.database import db
+import operator
 
 # Alias common SQLAlchemy names
 Column = db.Column
@@ -40,6 +41,40 @@ class Model(CRUDMixin, db.Model):
     """Base model class that includes CRUD convenience methods."""
 
     __abstract__ = True
+
+    @staticmethod
+    def _filter_data(model: object, column: str, filter_: str):
+        """get column and filter strings and return filtering function
+        e.g get id=lt:200
+        return operator.lt(Model.id, 200)"""
+        fields = filter_.split(":", 1)
+        operators = {"le": operator.le, "ge": operator.ge, "eq": operator.eq,
+                     "lt": operator.lt, "gt": operator.gt, "ne": operator.ne}
+
+        method = "eq"
+        value_to_compare = filter_
+        if len(fields) > 1 and fields[0] in operators.keys():
+            method = fields[0]
+            value_to_compare = fields[1]
+
+        return operators[method](getattr(model, column), value_to_compare)
+
+    @staticmethod
+    def _sort_data(model: object, args: dict, default_column: str, default_method: str = "asc") -> callable:
+        """ get arguments and return order_by function.
+        e.g get order_by=date desc
+        return Model.date.asc
+        """
+        order_by_args = args.get("order_by", "").split()
+        try:
+            column = order_by_args[0]
+            method = order_by_args[1]
+        except IndexError:
+            column = default_column
+            method = default_method
+
+        return getattr(
+            getattr(model, column), method)
 
 
 # From Mike Bayer's "Building the app" talk

@@ -22,13 +22,16 @@ class Lesson(SurrogatePK, Model):
     __tablename__ = "lessons"
     query_class = QueryWithSoftDelete
     teacher_id = reference_col("teachers", nullable=False)
-    teacher = relationship("Teacher", backref=backref("lessons", lazy="dynamic"))
+    teacher = relationship(
+        "Teacher", backref=backref("lessons", lazy="dynamic"))
     student_id = reference_col("students", nullable=True)
-    student = relationship("Student", backref=backref("lessons", lazy="dynamic"))
+    student = relationship(
+        "Student", backref=backref("lessons", lazy="dynamic"))
     topics = relationship("LessonTopic", lazy="dynamic")
     duration = Column(db.Integer, nullable=False)
     date = Column(db.DateTime, nullable=False)
-    created_at = Column(db.DateTime, nullable=False, default=dt.datetime.utcnow)
+    created_at = Column(db.DateTime, nullable=False,
+                        default=dt.datetime.utcnow)
     meetup_place_id = reference_col("places", nullable=True)
     meetup_place = relationship("Place", foreign_keys=[meetup_place_id])
     dropoff_place_id = reference_col("places", nullable=True)
@@ -40,12 +43,15 @@ class Lesson(SurrogatePK, Model):
     creator = relationship("User")
     lesson_number = Column(db.Integer, nullable=True)
 
+    ALLOWED_FILTERS = ["date", "student_id", "created_at", "lesson_number"]
+
     def __init__(self, **kwargs):
         """Create instance."""
         if not kwargs.get("creator") and current_user.is_authenticated:
             self.creator = current_user
         self.lesson_number = (
-            kwargs["student"].new_lesson_number if kwargs.get("student") else None
+            kwargs["student"].new_lesson_number if kwargs.get(
+                "student") else None
         )
         db.Model.__init__(self, **kwargs)
 
@@ -56,7 +62,8 @@ class Lesson(SurrogatePK, Model):
     @staticmethod
     def topics_for_lesson(num: int):
         return Topic.query.filter(
-            and_(Topic.min_lesson_number <= num, Topic.max_lesson_number >= num)
+            and_(Topic.min_lesson_number <= num,
+                 Topic.max_lesson_number >= num)
         ).all()
 
     def to_dict(self):

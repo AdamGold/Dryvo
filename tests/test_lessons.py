@@ -17,10 +17,13 @@ def test_lessons(auth, teacher, student, meetup, dropoff, requester):
     Lesson.create(teacher=teacher, student=student, creator=student.user,
                   duration=40, date=datetime(year=2018, month=11, day=27, hour=13, minute=00),
                   meetup_place=meetup, dropoff_place=dropoff)
-    resp = requester.get("/lessons/")
-    assert isinstance(resp.json['data'], list)
-    assert 'next_url' in resp.json
-    assert 'prev_url' in resp.json
+    resp1 = requester.get("/lessons/?limit=1&page=1")  # no filters
+    assert isinstance(resp1.json['data'], list)
+    assert "next_url" in resp1.json
+    resp2 = requester.get(resp1.json["next_url"])
+    assert resp2.json["data"][0]["id"] != resp1.json["data"][0]["id"]
+    resp = requester.get(f"/lessons/?student_id=gt:1")
+    assert not resp.json["data"]
 
 
 def test_student_new_lesson(auth, teacher, student, requester, topic):

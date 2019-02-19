@@ -29,7 +29,16 @@ def paginate(func):
     @wraps(func)
     def func_wrapper(*args, **kwargs):
         response = func(*args, **kwargs)
-        if isinstance(response, tuple):
+
+        query_params = flask.request.args.copy()
+        if "page" in query_params:
+            query_params.pop("page")  # we are changing page
+        kwargs.update(query_params)
+
+        if isinstance(response, list):  # response isn't a pagination this time
+            return {"data": [item.to_dict() for item in response]}
+
+        if isinstance(response, tuple):  # we have pagination and data separate
             pagination = response[0]
             data = response[1]
         else:
