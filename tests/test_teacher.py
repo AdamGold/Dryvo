@@ -64,7 +64,7 @@ def test_delete_work_day(teacher, auth, requester):
 def test_available_hours_route(teacher, student, meetup, dropoff, auth, requester):
     auth.login(email=teacher.user.email)
     date = "2018-11-27"
-    time_and_date = date + "T13:30Z"
+    time_and_date = date + "T13:30:20.123123Z"
     data = {
         "day": "tuesday",
         "from_hour": 13,
@@ -87,7 +87,7 @@ def test_available_hours_route(teacher, student, meetup, dropoff, auth, requeste
 
 def test_teacher_available_hours(teacher, student, requester):
     date = "2018-11-27"
-    time_and_date = date + "T13:30Z"
+    time_and_date = date + "T13:30:20.123123Z"
     kwargs = {
         "teacher_id": teacher.id,
         "day": 1,

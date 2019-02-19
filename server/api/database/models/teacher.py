@@ -14,18 +14,14 @@ from server.api.database.mixins import (
     reference_col,
     relationship,
 )
-from server.api.database.models import Lesson
+from server.api.database.models import Lesson, LessonCreator
 from server.api.utils import get_slots
 
 
-class Teacher(SurrogatePK, Model):
+class Teacher(SurrogatePK, LessonCreator):
     """A teacher of the app."""
 
     __tablename__ = "teachers"
-    user_id = reference_col("users", nullable=False)
-    user = relationship(
-        "User", backref=backref("teacher", uselist=False), uselist=False
-    )
     price = Column(db.Integer, nullable=False)
     phone = Column(db.String, nullable=False)
     price_rating = Column(db.Float, nullable=True)
@@ -82,27 +78,6 @@ class Teacher(SurrogatePK, Model):
 
         for lesson in existing_lessons.filter_by(student_id=None).all():
             yield (lesson.date, lesson.date + timedelta(minutes=lesson.duration))
-
-    @hybrid_method
-    def filter_lessons(self, filter_args):
-        """
-        Future: more teacher filter to come.
-        """
-        lessons_query = self.lessons
-        deleted = False
-        if "deleted" in filter_args:
-            deleted = True
-        if filter_args.get("show") == "history":
-            lessons_query = lessons_query.filter(
-                Lesson.date < datetime.today())
-        else:
-            lessons_query = lessons_query.filter(
-                Lesson.date > datetime.today())
-
-        order_by_args = filter_args.get("order_by", "date desc").split()
-        order_by = getattr(Lesson, order_by_args[0])
-        order_by = getattr(order_by, order_by_args[1])()
-        return lessons_query.filter_by(deleted=deleted).order_by(order_by)
 
     def to_dict(self):
         return {

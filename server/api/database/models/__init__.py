@@ -1,6 +1,7 @@
 from .blacklist_token import BlacklistToken
 from .topic import Topic
 from .lesson import Lesson
+from .lesson_creator import LessonCreator
 from .lesson_topic import LessonTopic
 from .place import Place, PlaceType
 from .user import User, TokenScope

@@ -222,7 +222,3 @@ def approve_lesson(lesson_id):
         )
 
     return {"message": "Lesson approved."}
-
-
-def payments():
-    pass

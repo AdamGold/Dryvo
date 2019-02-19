@@ -10,45 +10,20 @@ from server.api.database import db
 from server.api.database.mixins import (Column, Model, SurrogatePK,
                                         reference_col, relationship)
 from server.api.database.models import (Lesson, LessonTopic, Place, PlaceType,
-                                        Topic)
+                                        Topic, LessonCreator)
 
 
-class Student(SurrogatePK, Model):
+class Student(SurrogatePK, LessonCreator):
     """A student of the app."""
 
     __tablename__ = "students"
     teacher_id = reference_col("teachers", nullable=False)
     teacher = relationship(
         "Teacher", backref=backref("students", lazy="dynamic"))
-    user_id = reference_col("users", nullable=False)
-    user = relationship(
-        "User", backref=backref("student", uselist=False), uselist=False
-    )
 
     def __init__(self, **kwargs):
         """Create instance."""
         db.Model.__init__(self, **kwargs)
-
-    @hybrid_method
-    def filter_lessons(self, filter_args):
-        """allow filtering by student, date, lesson_number
-        eg. ?limit=20&page=2&student=1&date=lt:2019-01-20T13:20Z&lesson_number=lte:5"""
-        filters = {k: v for k, v in filter_args.items()
-                   if k in Lesson.ALLOWED_FILTERS}
-        lessons_query = self.lessons
-        for column, filter_ in filters.items():
-            lessons_query = lessons_query.filter(
-                self._filter_data(Lesson, column, filter_))
-        order_by = self._sort_data(
-            Lesson, filter_args, default_column="date")()
-        lessons_query = lessons_query.filter_by(
-            deleted=False).order_by(order_by)
-        if "limit" in filter_args:
-            return lessons_query.paginate(
-                filter_args.get("page", 1, type=int), filter_args.get(
-                    "limit", 20, type=int)
-            )
-        return lessons_query.all()
 
     @hybrid_property
     def new_lesson_number(self) -> int:

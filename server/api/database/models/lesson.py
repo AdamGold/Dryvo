@@ -82,3 +82,8 @@ class Lesson(SurrogatePK, Model):
             "lesson_number": self.lesson_number,
             "created_at": self.created_at,
         }
+
+    def __repr__(self):
+        return (f"<Lesson date={self.date}, created_at={self.created_at},"
+                f"student={self.student}, teacher={self.teacher}"
+                f",approved={self.is_approved}, number={self.lesson_number}")
