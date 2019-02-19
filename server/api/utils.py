@@ -35,7 +35,8 @@ def paginate(func):
             query_params.pop("page")  # we are changing page
         kwargs.update(query_params)
 
-        if isinstance(response, list):  # response isn't a pagination this time
+        # response isn't a pagination this time - probably because there was no limit argument supplied
+        if isinstance(response, list):
             return {"data": [item.to_dict() for item in response]}
 
         if isinstance(response, tuple):  # we have pagination and data separate
