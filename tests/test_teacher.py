@@ -10,8 +10,6 @@ def test_work_days(teacher, auth, requester):
     auth.login(email=teacher.user.email)
     resp = requester.get("/teacher/work_days").json
     assert isinstance(resp['data'], list)
-    assert 'next_url' in resp
-    assert 'prev_url' in resp
 
 
 def test_add_work_day(teacher, auth, requester):
@@ -66,7 +64,7 @@ def test_delete_work_day(teacher, auth, requester):
 def test_available_hours_route(teacher, student, meetup, dropoff, auth, requester):
     auth.login(email=teacher.user.email)
     date = "2018-11-27"
-    time_and_date = date + "T13:30Z"
+    time_and_date = date + "T13:30:20.123123Z"
     data = {
         "day": "tuesday",
         "from_hour": 13,
@@ -89,7 +87,7 @@ def test_available_hours_route(teacher, student, meetup, dropoff, auth, requeste
 
 def test_teacher_available_hours(teacher, student, requester):
     date = "2018-11-27"
-    time_and_date = date + "T13:30Z"
+    time_and_date = date + "T13:30:20.123123Z"
     kwargs = {
         "teacher_id": teacher.id,
         "day": 1,

@@ -1,7 +1,13 @@
 """Database module, including the SQLAlchemy database object and DB-related utilities.
 from: https://github.com/sloria/cookiecutter-flask/
 """
+import operator
+from datetime import datetime
+
+import sqlalchemy
+
 from server.api.database import db
+from server.consts import DATE_FORMAT
 
 # Alias common SQLAlchemy names
 Column = db.Column
@@ -40,6 +46,44 @@ class Model(CRUDMixin, db.Model):
     """Base model class that includes CRUD convenience methods."""
 
     __abstract__ = True
+
+    @staticmethod
+    def _filter_data(model: object, column: str, filter_: str) -> sqlalchemy.sql.elements.BinaryExpression:
+        """get column and filter strings and return filtering function
+        e.g get id=lt:200
+        return operator.lt(Model.id, 200)"""
+        fields = str(filter_).split(":", 1)
+        operators = {"le": operator.le, "ge": operator.ge, "eq": operator.eq,
+                     "lt": operator.lt, "gt": operator.gt, "ne": operator.ne}
+
+        method = "eq"
+        value_to_compare = filter_
+        if len(fields) > 1:
+            method = fields[0]
+            value_to_compare = fields[1]
+        if fields[0] not in operators.keys():
+            method = "eq"
+
+        if column in ("created_at", "date", ):
+            value_to_compare = datetime.strptime(value_to_compare, DATE_FORMAT)
+        return operators[method](getattr(model, column), value_to_compare)
+
+    @staticmethod
+    def _sort_data(model: object, args: dict, default_column: str, default_method: str = "asc"):
+        """ get arguments and return order_by function.
+        e.g get order_by=date desc
+        return Model.date.asc()
+        """
+        order_by_args = args.get("order_by", "").split()
+        try:
+            column = order_by_args[0]
+            method = order_by_args[1]
+        except IndexError:
+            column = default_column
+            method = default_method
+
+        return getattr(
+            getattr(model, column), method)()
 
 
 # From Mike Bayer's "Building the app" talk
