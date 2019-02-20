@@ -146,10 +146,14 @@ def add_payment():
 def students():
     """allow filtering by name / area of student, and sort by balance,
     lesson number"""
+
+    def custom_filter(model, key, value):
+        return getattr(model, key).like(f"%{value}%")
+
     try:
         query = current_user.teacher.students
         args = flask.request.args.copy()
-        extra_filters = {User: ("name", "area")}
+        extra_filters = {User: {"name": custom_filter, "area": custom_filter}}
         return Student.filter_and_sort(args, query, extra_filters=extra_filters)
     except ValueError:
         raise RouteError("Wrong parameters passed.")

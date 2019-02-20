@@ -146,7 +146,7 @@ def test_add_invalid_payment(auth, requester, teacher, amount, student_id, error
     assert resp.json["message"] == error
 
 
-def test_students(auth, teacher, student, requester):
+def test_students(auth, teacher, requester):
     new_user = User.create(
         email="a@a.c", password="huh", name="absolutely", area="nope"
     )

@@ -4,8 +4,7 @@ from datetime import datetime, timedelta
 import flask
 import pytest
 
-from server.api.database.mixins import Model
-from server.api.database.models import Lesson
+from server.api.database.models import Lesson, Student, User
 from server.api.utils import get_slots, jsonify_response
 from server.consts import DATE_FORMAT, WORKDAY_DATE_FORMAT
 
@@ -122,3 +121,23 @@ def test_filter_and_sort(teacher, student, meetup, dropoff):
     args = {"limit": 100_000_000_000_000}
     lessons_from_db = Lesson.filter_and_sort(args, query=query, with_pagination=True)
     assert len(lessons_from_db.items) == 100
+
+
+def test_handle_extra_filters(teacher):
+    new_user = User.create(
+        email="a@a.c", password="huh", name="absolutely", area="nope"
+    )
+    student = Student.create(teacher=teacher, user=new_user)
+
+    def custom_filter(model, key, value):
+        return getattr(model, key) == value
+
+    extra_filters = {User: {"area": custom_filter}}
+    new_student = Student._handle_extra_filters(
+        query=Student.query, args={"area": "npe"}, extra_filters=extra_filters
+    ).first()
+    assert not new_student
+    new_student = Student._handle_extra_filters(
+        query=Student.query, args={"area": "nope"}, extra_filters=extra_filters
+    ).first()
+    assert new_student == student

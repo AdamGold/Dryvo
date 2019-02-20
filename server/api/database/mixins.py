@@ -159,12 +159,15 @@ class Model(CRUDMixin, db.Model):
     def _handle_extra_filters(
         cls, query, args: werkzeug.datastructures.MultiDict, extra_filters: dict
     ):
+        """handle extra filters for relationships.
+        e.g extra_filters={User: {"name": custom_filter, "area": custom_filter}}
+        return query.join(cls.User).filter(User.name.custom_filter)"""
         for model, filters in extra_filters.items():
             for key, value in args.items():
-                if key in filters:
-                    query = query.join(
-                        getattr(cls, model.__name__.lower()), aliased=True
-                    ).filter(getattr(model, key).like(f"%{value}%"))
+                if key in filters.keys():
+                    query = query.join(getattr(cls, model.__name__.lower())).filter(
+                        filters[key](model, key, value)
+                    )
 
         return query
 
