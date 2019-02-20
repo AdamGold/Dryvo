@@ -2,6 +2,7 @@ import json
 from datetime import datetime, timedelta
 
 import flask
+import pytest
 
 from server.api.database.mixins import Model
 from server.api.database.models import Lesson
@@ -64,7 +65,17 @@ def test_filter_data(teacher, student, meetup, dropoff):
     lessons_from_db = Lesson.query.filter(Lesson._filter_data(
         "date", f"ggfggg:{date}")).all()  # supposed to translate to equal
     assert lessons_from_db[0] == lesson
+    # date=DATE
+    with pytest.raises(ValueError):
+        lessons_from_db = Lesson.query.filter(Lesson._filter_data(
+            "date", f"{date}")).all()
+
+
+def test_security_filter_data(teacher, student, meetup, dropoff):
+    """test for non secure inputs"""
 
 
 def test_filter_and_sort(teacher, student, meetup, dropoff):
+    """test that limit is maxed to 100, base query, custom date
+    and with different dates"""
     pass

@@ -34,8 +34,11 @@ def teacher_required(func):
 def work_days():
     """ return work days with filter - only on a specific date,
     or with no date at all"""
-    return {"data": [day.to_dict() for day in
-                     current_user.teacher.filter_work_days(flask.request.args.copy())]}
+    try:
+        return {"data": [day.to_dict() for day in
+                         current_user.teacher.filter_work_days(flask.request.args.copy())]}
+    except ValueError:
+        raise RouteError("Wrong parameters passed.")
 
 
 @teacher_routes.route("/work_days", methods=["POST"])

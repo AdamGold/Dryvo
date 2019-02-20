@@ -19,11 +19,13 @@ def test_lessons(auth, teacher, student, meetup, dropoff, requester):
                   meetup_place=meetup, dropoff_place=dropoff)
     resp1 = requester.get("/lessons/?limit=1&page=1")  # no filters
     assert isinstance(resp1.json['data'], list)
-    assert "next_url" in resp1.json
+    assert resp1.json["next_url"]
     resp2 = requester.get(resp1.json["next_url"])
     assert resp2.json["data"][0]["id"] != resp1.json["data"][0]["id"]
     resp = requester.get(f"/lessons/?student_id=gt:1")
     assert not resp.json["data"]
+    resp = requester.get(f"/lessons/?date=2018-20-01T20")
+    assert "wrong parameters" in resp.json["message"].lower()
 
 
 def test_student_new_lesson(auth, teacher, student, requester, topic):

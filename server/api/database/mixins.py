@@ -8,7 +8,7 @@ import sqlalchemy
 import werkzeug
 
 from server.api.database import db
-from server.consts import DATE_FORMAT
+from server.consts import DATE_FORMAT, MAXIMUM_PER_PAGE
 
 # Alias common SQLAlchemy names
 Column = db.Column
@@ -52,7 +52,9 @@ class Model(CRUDMixin, db.Model):
     def _filter_data(cls, column: str, filter_: str, custom_date: callable = None) -> sqlalchemy.sql.elements.BinaryExpression:
         """get column and filter strings and return filtering function
         e.g get id=lt:200
-        return operator.lt(Model.id, 200)"""
+        return operator.lt(Model.id, 200)
+        NOTE: to compare dates, there must be an operator -
+        date=eq:DATE"""
         fields = str(filter_).split(":", 1)
         operators = {"le": operator.le, "ge": operator.ge, "eq": operator.eq,
                      "lt": operator.lt, "gt": operator.gt, "ne": operator.ne}
@@ -93,7 +95,8 @@ class Model(CRUDMixin, db.Model):
             getattr(cls, column), method)()
 
     @classmethod
-    def filter_and_sort(cls, args: dict, default_sort_column: str, query=None,
+    def filter_and_sort(cls, args: werkzeug.datastructures.MultiDict,
+                        default_sort_column: str, query=None,
                         with_pagination: bool = False, custom_date: callable = None):
         """allow filtering by student, date, lesson_number
         eg. ?limit=20&page=2&student=1&date=lt:2019-01-20T13:20Z&lesson_number=lte:5"""
@@ -108,9 +111,10 @@ class Model(CRUDMixin, db.Model):
 
         query = query.order_by(order_by)
         if "limit" in args and with_pagination:
+            page = args.get("page", 1, type=int)
+            limit = min(args.get("limit", 20, type=int), MAXIMUM_PER_PAGE)
             return query.paginate(
-                int(args.get("page", 1)[0]), int(args.get(
-                    "limit", 20)[0])
+                page, limit
             )
         return query.all()
 

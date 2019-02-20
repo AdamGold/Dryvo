@@ -27,7 +27,7 @@ def test_work_days(teacher, auth, requester):
     assert resp["data"][0]["from_hour"] == kwargs["from_hour"]
     day = datetime.strptime("2019-02-20", WORKDAY_DATE_FORMAT).date()
     resp = requester.get(
-        f"/teacher/work_days?on_date={day}").json
+        f"/teacher/work_days?on_date=eq:{day}").json
     assert resp["data"][0]["from_hour"] == first_kwargs_hour
 
 
