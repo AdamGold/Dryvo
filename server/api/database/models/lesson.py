@@ -41,6 +41,7 @@ class Lesson(SurrogatePK, Model):
     lesson_number = Column(db.Integer, nullable=True)
 
     ALLOWED_FILTERS = ["deleted", "date", "student_id", "created_at", "lesson_number"]
+    default_sort_column = "date"
 
     def __init__(self, **kwargs):
         """Create instance."""

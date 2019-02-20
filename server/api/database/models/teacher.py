@@ -87,10 +87,7 @@ class Teacher(SurrogatePK, LessonCreator):
             return datetime.strptime(value, WORKDAY_DATE_FORMAT).date()
 
         return WorkDay.filter_and_sort(
-            args,
-            default_sort_column="day",
-            query=self.work_days,
-            custom_date=custom_date_func,
+            args, query=self.work_days, custom_date=custom_date_func
         )
 
     def to_dict(self):

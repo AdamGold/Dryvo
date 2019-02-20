@@ -39,6 +39,7 @@ class WorkDay(SurrogatePK, Model):
     on_date = Column(db.Date, nullable=True)
 
     ALLOWED_FILTERS = ["day", "on_date"]
+    default_sort_column = "day"
 
     def __init__(self, **kwargs):
         """Create instance."""

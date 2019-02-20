@@ -227,3 +227,7 @@ def test_topics_for_lesson(app):
     topic = Topic.create(title="not important",
                          min_lesson_number=1, max_lesson_number=2)
     assert topic in Lesson.topics_for_lesson(1)
+
+
+def test_payments(auth, teacher, student, meetup, dropoff, requester):
+    pass
