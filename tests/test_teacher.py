@@ -145,3 +145,18 @@ def test_add_invalid_payment(auth, requester, teacher, amount, student_id, error
     assert resp.status_code == 400
     assert resp.json["message"] == error
 
+
+def test_students(auth, teacher, student, requester):
+    new_user = User.create(
+        email="a@a.c", password="huh", name="absolutely", area="nope"
+    )
+    new_student = Student.create(teacher=teacher, user=new_user)
+    id_ = new_student.id
+    auth.login(email=teacher.user.email)
+    resp = requester.get("/teacher/students?order_by=balance desc")
+    assert resp.json["data"][1]["student_id"] == id_
+    resp = requester.get("/teacher/students?name=solut")
+    assert resp.json["data"][0]["student_id"] == id_
+    resp = requester.get("/teacher/students?name=le:no way")
+    assert not resp.json["data"]
+

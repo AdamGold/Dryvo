@@ -12,7 +12,7 @@ def get_db():
 
 
 def reset_db(db):
-    # db.session.remove()
+    db.session.remove()
     db.drop_all()
     db.create_all()
 

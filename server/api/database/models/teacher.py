@@ -90,12 +90,6 @@ class Teacher(SurrogatePK, LessonCreator):
             args, query=self.work_days, custom_date=custom_date_func
         )
 
-    @hybrid_method
-    def filter_students(self, args: werkzeug.datastructures.MultiDict):
-        """allow filtering by name / area of student, and sort by balance,
-        lesson number"""
-        extra_filters = ("name", "area")
-
     def to_dict(self):
         return {
             "teacher_id": self.id,

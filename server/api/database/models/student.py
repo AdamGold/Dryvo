@@ -34,6 +34,9 @@ class Student(SurrogatePK, LessonCreator):
     teacher_id = reference_col("teachers", nullable=False)
     teacher = relationship("Teacher", backref=backref("students", lazy="dynamic"))
 
+    default_sort_column = "id"
+    ALLOWED_FILTERS = []
+
     def __init__(self, **kwargs):
         """Create instance."""
         db.Model.__init__(self, **kwargs)

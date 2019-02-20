@@ -1,3 +1,4 @@
+import itertools
 from datetime import datetime
 from functools import wraps
 
@@ -5,7 +6,7 @@ import flask
 from flask import Blueprint
 from flask_login import current_user, login_required, logout_user
 
-from server.api.database.models import Day, Payment, Student, Teacher, WorkDay
+from server.api.database.models import Day, Payment, Student, Teacher, User, WorkDay
 from server.api.utils import jsonify_response, paginate
 from server.error_handling import RouteError
 
@@ -143,7 +144,12 @@ def add_payment():
 @teacher_required
 @paginate
 def students():
+    """allow filtering by name / area of student, and sort by balance,
+    lesson number"""
     try:
-        return current_user.teacher.filter_students(flask.request.args.copy())
+        query = current_user.teacher.students
+        args = flask.request.args.copy()
+        extra_filters = {User: ("name", "area")}
+        return Student.filter_and_sort(args, query, extra_filters=extra_filters)
     except ValueError:
         raise RouteError("Wrong parameters passed.")
