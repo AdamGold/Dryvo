@@ -47,6 +47,8 @@ class Model(CRUDMixin, db.Model):
     """Base model class that includes CRUD convenience methods."""
 
     __abstract__ = True
+    default_sort_column = "created_at"
+    default_sort_method = "asc"
 
     @staticmethod
     def _handle_special_cases(
@@ -100,12 +102,7 @@ class Model(CRUDMixin, db.Model):
         return operators[method](getattr(cls, column), value_to_compare)
 
     @classmethod
-    def _sort_data(
-        cls,
-        args: werkzeug.datastructures.MultiDict,
-        default_column: str,
-        default_method: str = "asc",
-    ):
+    def _sort_data(cls, args: werkzeug.datastructures.MultiDict):
         """ get arguments and return order_by function.
         e.g get order_by=date desc
         return cls.date.asc()
@@ -115,8 +112,8 @@ class Model(CRUDMixin, db.Model):
             column = order_by_args[0]
             method = order_by_args[1]
         except IndexError:
-            column = default_column
-            method = default_method
+            column = cls.default_sort_column
+            method = cls.default_sort_method
 
         return getattr(getattr(cls, column), method)()
 
@@ -124,7 +121,6 @@ class Model(CRUDMixin, db.Model):
     def filter_and_sort(
         cls,
         args: werkzeug.datastructures.MultiDict,
-        default_sort_column: str,
         query=None,
         with_pagination: bool = False,
         custom_date: callable = None,
@@ -135,7 +131,7 @@ class Model(CRUDMixin, db.Model):
         query = query or cls.query
         for column, filter_ in filters.items():
             query = query.filter(cls._filter_data(column, filter_, custom_date))
-        order_by = cls._sort_data(args, default_column=default_sort_column)
+        order_by = cls._sort_data(args)
 
         query = query.order_by(order_by)
         if "limit" in args and with_pagination:

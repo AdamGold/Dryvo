@@ -23,6 +23,9 @@ class Payment(SurrogatePK, Model):
     amount = Column(db.Integer, nullable=False)
     created_at = Column(db.DateTime, nullable=False, default=dt.datetime.utcnow)
 
+    ALLOWED_FILTERS = ["student_id", "amount", "created_at"]
+    default_sort_method = "desc"
+
     def __init__(self, **kwargs):
         """Create instance."""
         db.Model.__init__(self, **kwargs)
@@ -33,4 +36,8 @@ class Payment(SurrogatePK, Model):
             "teacher": self.teacher.to_dict(),
             "student": self.student.to_dict(),
             "amount": self.amount,
+            "created_at": self.created_at,
         }
+
+    def __repr__(self):
+        return f"<Payment created_at={self.created_at}, teacher={self.teacher}, student={self.student}>"

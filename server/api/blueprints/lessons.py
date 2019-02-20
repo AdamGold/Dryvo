@@ -224,3 +224,19 @@ def approve_lesson(lesson_id):
         )
 
     return {"message": "Lesson approved."}
+
+
+@lessons_routes.route("/payments", methods=["GET"])
+@jsonify_response
+@login_required
+@paginate
+def payments():
+    """endpoint to return filtered payments"""
+    user = current_user.teacher
+    if not current_user.teacher:
+        user = current_user.student
+
+    try:
+        return user.filter_payments(flask.request.args.copy())
+    except ValueError:
+        raise RouteError("Wrong parameters passed.")

@@ -10,7 +10,7 @@ from server.api.database.mixins import (
     reference_col,
     relationship,
 )
-from server.api.database.models import Lesson, User
+from server.api.database.models import Lesson, Payment, User
 
 
 class LessonCreator(Model):
@@ -38,6 +38,9 @@ class LessonCreator(Model):
                 args.pop("deleted")
             except KeyError:
                 pass
-        return Lesson.filter_and_sort(
-            args, default_sort_column="date", query=query, with_pagination=True
-        )
+        return Lesson.filter_and_sort(args, query=query, with_pagination=True)
+
+    @hybrid_method
+    def filter_payments(self, args: werkzeug.datastructures.MultiDict):
+        query = self.payments
+        return Payment.filter_and_sort(args, query=query, with_pagination=True)
