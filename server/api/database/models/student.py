@@ -3,6 +3,7 @@ from datetime import datetime
 from typing import List
 
 from sqlalchemy import and_, func, select
+from sqlalchemy.sql.functions import coalesce
 from sqlalchemy.ext.hybrid import hybrid_method, hybrid_property
 from sqlalchemy.orm import backref
 
@@ -102,7 +103,7 @@ class Student(SurrogatePK, LessonCreator):
     @new_lesson_number.expression
     def new_lesson_number(cls):
         q = (
-            select([func.count(Lesson.student_id)])
+            select([func.count(Lesson.student_id) + 1])
             .where(Lesson.student_id == cls.id)
             .label("new_lesson_number")
         )
@@ -116,7 +117,6 @@ class Student(SurrogatePK, LessonCreator):
 
     @balance.expression
     def balance(cls):
-        print(cls.total_paid - cls.total_lessons_price)
         return cls.total_paid - cls.total_lessons_price
 
     @hybrid_property
@@ -139,7 +139,7 @@ class Student(SurrogatePK, LessonCreator):
     @total_paid.expression
     def total_paid(cls):
         q = (
-            select([func.sum(Payment.amount)])
+            select([coalesce(func.sum(Payment.amount), 0)])
             .where(Payment.student_id == cls.id)
             .label("total_paid")
         )

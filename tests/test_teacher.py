@@ -3,7 +3,7 @@ from datetime import datetime, timedelta
 import pytest
 
 from server.api.blueprints import user
-from server.api.database.models import Lesson, Student, User, WorkDay
+from server.api.database.models import Lesson, Student, User, WorkDay, Payment
 from server.consts import DATE_FORMAT, WORKDAY_DATE_FORMAT
 
 
@@ -144,16 +144,3 @@ def test_add_invalid_payment(auth, requester, teacher, amount, student_id, error
     assert resp.status_code == 400
     assert resp.json["message"] == error
 
-
-def test_students(auth, teacher, student, requester):
-    Student.create(
-        teacher=teacher,
-        user=User.create(
-            email="tfg@test.com", password="test", name="tessdt", area="test"
-        ),
-    )
-    print(Student.query.all())
-    print(Student.query.filter(Student.balance == 0).all())
-    assert 1 == 2
-    auth.login(email=teacher.user.email)
-    resp = requester.get("/teacher/students")  # no filters
