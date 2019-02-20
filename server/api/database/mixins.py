@@ -49,6 +49,7 @@ class Model(CRUDMixin, db.Model):
     __abstract__ = True
     default_sort_column = "created_at"
     default_sort_method = "asc"
+    ALLOWED_FILTERS = []
 
     @staticmethod
     def _handle_special_cases(
@@ -72,11 +73,24 @@ class Model(CRUDMixin, db.Model):
     def _filter_data(
         cls, column: str, filter_: str, custom_date: callable = None
     ) -> sqlalchemy.sql.elements.BinaryExpression:
-        """get column and filter strings and return filtering function
+        """
+        get column and filter strings and return filtering function
+
+        Parameters
+        ----------
+        column : str
+            the column to filter by
+        filter_ : str
+            the value to check against the column
+        custom_date: callable
+
+        Example
+        -------
         e.g get id=lt:200
         return operator.lt(Model.id, 200)
         NOTE: to compare dates, there must be an operator -
-        date=eq:DATE"""
+        date=eq:DATE
+        """
         fields = str(filter_).split(":", 1)
         operators = {
             "le": operator.le,
@@ -99,13 +113,25 @@ class Model(CRUDMixin, db.Model):
             column, value_to_compare, custom_date
         )
 
-        return operators[method](getattr(cls, column), value_to_compare)
+        try:
+            return operators[method](getattr(cls, column), value_to_compare)
+        except AttributeError:
+            return None
 
     @classmethod
     def _sort_data(cls, args: werkzeug.datastructures.MultiDict):
-        """ get arguments and return order_by function.
-        e.g get order_by=date desc
-        return cls.date.asc()
+        """
+        Returns the correct sort function for SQLAlchemy.
+
+        Parameters
+        ----------
+        args : werkzeug.datastructures.MultiDict
+            all request arguments
+        Example
+        -------
+        get order_by=date desc
+        return cls.date.asc(
+
         """
         order_by_args = args.get("order_by", "").split()
         try:
@@ -115,7 +141,12 @@ class Model(CRUDMixin, db.Model):
             column = cls.default_sort_column
             method = cls.default_sort_method
 
-        return getattr(getattr(cls, column), method)()
+        try:
+            return getattr(getattr(cls, column), method)()
+        except AttributeError:  # column does not exist
+            return getattr(
+                getattr(cls, cls.default_sort_column), cls.default_sort_method
+            )()
 
     @classmethod
     def filter_and_sort(
@@ -124,11 +155,38 @@ class Model(CRUDMixin, db.Model):
         query=None,
         with_pagination: bool = False,
         custom_date: callable = None,
+        extra_filters: dict = None,
     ):
-        """allow filtering by student, date, lesson_number
-        eg. ?limit=20&page=2&student=1&date=lt:2019-01-20T13:20Z&lesson_number=lte:5"""
+        """
+        Build query for filtering and sorting the cls.
+
+        Parameters
+        ----------
+        args : int
+            All request arguments (e.g query string)
+        query : str
+            Base query to start from. Can be null, then it will start with cls.query
+        with_pagination: bool
+            Whether to include pagination in the return value.
+        custom_date: callable
+            Custom date formatting function for date values.
+        extra_filters: dict
+            Usually used for relationship filters, such as Student.user == value
+        Returns
+        -------
+            Either a pagination object or a list containing all filtered items.
+
+        Example query string
+        -------
+        ?limit=20&page=2&student=1&date=lt:2019-01-20T13:20Z&lesson_number=lte:5
+        """
         filters = {k: v for k, v in args.items() if k in cls.ALLOWED_FILTERS}
         query = query or cls.query
+        query = (
+            cls._handle_extra_filters(query, args, extra_filters)
+            if extra_filters
+            else query
+        )
         for column, filter_ in filters.items():
             query = query.filter(cls._filter_data(column, filter_, custom_date))
         order_by = cls._sort_data(args)
@@ -139,6 +197,22 @@ class Model(CRUDMixin, db.Model):
             limit = min(int(args.get("limit", 20)), MAXIMUM_PER_PAGE)
             return query.paginate(page, limit)
         return query.all()
+
+    @classmethod
+    def _handle_extra_filters(
+        cls, query, args: werkzeug.datastructures.MultiDict, extra_filters: dict
+    ):
+        """handle extra filters for relationships.
+        e.g extra_filters={User: {"name": custom_filter, "area": custom_filter}}
+        return query.join(cls.User).filter(User.name.custom_filter)"""
+        for model, filters in extra_filters.items():
+            for key, value in args.items():
+                if key in filters.keys():
+                    query = query.join(getattr(cls, model.__name__.lower())).filter(
+                        filters[key](model, key, value)
+                    )
+
+        return query
 
 
 # From Mike Bayer's "Building the app" talk

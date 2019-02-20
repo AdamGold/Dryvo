@@ -5,7 +5,7 @@ import flask
 from flask import Blueprint
 from flask_login import current_user, login_required, logout_user
 
-from server.api.database.models import Day, Payment, Student, Teacher, WorkDay
+from server.api.database.models import Day, Payment, Student, Teacher, User, WorkDay
 from server.api.utils import jsonify_response, paginate
 from server.error_handling import RouteError
 
@@ -135,3 +135,24 @@ def add_payment():
         teacher=current_user.teacher, student=student, amount=data.get("amount")
     )
     return {"data": payment.to_dict()}, 201
+
+
+@teacher_routes.route("/students", methods=["GET"])
+@jsonify_response
+@login_required
+@teacher_required
+@paginate
+def students():
+    """allow filtering by name / area of student, and sort by balance,
+    lesson number"""
+
+    def custom_filter(model, key, value):
+        return getattr(model, key).like(f"%{value}%")
+
+    try:
+        query = current_user.teacher.students
+        args = flask.request.args.copy()
+        extra_filters = {User: {"name": custom_filter, "area": custom_filter}}
+        return Student.filter_and_sort(args, query, extra_filters=extra_filters)
+    except ValueError:
+        raise RouteError("Wrong parameters passed.")
