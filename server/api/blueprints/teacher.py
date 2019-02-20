@@ -135,3 +135,15 @@ def add_payment():
         teacher=current_user.teacher, student=student, amount=data.get("amount")
     )
     return {"data": payment.to_dict()}, 201
+
+
+@teacher_routes.route("/students", methods=["GET"])
+@jsonify_response
+@login_required
+@teacher_required
+@paginate
+def students():
+    try:
+        return current_user.teacher.filter_students(flask.request.args.copy())
+    except ValueError:
+        raise RouteError("Wrong parameters passed.")

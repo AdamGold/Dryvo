@@ -2,7 +2,7 @@ import itertools
 from datetime import datetime
 from typing import List
 
-from sqlalchemy import and_
+from sqlalchemy import and_, func, select
 from sqlalchemy.ext.hybrid import hybrid_method, hybrid_property
 from sqlalchemy.orm import backref
 
@@ -21,6 +21,8 @@ from server.api.database.models import (
     PlaceType,
     Topic,
     LessonCreator,
+    Payment,
+    Teacher,
 )
 
 
@@ -34,12 +36,6 @@ class Student(SurrogatePK, LessonCreator):
     def __init__(self, **kwargs):
         """Create instance."""
         db.Model.__init__(self, **kwargs)
-
-    @hybrid_property
-    def new_lesson_number(self) -> int:
-        """return the number of a new lesson:
-        all lessons+1"""
-        return len(self.lessons.all()) + 1
 
     def _lesson_topics(self, is_finished: bool):
         lesson_ids = [lesson.id for lesson in self.lessons]
@@ -98,11 +94,69 @@ class Student(SurrogatePK, LessonCreator):
         )
 
     @hybrid_property
+    def new_lesson_number(self) -> int:
+        """return the number of a new lesson:
+        all lessons+1"""
+        return len(self.lessons.all()) + 1
+
+    @new_lesson_number.expression
+    def new_lesson_number(cls):
+        q = (
+            select([func.count(Lesson.student_id)])
+            .where(Lesson.student_id == cls.id)
+            .label("new_lesson_number")
+        )
+        return q
+
+    @hybrid_property
     def balance(self):
         """calculate sum of payments minus
         number of lessons taken * price"""
-        lessons_price = (self.new_lesson_number - 1) * self.teacher.price
-        return sum([payment.amount for payment in self.payments]) - lessons_price
+        return self.total_paid - self.total_lessons_price
+
+    @balance.expression
+    def balance(cls):
+        print(cls.total_paid - cls.total_lessons_price)
+        return cls.total_paid - cls.total_lessons_price
+
+    @hybrid_property
+    def total_lessons_price(self):
+        return (self.new_lesson_number - 1) * self.teacher.price
+
+    @total_lessons_price.expression
+    def total_lessons_price(cls):
+        q = (
+            select([func.count(Lesson.student_id) * Teacher.price])
+            .where(and_(Lesson.student_id == cls.id, Teacher.id == cls.teacher_id))
+            .label("total_lessons_price")
+        )
+        return q
+
+    @hybrid_property
+    def total_paid(self):
+        return sum([payment.amount for payment in self.payments])
+
+    @total_paid.expression
+    def total_paid(cls):
+        q = (
+            select([func.sum(Payment.amount)])
+            .where(Payment.student_id == cls.id)
+            .label("total_paid")
+        )
+        return q
 
     def to_dict(self):
-        return {"student_id": self.id, "my_teacher": self.teacher.to_dict()}
+        return {
+            "student_id": self.id,
+            "my_teacher": self.teacher.to_dict(),
+            "balance": self.balance,
+            "new_lesson_number": self.new_lesson_number,
+        }
+
+    def __repr__(self):
+        return (
+            f"<Student id={self.id}, balance={self.balance}"
+            f", total_lessons_price={self.total_lessons_price}"
+            f", new_lesson_number={self.new_lesson_number}, teacher={self.teacher}"
+            f", total_paid={self.total_paid}>"
+        )
