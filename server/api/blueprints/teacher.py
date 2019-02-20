@@ -32,7 +32,19 @@ def teacher_required(func):
 @login_required
 @teacher_required
 def work_days():
-    return {"data": [day.to_dict() for day in current_user.teacher.work_days]}
+    """ return work days with filter - only on a specific date,
+    or with no date at all"""
+    try:
+        return {
+            "data": [
+                day.to_dict()
+                for day in current_user.teacher.filter_work_days(
+                    flask.request.args.copy()
+                )
+            ]
+        }
+    except ValueError:
+        raise RouteError("Wrong parameters passed.")
 
 
 @teacher_routes.route("/work_days", methods=["POST"])
@@ -53,8 +65,7 @@ def new_work_day():
     from_time = datetime.strptime(f"{from_hour}:{from_minutes}", "%H:%M")
     to_time = datetime.strptime(f"{to_hour}:{to_minutes}", "%H:%M")
     if from_time >= to_time:
-        raise RouteError(
-            "There must be a bigger difference between the two times.")
+        raise RouteError("There must be a bigger difference between the two times.")
     day = WorkDay(
         day=day,
         from_hour=from_hour,
@@ -104,8 +115,7 @@ def available_hours(teacher_id):
     teacher = Teacher.get_by_id(teacher_id)
     return {
         "data": list(
-            teacher.available_hours(
-                datetime.strptime(data.get("date"), "%Y-%m-%d"))
+            teacher.available_hours(datetime.strptime(data.get("date"), "%Y-%m-%d"))
         )
     }
 
@@ -122,7 +132,6 @@ def add_payment():
     if not data.get("amount"):
         raise RouteError("Amount must be given.")
     payment = Payment.create(
-        teacher=current_user.teacher, student=student, amount=data.get(
-            "amount")
+        teacher=current_user.teacher, student=student, amount=data.get("amount")
     )
     return {"data": payment.to_dict()}, 201

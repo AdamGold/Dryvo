@@ -1,6 +1,7 @@
 from datetime import datetime, timedelta
 from typing import Iterable, Tuple
 
+import werkzeug
 from loguru import logger
 from sqlalchemy import func
 from sqlalchemy.ext.hybrid import hybrid_method
@@ -14,8 +15,9 @@ from server.api.database.mixins import (
     reference_col,
     relationship,
 )
-from server.api.database.models import Lesson, LessonCreator
+from server.api.database.models import Lesson, LessonCreator, WorkDay
 from server.api.utils import get_slots
+from server.consts import WORKDAY_DATE_FORMAT
 
 
 class Teacher(SurrogatePK, LessonCreator):
@@ -40,8 +42,7 @@ class Teacher(SurrogatePK, LessonCreator):
             work_hours = self.work_days.filter_by(day=weekday).all()
             logger.debug(f"No specific days found. Going with default")
 
-        logger.debug(
-            f"found these work days on the specific date: {work_hours}")
+        logger.debug(f"found these work days on the specific date: {work_hours}")
         return work_hours
 
     def available_hours(
@@ -67,10 +68,8 @@ class Teacher(SurrogatePK, LessonCreator):
         work_hours.sort(key=lambda x: x.from_hour)  # sort from early to late
         for day in work_hours:
             hours = (
-                requested_date.replace(
-                    hour=day.from_hour, minute=day.from_minutes),
-                requested_date.replace(
-                    hour=day.to_hour, minute=day.to_minutes),
+                requested_date.replace(hour=day.from_hour, minute=day.from_minutes),
+                requested_date.replace(hour=day.to_hour, minute=day.to_minutes),
             )
             yield from get_slots(
                 hours, taken_lessons, timedelta(minutes=self.lesson_duration)
@@ -78,6 +77,21 @@ class Teacher(SurrogatePK, LessonCreator):
 
         for lesson in existing_lessons.filter_by(student_id=None).all():
             yield (lesson.date, lesson.date + timedelta(minutes=lesson.duration))
+
+    @hybrid_method
+    def filter_work_days(self, args: werkzeug.datastructures.MultiDict):
+        if "on_date" not in args:
+            args["on_date"] = None
+
+        def custom_date_func(value):
+            return datetime.strptime(value, WORKDAY_DATE_FORMAT).date()
+
+        return WorkDay.filter_and_sort(
+            args,
+            default_sort_column="day",
+            query=self.work_days,
+            custom_date=custom_date_func,
+        )
 
     def to_dict(self):
         return {
