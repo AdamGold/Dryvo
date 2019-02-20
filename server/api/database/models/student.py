@@ -7,10 +7,21 @@ from sqlalchemy.ext.hybrid import hybrid_method, hybrid_property
 from sqlalchemy.orm import backref
 
 from server.api.database import db
-from server.api.database.mixins import (Column, Model, SurrogatePK,
-                                        reference_col, relationship)
-from server.api.database.models import (Lesson, LessonTopic, Place, PlaceType,
-                                        Topic, LessonCreator)
+from server.api.database.mixins import (
+    Column,
+    Model,
+    SurrogatePK,
+    reference_col,
+    relationship,
+)
+from server.api.database.models import (
+    Lesson,
+    LessonTopic,
+    Place,
+    PlaceType,
+    Topic,
+    LessonCreator,
+)
 
 
 class Student(SurrogatePK, LessonCreator):
@@ -18,8 +29,7 @@ class Student(SurrogatePK, LessonCreator):
 
     __tablename__ = "students"
     teacher_id = reference_col("teachers", nullable=False)
-    teacher = relationship(
-        "Teacher", backref=backref("students", lazy="dynamic"))
+    teacher = relationship("Teacher", backref=backref("students", lazy="dynamic"))
 
     def __init__(self, **kwargs):
         """Create instance."""

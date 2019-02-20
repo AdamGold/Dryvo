@@ -145,8 +145,7 @@ def update_topics(lesson_id):
             if topic_id in appended_ids:  # we don't want the same topic twice
                 continue
             is_finished = True if key == FINISHED_KEY else False
-            lesson_topic = LessonTopic(
-                is_finished=is_finished, topic_id=topic_id)
+            lesson_topic = LessonTopic(is_finished=is_finished, topic_id=topic_id)
             lesson.topics.append(lesson_topic)
             appended_ids.append(topic_id)
 
