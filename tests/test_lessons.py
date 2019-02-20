@@ -12,7 +12,6 @@ tomorrow = datetime.now() + timedelta(days=1)
 
 
 def test_lessons(auth, teacher, student, meetup, dropoff, requester):
-    auth.login(email=student.user.email)
     Lesson.create(
         teacher=teacher,
         student=student,
@@ -22,15 +21,6 @@ def test_lessons(auth, teacher, student, meetup, dropoff, requester):
         meetup_place=meetup,
         dropoff_place=dropoff,
     )
-    resp1 = requester.get("/lessons/?limit=1&page=1")  # no filters
-    assert isinstance(resp1.json["data"], list)
-    assert resp1.json["next_url"]
-    resp2 = requester.get(resp1.json["next_url"])
-    assert resp2.json["data"][0]["id"] != resp1.json["data"][0]["id"]
-    resp = requester.get("/lessons/?student_id=gt:1")
-    assert not resp.json["data"]
-    resp = requester.get("/lessons/?date=2018-20-01T20")
-    assert "wrong parameters" in resp.json["message"].lower()
     Lesson.create(
         teacher=teacher,
         student=student,
@@ -41,6 +31,16 @@ def test_lessons(auth, teacher, student, meetup, dropoff, requester):
         dropoff_place=dropoff,
         deleted=True,
     )
+    auth.login(email=student.user.email)
+    resp1 = requester.get("/lessons/?limit=1&page=1")  # no filters
+    assert isinstance(resp1.json["data"], list)
+    assert resp1.json["next_url"]
+    resp2 = requester.get(resp1.json["next_url"])
+    assert resp2.json["data"][0]["id"] != resp1.json["data"][0]["id"]
+    resp = requester.get("/lessons/?student_id=gt:1")
+    assert not resp.json["data"]
+    resp = requester.get("/lessons/?date=2018-20-01T20")
+    assert "wrong parameters" in resp.json["message"].lower()
     resp = requester.get("/lessons/?deleted=true")
     assert len(resp.json["data"]) == 2
 
@@ -179,7 +179,6 @@ def test_teacher_new_lesson_with_student(auth, teacher, student, requester):
 
 
 def test_delete_lesson(auth, teacher, student, meetup, dropoff, requester):
-    auth.login(email=student.user.email)
     lesson = Lesson.create(
         teacher=teacher,
         student=student,
@@ -189,12 +188,13 @@ def test_delete_lesson(auth, teacher, student, meetup, dropoff, requester):
         meetup_place=meetup,
         dropoff_place=dropoff,
     )
-    resp = requester.delete(f"/lessons/{lesson.id}")
+    id_ = lesson.id
+    auth.login(email=student.user.email)
+    resp = requester.delete(f"/lessons/{id_}")
     assert "successfully" in resp.json["message"]
 
 
 def test_approve_lesson(auth, teacher, student, meetup, dropoff, requester):
-    auth.login(email=teacher.user.email)
     lesson = Lesson.create(
         teacher=teacher,
         student=student,
@@ -204,7 +204,9 @@ def test_approve_lesson(auth, teacher, student, meetup, dropoff, requester):
         meetup_place=meetup,
         dropoff_place=dropoff,
     )
-    resp = requester.get(f"/lessons/{lesson.id}/approve")
+    id_ = lesson.id
+    auth.login(email=teacher.user.email)
+    resp = requester.get(f"/lessons/{id_}/approve")
     assert "approved" in resp.json["message"]
     resp = requester.get(f"/lessons/7/approve")
     assert "not exist" in resp.json["message"]
@@ -213,7 +215,6 @@ def test_approve_lesson(auth, teacher, student, meetup, dropoff, requester):
 
 def test_user_edit_lesson(app, auth, student, teacher, meetup, dropoff, requester):
     """ test that is_approved turns false when user edits lesson"""
-    auth.login(email=student.user.email)
     lesson = Lesson.create(
         teacher=teacher,
         student=student,
@@ -223,7 +224,9 @@ def test_user_edit_lesson(app, auth, student, teacher, meetup, dropoff, requeste
         meetup_place=meetup,
         dropoff_place=dropoff,
     )
-    resp = requester.post(f"/lessons/{lesson.id}", json={"meetup_place": "no"})
+    id_ = lesson.id
+    auth.login(email=student.user.email)
+    resp = requester.post(f"/lessons/{id_}", json={"meetup_place": "no"})
     assert "successfully" in resp.json["message"]
     assert "no" == resp.json["data"]["meetup_place"]["name"]
     assert not resp.json["data"]["is_approved"]

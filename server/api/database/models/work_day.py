@@ -56,4 +56,9 @@ class WorkDay(SurrogatePK, Model):
         }
 
     def __repr__(self):
-        return f"<WorkDay {self.day}, {self.from_hour}:{self.from_minutes}-{self.to_hour}-{self.to_minutes}, {self.on_date}>"
+        return (
+            f"<WorkDay day={self.day}"
+            f"from={self.from_hour}:{self.from_minutes}"
+            f"-{self.to_hour}-{self.to_minutes}"
+            f", on_date={self.on_date}>"
+        )
