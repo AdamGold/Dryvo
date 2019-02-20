@@ -229,6 +229,7 @@ def approve_lesson(lesson_id):
 @lessons_routes.route("/payments", methods=["GET"])
 @jsonify_response
 @login_required
+@paginate
 def payments():
     """endpoint to return filtered payments"""
     user = current_user.teacher

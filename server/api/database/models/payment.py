@@ -36,4 +36,8 @@ class Payment(SurrogatePK, Model):
             "teacher": self.teacher.to_dict(),
             "student": self.student.to_dict(),
             "amount": self.amount,
+            "created_at": self.created_at,
         }
+
+    def __repr__(self):
+        return f"<Payment created_at={self.created_at}, teacher={self.teacher}, student={self.student}>"
