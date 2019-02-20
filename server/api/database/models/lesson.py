@@ -77,6 +77,7 @@ class Lesson(SurrogatePK, Model):
             "topics": [topic.to_dict() for topic in self.topics.all()],
             "lesson_number": self.lesson_number,
             "created_at": self.created_at,
+            "duration": self.duration,
         }
 
     def __repr__(self):

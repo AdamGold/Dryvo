@@ -23,8 +23,12 @@ class LessonCreator(Model):
     @hybrid_method
     def filter_lessons(self, args: werkzeug.datastructures.MultiDict):
         query = self.lessons
-        if "deleted" not in args or self.__class.__name__.lower() == "student":
+        if "deleted" not in args or self.__class__.__name__.lower() == "student":
             # default to non deleted items
             query = query.filter_by(deleted=False)
+            try:
+                args.pop("deleted")
+            except KeyError:
+                pass
         return Lesson.filter_and_sort(args, default_sort_column="date",
                                       query=query, with_pagination=True)

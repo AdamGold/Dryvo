@@ -22,10 +22,25 @@ def test_lessons(auth, teacher, student, meetup, dropoff, requester):
     assert resp1.json["next_url"]
     resp2 = requester.get(resp1.json["next_url"])
     assert resp2.json["data"][0]["id"] != resp1.json["data"][0]["id"]
-    resp = requester.get(f"/lessons/?student_id=gt:1")
+    resp = requester.get("/lessons/?student_id=gt:1")
     assert not resp.json["data"]
-    resp = requester.get(f"/lessons/?date=2018-20-01T20")
+    resp = requester.get("/lessons/?date=2018-20-01T20")
     assert "wrong parameters" in resp.json["message"].lower()
+    Lesson.create(teacher=teacher, student=student, creator=student.user,
+                  duration=40, date=datetime(year=2018, month=11, day=27, hour=13, minute=00),
+                  meetup_place=meetup, dropoff_place=dropoff, deleted=True)
+    resp = requester.get("/lessons/?deleted=true")
+    assert len(resp.json["data"]) == 2
+
+
+def test_deleted_lessons(auth, teacher, student, meetup, dropoff, requester):
+    date = datetime(year=2018, month=11, day=27, hour=13, minute=00)
+    Lesson.create(teacher=teacher, student=student, creator=student.user,
+                  duration=80, date=date,
+                  meetup_place=meetup, dropoff_place=dropoff, deleted=True)
+    auth.login(email=teacher.user.email)
+    resp = requester.get("/lessons/?deleted=true")
+    assert resp.json["data"][0]["duration"] == 80
 
 
 def test_student_new_lesson(auth, teacher, student, requester, topic):

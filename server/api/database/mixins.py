@@ -48,8 +48,26 @@ class Model(CRUDMixin, db.Model):
 
     __abstract__ = True
 
+    @staticmethod
+    def _handle_special_cases(column: str, value: str, custom_date: callable = None) -> str:
+        """handle special filter cases such bool value or date value"""
+        if column == "created_at" or "date" in column and value != None:
+            if custom_date:
+                value = custom_date(value)
+            else:
+                value = datetime.strptime(
+                    value, DATE_FORMAT)
+
+        if value == "true":
+            value = True
+        elif value == "false":
+            value = False
+
+        return value
+
     @classmethod
-    def _filter_data(cls, column: str, filter_: str, custom_date: callable = None) -> sqlalchemy.sql.elements.BinaryExpression:
+    def _filter_data(cls, column: str, filter_: str,
+                     custom_date: callable = None) -> sqlalchemy.sql.elements.BinaryExpression:
         """get column and filter strings and return filtering function
         e.g get id=lt:200
         return operator.lt(Model.id, 200)
@@ -67,12 +85,8 @@ class Model(CRUDMixin, db.Model):
         if fields[0] not in operators.keys():
             method = "eq"
 
-        if column == "created_at" or "date" in column and value_to_compare != None:
-            if custom_date:
-                value_to_compare = custom_date(value_to_compare)
-            else:
-                value_to_compare = datetime.strptime(
-                    value_to_compare, DATE_FORMAT)
+        value_to_compare = cls._handle_special_cases(
+            column, value_to_compare, custom_date)
 
         return operators[method](getattr(cls, column), value_to_compare)
 
@@ -111,8 +125,8 @@ class Model(CRUDMixin, db.Model):
 
         query = query.order_by(order_by)
         if "limit" in args and with_pagination:
-            page = args.get("page", 1, type=int)
-            limit = min(args.get("limit", 20, type=int), MAXIMUM_PER_PAGE)
+            page = int(args.get("page", 1))
+            limit = min(int(args.get("limit", 20)), MAXIMUM_PER_PAGE)
             return query.paginate(
                 page, limit
             )

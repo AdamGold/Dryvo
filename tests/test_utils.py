@@ -7,7 +7,7 @@ import pytest
 from server.api.database.mixins import Model
 from server.api.database.models import Lesson
 from server.api.utils import get_slots, jsonify_response
-from server.consts import DATE_FORMAT
+from server.consts import DATE_FORMAT, WORKDAY_DATE_FORMAT
 
 
 def test_jsonify_response(app):
@@ -71,11 +71,37 @@ def test_filter_data(teacher, student, meetup, dropoff):
             "date", f"{date}")).all()
 
 
-def test_security_filter_data(teacher, student, meetup, dropoff):
-    """test for non secure inputs"""
-
-
 def test_filter_and_sort(teacher, student, meetup, dropoff):
-    """test that limit is maxed to 100, base query, custom date
-    and with different dates"""
-    pass
+    """test that limit is maxed to 100, base query, custom date, non allowed filters"""
+    date = datetime.now() + timedelta(days=100)
+    for x in range(101):
+        Lesson.create(teacher_id=x, student=student, creator=student.user,
+                      duration=40, date=date,
+                      meetup_place=meetup, dropoff_place=dropoff)
+
+    args = {"teacher_id": teacher.id}  # not allowed
+    default_column = "date"
+    query = None
+    lessons_from_db = Lesson.filter_and_sort(args,
+                                             default_sort_column=default_column,
+                                             query=query)
+    assert len(lessons_from_db) == 102
+    args = {"date": date.strftime(WORKDAY_DATE_FORMAT)}
+    lessons_from_db = Lesson.filter_and_sort(args,
+                                             default_sort_column=default_column,
+                                             query=query,
+                                             custom_date=lambda x: datetime.strptime(x, WORKDAY_DATE_FORMAT))
+    assert not lessons_from_db
+    query = Lesson.query.filter_by(teacher_id=3)
+    args = {}
+    lessons_from_db = Lesson.filter_and_sort(args,
+                                             default_sort_column=default_column,
+                                             query=query)
+    assert len(lessons_from_db) == 1
+    query = None
+    args = {"limit": 100000000000000}
+    lessons_from_db = Lesson.filter_and_sort(args,
+                                             default_sort_column=default_column,
+                                             query=query,
+                                             with_pagination=True)
+    assert len(lessons_from_db.items) == 100
