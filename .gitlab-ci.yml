@@ -1,9 +1,20 @@
 image: python:3.6-stretch
 
 stages:
+    - lint
     - test
     - deploy
     - verify
+
+lint:
+    stage: lint
+    script:
+        - pip install --upgrade .[test]
+        - black --check server/
+    cache:
+        paths:
+            - ~/.cache/pip # Cache dir according to https://pip.pypa.io/en/stable/reference/pip_install/#caching
+            - /root/.cache/pip/ # Cache dir from an example pipeline run https://gitlab.com/glitzdev/glitz_hub/-/jobs/145930238
 
 test:
     stage: test
