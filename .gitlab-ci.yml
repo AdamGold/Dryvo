@@ -46,6 +46,8 @@ deploy:
             -H "Authorization: Bearer $HEROKU_API_KEY" > /dev/null
 
     when: on_success
+    environment:
+        name: production
     only:
         - production
 
