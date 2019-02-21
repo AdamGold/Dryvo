@@ -52,10 +52,8 @@ class User(UserMixin, SurrogatePK, Model):
     __tablename__ = "users"
     email = Column(db.String(80), unique=True, nullable=False)
     password = Column(db.String(120), nullable=True)
-    created_at = Column(db.DateTime, nullable=False,
-                        default=dt.datetime.utcnow)
-    last_login = Column(db.DateTime, nullable=False,
-                        default=dt.datetime.utcnow)
+    created_at = Column(db.DateTime, nullable=False, default=dt.datetime.utcnow)
+    last_login = Column(db.DateTime, nullable=False, default=dt.datetime.utcnow)
     salt = Column(db.String(80), nullable=False)
     name = Column(db.String(80), nullable=False)
     is_admin = Column(db.Boolean, nullable=False, default=False)
@@ -106,7 +104,9 @@ class User(UserMixin, SurrogatePK, Model):
             },
             **kwargs,
         )
-        return jwt.encode(payload, current_app.config.get("SECRET_JWT"), algorithm="HS256")
+        return jwt.encode(
+            payload, current_app.config.get("SECRET_JWT"), algorithm="HS256"
+        )
 
     def encode_exchange_token(self) -> bytes:
         """Generates an exchange token for current user"""
@@ -141,8 +141,7 @@ class User(UserMixin, SurrogatePK, Model):
     def decode_token(auth_token: str) -> dict:
         """Decode JWT or raise familiar exceptions"""
         try:
-            payload = jwt.decode(
-                auth_token, current_app.config.get("SECRET_JWT"))
+            payload = jwt.decode(auth_token, current_app.config.get("SECRET_JWT"))
             if BlacklistToken.check_blacklist(auth_token):
                 raise TokenError("BLACKLISTED_TOKEN")
             return payload

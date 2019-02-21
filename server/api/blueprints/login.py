@@ -11,8 +11,7 @@ from loguru import logger
 from sqlalchemy.orm.exc import NoResultFound
 
 from server.api.blueprints.user import get_user_info
-from server.api.database.models import (BlacklistToken, OAuth, Provider,
-                                        TokenScope, User)
+from server.api.database.models import BlacklistToken, OAuth, Provider, TokenScope, User
 from server.api.utils import jsonify_response
 from server.consts import DEBUG_MODE, FACEBOOK_SCOPES, MOBILE_LINK
 from server.error_handling import RouteError, TokenError
@@ -123,14 +122,15 @@ def oauth_facebook():
         BlacklistToken.create(token=auth_token)
         logger.debug("logged wih token, creating session...")
         login_user(user, remember=True)
-    state = "".join(random.choices(
-        string.ascii_uppercase + string.digits, k=6))
+    state = "".join(random.choices(string.ascii_uppercase + string.digits, k=6))
     redirect = flask.url_for(".facebook_authorized", _external=True)
     auth_url = (
         "https://www.facebook.com/v3.2/dialog/oauth?client_id={}"
         "&redirect_uri={}&state={}&scope={}".format(
-            flask.current_app.config.get(
-                "FACEBOOK_CLIENT_ID"), redirect, state, FACEBOOK_SCOPES
+            flask.current_app.config.get("FACEBOOK_CLIENT_ID"),
+            redirect,
+            state,
+            FACEBOOK_SCOPES,
         )
     )
     # Store the state so the callback can verify the auth server response.
@@ -200,8 +200,7 @@ def handle_facebook(state, code):
 
     # Find this OAuth token in the database, or create it
     query = OAuth.query.filter_by(
-        provider=Provider.facebook, provider_user_id=validate_token_resp.get(
-            "user_id")
+        provider=Provider.facebook, provider_user_id=validate_token_resp.get("user_id")
     )
 
     try:
@@ -230,8 +229,7 @@ def handle_facebook(state, code):
             raise RouteError("Can not get email from user.")
 
         # Create a new local user account for this user
-        user = User(email=profile.get("email"),
-                    name=profile.get("name")).save()
+        user = User(email=profile.get("email"), name=profile.get("name")).save()
         oauth.user = user
         oauth.save()
         logger.debug(f"creating new user {user}")

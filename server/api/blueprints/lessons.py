@@ -8,7 +8,6 @@ from flask_login import current_user, login_required, logout_user
 from loguru import logger
 
 from server.api.blueprints import teacher_required
-from server.api.database.consts import LESSONS_PER_PAGE
 from server.api.database.models import (
     Lesson,
     LessonTopic,
@@ -91,16 +90,14 @@ def get_lesson_data(data: dict, user: User) -> dict:
 @login_required
 @paginate
 def lessons():
-    filter_args = flask.request.args
-    page = flask.request.args.get("page", 1, type=int)
     user = current_user.teacher
     if not current_user.teacher:
         user = current_user.student
 
-    pagination = user.filter_lessons(filter_args).paginate(
-        page, LESSONS_PER_PAGE, False
-    )
-    return pagination
+    try:
+        return user.filter_lessons(flask.request.args.copy())
+    except ValueError:
+        raise RouteError("Wrong parameters passed.")
 
 
 @lessons_routes.route("/", methods=["POST"])
@@ -227,3 +224,19 @@ def approve_lesson(lesson_id):
         )
 
     return {"message": "Lesson approved."}
+
+
+@lessons_routes.route("/payments", methods=["GET"])
+@jsonify_response
+@login_required
+@paginate
+def payments():
+    """endpoint to return filtered payments"""
+    user = current_user.teacher
+    if not current_user.teacher:
+        user = current_user.student
+
+    try:
+        return user.filter_payments(flask.request.args.copy())
+    except ValueError:
+        raise RouteError("Wrong parameters passed.")

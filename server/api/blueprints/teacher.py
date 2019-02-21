@@ -5,8 +5,7 @@ import flask
 from flask import Blueprint
 from flask_login import current_user, login_required, logout_user
 
-from server.api.database.consts import DAYS_PER_PAGE
-from server.api.database.models import Day, Payment, Student, Teacher, WorkDay
+from server.api.database.models import Day, Payment, Student, Teacher, User, WorkDay
 from server.api.utils import jsonify_response, paginate
 from server.error_handling import RouteError
 
@@ -32,12 +31,20 @@ def teacher_required(func):
 @jsonify_response
 @login_required
 @teacher_required
-@paginate
 def work_days():
-    page = flask.request.args.get("page", 1, type=int)
-    pagination = current_user.teacher.work_days.paginate(
-        page, DAYS_PER_PAGE, False)
-    return pagination
+    """ return work days with filter - only on a specific date,
+    or with no date at all"""
+    try:
+        return {
+            "data": [
+                day.to_dict()
+                for day in current_user.teacher.filter_work_days(
+                    flask.request.args.copy()
+                )
+            ]
+        }
+    except ValueError:
+        raise RouteError("Wrong parameters passed.")
 
 
 @teacher_routes.route("/work_days", methods=["POST"])
@@ -58,8 +65,7 @@ def new_work_day():
     from_time = datetime.strptime(f"{from_hour}:{from_minutes}", "%H:%M")
     to_time = datetime.strptime(f"{to_hour}:{to_minutes}", "%H:%M")
     if from_time >= to_time:
-        raise RouteError(
-            "There must be a bigger difference between the two times.")
+        raise RouteError("There must be a bigger difference between the two times.")
     day = WorkDay(
         day=day,
         from_hour=from_hour,
@@ -109,8 +115,7 @@ def available_hours(teacher_id):
     teacher = Teacher.get_by_id(teacher_id)
     return {
         "data": list(
-            teacher.available_hours(
-                datetime.strptime(data.get("date"), "%Y-%m-%d"))
+            teacher.available_hours(datetime.strptime(data.get("date"), "%Y-%m-%d"))
         )
     }
 
@@ -127,7 +132,27 @@ def add_payment():
     if not data.get("amount"):
         raise RouteError("Amount must be given.")
     payment = Payment.create(
-        teacher=current_user.teacher, student=student, amount=data.get(
-            "amount")
+        teacher=current_user.teacher, student=student, amount=data.get("amount")
     )
     return {"data": payment.to_dict()}, 201
+
+
+@teacher_routes.route("/students", methods=["GET"])
+@jsonify_response
+@login_required
+@teacher_required
+@paginate
+def students():
+    """allow filtering by name / area of student, and sort by balance,
+    lesson number"""
+
+    def custom_filter(model, key, value):
+        return getattr(model, key).like(f"%{value}%")
+
+    try:
+        query = current_user.teacher.students
+        args = flask.request.args.copy()
+        extra_filters = {User: {"name": custom_filter, "area": custom_filter}}
+        return Student.filter_and_sort(args, query, extra_filters=extra_filters)
+    except ValueError:
+        raise RouteError("Wrong parameters passed.")

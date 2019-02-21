@@ -1,6 +1,7 @@
 from datetime import datetime, timedelta
 from typing import Iterable, Tuple
 
+import werkzeug
 from loguru import logger
 from sqlalchemy import func
 from sqlalchemy.ext.hybrid import hybrid_method
@@ -14,18 +15,15 @@ from server.api.database.mixins import (
     reference_col,
     relationship,
 )
-from server.api.database.models import Lesson
+from server.api.database.models import Lesson, LessonCreator, WorkDay
 from server.api.utils import get_slots
+from server.consts import WORKDAY_DATE_FORMAT
 
 
-class Teacher(SurrogatePK, Model):
+class Teacher(SurrogatePK, LessonCreator):
     """A teacher of the app."""
 
     __tablename__ = "teachers"
-    user_id = reference_col("users", nullable=False)
-    user = relationship(
-        "User", backref=backref("teacher", uselist=False), uselist=False
-    )
     price = Column(db.Integer, nullable=False)
     phone = Column(db.String, nullable=False)
     price_rating = Column(db.Float, nullable=True)
@@ -44,8 +42,7 @@ class Teacher(SurrogatePK, Model):
             work_hours = self.work_days.filter_by(day=weekday).all()
             logger.debug(f"No specific days found. Going with default")
 
-        logger.debug(
-            f"found these work days on the specific date: {work_hours}")
+        logger.debug(f"found these work days on the specific date: {work_hours}")
         return work_hours
 
     def available_hours(
@@ -71,10 +68,8 @@ class Teacher(SurrogatePK, Model):
         work_hours.sort(key=lambda x: x.from_hour)  # sort from early to late
         for day in work_hours:
             hours = (
-                requested_date.replace(
-                    hour=day.from_hour, minute=day.from_minutes),
-                requested_date.replace(
-                    hour=day.to_hour, minute=day.to_minutes),
+                requested_date.replace(hour=day.from_hour, minute=day.from_minutes),
+                requested_date.replace(hour=day.to_hour, minute=day.to_minutes),
             )
             yield from get_slots(
                 hours, taken_lessons, timedelta(minutes=self.lesson_duration)
@@ -84,25 +79,16 @@ class Teacher(SurrogatePK, Model):
             yield (lesson.date, lesson.date + timedelta(minutes=lesson.duration))
 
     @hybrid_method
-    def filter_lessons(self, filter_args):
-        """
-        Future: more teacher filter to come.
-        """
-        lessons_query = self.lessons
-        deleted = False
-        if "deleted" in filter_args:
-            deleted = True
-        if filter_args.get("show") == "history":
-            lessons_query = lessons_query.filter(
-                Lesson.date < datetime.today())
-        else:
-            lessons_query = lessons_query.filter(
-                Lesson.date > datetime.today())
+    def filter_work_days(self, args: werkzeug.datastructures.MultiDict):
+        if "on_date" not in args:
+            args["on_date"] = None
 
-        order_by_args = filter_args.get("order_by", "date desc").split()
-        order_by = getattr(Lesson, order_by_args[0])
-        order_by = getattr(order_by, order_by_args[1])()
-        return lessons_query.filter_by(deleted=deleted).order_by(order_by)
+        def custom_date_func(value):
+            return datetime.strptime(value, WORKDAY_DATE_FORMAT).date()
+
+        return WorkDay.filter_and_sort(
+            args, query=self.work_days, custom_date=custom_date_func
+        )
 
     def to_dict(self):
         return {

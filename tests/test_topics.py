@@ -9,8 +9,6 @@ def test_topics(app, auth, requester):
     auth.login()
     resp = requester.get("/topics/")
     assert isinstance(resp.json['data'], list)
-    assert 'next_url' in resp.json
-    assert 'prev_url' in resp.json
 
 
 def test_new_topic(auth, admin, requester):

@@ -1,6 +1,7 @@
 import datetime as dt
 import enum
 
+from sqlalchemy.ext.hybrid import hybrid_method
 from sqlalchemy.orm import backref
 from sqlalchemy_utils import ChoiceType
 
@@ -37,6 +38,9 @@ class WorkDay(SurrogatePK, Model):
     to_minutes = Column(db.Integer, nullable=False, default=0)
     on_date = Column(db.Date, nullable=True)
 
+    ALLOWED_FILTERS = ["day", "on_date"]
+    default_sort_column = "day"
+
     def __init__(self, **kwargs):
         """Create instance."""
         db.Model.__init__(self, **kwargs)
@@ -52,4 +56,9 @@ class WorkDay(SurrogatePK, Model):
         }
 
     def __repr__(self):
-        return f"<WorkDay {self.day}, {self.from_hour}:{self.from_minutes}-{self.to_hour}-{self.to_minutes}, {self.on_date}>"
+        return (
+            f"<WorkDay day={self.day}"
+            f"from={self.from_hour}:{self.from_minutes}"
+            f"-{self.to_hour}-{self.to_minutes}"
+            f", on_date={self.on_date}>"
+        )

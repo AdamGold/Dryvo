@@ -1,8 +1,9 @@
+import itertools
 from datetime import datetime
 from typing import List
-import itertools
 
-from sqlalchemy import and_
+from sqlalchemy import and_, func, select
+from sqlalchemy.sql.functions import coalesce
 from sqlalchemy.ext.hybrid import hybrid_method, hybrid_property
 from sqlalchemy.orm import backref
 
@@ -14,45 +15,31 @@ from server.api.database.mixins import (
     reference_col,
     relationship,
 )
-from server.api.database.models import Lesson, LessonTopic, Place, PlaceType, Topic
+from server.api.database.models import (
+    Lesson,
+    LessonTopic,
+    Place,
+    PlaceType,
+    Topic,
+    LessonCreator,
+    Payment,
+    Teacher,
+)
 
 
-class Student(SurrogatePK, Model):
+class Student(SurrogatePK, LessonCreator):
     """A student of the app."""
 
     __tablename__ = "students"
     teacher_id = reference_col("teachers", nullable=False)
-    teacher = relationship(
-        "Teacher", backref=backref("students", lazy="dynamic"))
-    user_id = reference_col("users", nullable=False)
-    user = relationship(
-        "User", backref=backref("student", uselist=False), uselist=False
-    )
+    teacher = relationship("Teacher", backref=backref("students", lazy="dynamic"))
+
+    default_sort_column = "id"
+    ALLOWED_FILTERS = []
 
     def __init__(self, **kwargs):
         """Create instance."""
         db.Model.__init__(self, **kwargs)
-
-    @hybrid_method
-    def filter_lessons(self, filter_args):
-        lessons_query = self.lessons
-        if filter_args.get("show") == "history":
-            lessons_query = lessons_query.filter(
-                Lesson.date < datetime.today())
-        else:
-            lessons_query = lessons_query.filter(
-                Lesson.date > datetime.today())
-
-        order_by_args = filter_args.get("order_by", "date desc").split()
-        order_by = getattr(Lesson, order_by_args[0])
-        order_by = getattr(order_by, order_by_args[1])()
-        return lessons_query.filter_by(deleted=False).order_by(order_by)
-
-    @hybrid_property
-    def new_lesson_number(self) -> int:
-        """return the number of a new lesson:
-        all lessons+1"""
-        return len(self.lessons.all()) + 1
 
     def _lesson_topics(self, is_finished: bool):
         lesson_ids = [lesson.id for lesson in self.lessons]
@@ -111,11 +98,68 @@ class Student(SurrogatePK, Model):
         )
 
     @hybrid_property
+    def new_lesson_number(self) -> int:
+        """return the number of a new lesson:
+        all lessons+1"""
+        return len(self.lessons.all()) + 1
+
+    @new_lesson_number.expression
+    def new_lesson_number(cls):
+        q = (
+            select([func.count(Lesson.student_id) + 1])
+            .where(Lesson.student_id == cls.id)
+            .label("new_lesson_number")
+        )
+        return q
+
+    @hybrid_property
     def balance(self):
         """calculate sum of payments minus
         number of lessons taken * price"""
-        lessons_price = (self.new_lesson_number - 1) * self.teacher.price
-        return sum([payment.amount for payment in self.payments]) - lessons_price
+        return self.total_paid - self.total_lessons_price
+
+    @balance.expression
+    def balance(cls):
+        return cls.total_paid - cls.total_lessons_price
+
+    @hybrid_property
+    def total_lessons_price(self):
+        return (self.new_lesson_number - 1) * self.teacher.price
+
+    @total_lessons_price.expression
+    def total_lessons_price(cls):
+        q = (
+            select([func.count(Lesson.student_id) * Teacher.price])
+            .where(and_(Lesson.student_id == cls.id, Teacher.id == cls.teacher_id))
+            .label("total_lessons_price")
+        )
+        return q
+
+    @hybrid_property
+    def total_paid(self):
+        return sum([payment.amount for payment in self.payments])
+
+    @total_paid.expression
+    def total_paid(cls):
+        q = (
+            select([coalesce(func.sum(Payment.amount), 0)])
+            .where(Payment.student_id == cls.id)
+            .label("total_paid")
+        )
+        return q
 
     def to_dict(self):
-        return {"student_id": self.id, "my_teacher": self.teacher.to_dict()}
+        return {
+            "student_id": self.id,
+            "my_teacher": self.teacher.to_dict(),
+            "balance": self.balance,
+            "new_lesson_number": self.new_lesson_number,
+        }
+
+    def __repr__(self):
+        return (
+            f"<Student id={self.id}, balance={self.balance}"
+            f", total_lessons_price={self.total_lessons_price}"
+            f", new_lesson_number={self.new_lesson_number}, teacher={self.teacher}"
+            f", total_paid={self.total_paid}>"
+        )

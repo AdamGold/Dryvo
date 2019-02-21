@@ -12,8 +12,8 @@ from server.api.database.mixins import (
     reference_col,
     relationship,
 )
-from server.api.database.utils import QueryWithSoftDelete
 from server.api.database.models import Topic
+from server.api.database.utils import QueryWithSoftDelete
 
 
 class Lesson(SurrogatePK, Model):
@@ -39,6 +39,9 @@ class Lesson(SurrogatePK, Model):
     creator_id = reference_col("users", nullable=False)
     creator = relationship("User")
     lesson_number = Column(db.Integer, nullable=True)
+
+    ALLOWED_FILTERS = ["deleted", "date", "student_id", "created_at", "lesson_number"]
+    default_sort_column = "date"
 
     def __init__(self, **kwargs):
         """Create instance."""
@@ -74,4 +77,12 @@ class Lesson(SurrogatePK, Model):
             "topics": [topic.to_dict() for topic in self.topics.all()],
             "lesson_number": self.lesson_number,
             "created_at": self.created_at,
+            "duration": self.duration,
         }
+
+    def __repr__(self):
+        return (
+            f"<Lesson date={self.date}, created_at={self.created_at},"
+            f"student={self.student}, teacher={self.teacher}"
+            f",approved={self.is_approved}, number={self.lesson_number}>"
+        )
