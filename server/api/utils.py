@@ -47,30 +47,24 @@ def paginate(func):
             data = [item.to_dict() for item in response.items]
 
         next_url = (
-            flask.url_for(
-                ".{}".format(func.__name__),
-                page=pagination.next_num,
-                _external=True,
-                *args,
-                **kwargs
-            )
+            build_pagination_url(func, pagination.next_num, *args, **kwargs)
             if pagination.has_next
             else None
         )
         prev_url = (
-            flask.url_for(
-                ".{}".format(func.__name__),
-                page=pagination.prev_num,
-                _external=True,
-                *args,
-                **kwargs
-            )
+            build_pagination_url(func, pagination.prev_num, *args, **kwargs)
             if pagination.has_prev
             else None
         )
         return {"next_url": next_url, "prev_url": prev_url, "data": data}
 
     return func_wrapper
+
+
+def build_pagination_url(func: callable, page, *args, **kwargs) -> str:
+    return flask.url_for(
+        f".{func.__name__}", page=page, _external=True, *args, **kwargs
+    )
 
 
 def get_slots(hours: (datetime, datetime), appointments: [tuple], duration: timedelta):
