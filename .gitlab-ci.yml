@@ -47,7 +47,7 @@ deploy:
 
     when: on_success
     only:
-        - master
+        - production
 
 verify:
     stage: verify
@@ -55,4 +55,4 @@ verify:
         - curl --fail https://dryvo.herokuapp.com || exit 1
     when: on_success
     only:
-        - master
+        - production
