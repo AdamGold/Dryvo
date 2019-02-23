@@ -154,6 +154,7 @@ class Student(SurrogatePK, LessonCreator):
             "my_teacher": self.teacher.to_dict(),
             "balance": self.balance,
             "new_lesson_number": self.new_lesson_number,
+            "user": self.user.to_dict(),
         }
 
     def __repr__(self):
