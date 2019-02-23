@@ -40,7 +40,7 @@ class Lesson(SurrogatePK, Model):
     creator = relationship("User")
     lesson_number = Column(db.Integer, nullable=True)
 
-    ALLOWED_FILTERS = ["deleted", "date", "student_id", "created_at", "lesson_number"]
+    ALLOWED_FILTERS = ["deleted", "is_approved", "date", "student_id", "created_at", "lesson_number"]
     default_sort_column = "date"
 
     def __init__(self, **kwargs):

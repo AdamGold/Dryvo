@@ -316,17 +316,19 @@ def test_payments(auth, teacher, student, requester):
         amount=100_000,
         created_at=datetime.now() + timedelta(days=32),
     )
-    auth.login(email=teacher.user.email)
     payments = []
     for x in range(4):
         payments.append(
             Payment.create(teacher=teacher, student=student, amount=x * 100)
         )
+
+    last_id = payments[-1].id
+    auth.login(email=teacher.user.email)
     resp = requester.get(
         "/lessons/payments?limit=2"
     )  # no filters, there is already one payment besides what we added()
     assert len(resp.json["data"]) == 2
-    assert resp.json["data"][1]["id"] == payments[-1].id
+    assert resp.json["data"][1]["id"] == last_id
     start_of_month = datetime.today().replace(
         day=1, hour=0, minute=0, second=0, microsecond=0
     )
@@ -334,8 +336,6 @@ def test_payments(auth, teacher, student, requester):
     end_next_month = start_next_month.replace(month=(start_next_month.month + 1))
     start_next_month = start_next_month.strftime(DATE_FORMAT)
     end_next_month = end_next_month.strftime(DATE_FORMAT)
-    print(start_next_month)
-    print(end_next_month)
     resp = requester.get(
         f"/lessons/payments?created_at=ge:{start_next_month}&created_at=lt:{end_next_month}"
     )
