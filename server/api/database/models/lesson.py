@@ -72,8 +72,7 @@ class Lesson(SurrogatePK, Model):
     def to_dict(self):
         return {
             "id": self.id,
-            "teacher_id": self.teacher_id,
-            "student_id": self.student_id,
+            "student": self.student.to_dict() if self.student else None,
             "date": self.date,
             "meetup_place": self.meetup_place.to_dict() if self.meetup_place else None,
             "dropoff_place": self.dropoff_place.to_dict()
