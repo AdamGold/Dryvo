@@ -159,4 +159,6 @@ def test_students(auth, teacher, requester):
     assert resp.json["data"][0]["student_id"] == id_
     resp = requester.get("/teacher/students?name=le:no way")
     assert not resp.json["data"]
+    resp = requester.get("/teacher/students?limit=1")
+    assert len(resp.json["data"]) == 1
 

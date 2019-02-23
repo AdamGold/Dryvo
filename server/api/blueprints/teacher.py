@@ -153,6 +153,8 @@ def students():
         query = current_user.teacher.students
         args = flask.request.args.copy()
         extra_filters = {User: {"name": custom_filter, "area": custom_filter}}
-        return Student.filter_and_sort(args, query, extra_filters=extra_filters)
+        return Student.filter_and_sort(
+            args, query, extra_filters=extra_filters, with_pagination=True
+        )
     except ValueError:
         raise RouteError("Wrong parameters passed.")
