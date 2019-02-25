@@ -335,9 +335,14 @@ def test_payments(auth, teacher, student, requester):
     start_next_month = start_of_month.replace(month=(start_of_month.month + 1))
     end_next_month = start_next_month.replace(month=(start_next_month.month + 1))
     start_next_month = start_next_month.strftime(DATE_FORMAT)
+    start_of_month = start_of_month.strftime(DATE_FORMAT)
     end_next_month = end_next_month.strftime(DATE_FORMAT)
     resp = requester.get(
         f"/lessons/payments?created_at=ge:{start_next_month}&created_at=lt:{end_next_month}"
     )
     assert resp.json["data"][0]["amount"] == 100_000
+    resp = requester.get(
+        f"/lessons/payments?created_at=ge:{start_of_month}&created_at=lt:{start_of_month}"
+    )
+    assert not resp.json["data"]
 

@@ -180,15 +180,17 @@ class Model(CRUDMixin, db.Model):
         -------
         ?limit=20&page=2&student=1&date=lt:2019-01-20T13:20Z&lesson_number=lte:5
         """
-        filters = {k: v for k, v in args.items() if k in cls.ALLOWED_FILTERS}
         query = query or cls.query
         query = (
             cls._handle_extra_filters(query, args, extra_filters)
             if extra_filters
             else query
         )
-        for column, filter_ in filters.items():
-            query = query.filter(cls._filter_data(column, filter_, custom_date))
+        for column, filter_ in args.items(
+            multi=True
+        ):  # loop through multi values (MultiDict)
+            if column in cls.ALLOWED_FILTERS:
+                query = query.filter(cls._filter_data(column, filter_, custom_date))
         order_by = cls._sort_data(args)
 
         query = query.order_by(order_by)
