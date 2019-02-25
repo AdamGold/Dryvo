@@ -3,6 +3,7 @@ from datetime import datetime, timedelta
 
 import flask
 import pytest
+from werkzeug import MultiDict
 
 from server.api.database.models import Lesson, Student, User
 from server.api.utils import get_slots, jsonify_response
@@ -104,6 +105,15 @@ def test_filter_multiple_params(teacher, student, meetup, dropoff):
         meetup_place=meetup,
         dropoff_place=dropoff,
     )
+    Lesson.create(
+        teacher=teacher,
+        student=student,
+        creator=student.user,
+        duration=duration,
+        date=date + timedelta(days=100),  # so it won't be the same month
+        meetup_place=meetup,
+        dropoff_place=dropoff,
+    )
     month_end = datetime.strftime(month_end, DATE_FORMAT)
     month_start = datetime.strftime(month_start, DATE_FORMAT)
     lessons_from_db = (
@@ -111,6 +121,7 @@ def test_filter_multiple_params(teacher, student, meetup, dropoff):
         .filter(Lesson._filter_data("date", f"le:{month_end}"))
         .all()
     )
+    assert len(lessons_from_db) == 1
     assert lessons_from_db[0] == lesson
 
 
@@ -128,11 +139,11 @@ def test_filter_and_sort(teacher, student, meetup, dropoff):
             dropoff_place=dropoff,
         )
 
-    args = {"teacher_id": teacher.id}  # not allowed
+    args = MultiDict([("teacher_id", teacher.id)])  # not allowed
     query = None
     lessons_from_db = Lesson.filter_and_sort(args, query=query)
     assert len(lessons_from_db) == 102
-    args = {"date": date.strftime(WORKDAY_DATE_FORMAT)}
+    args = MultiDict([("date", date.strftime(WORKDAY_DATE_FORMAT))])
     lessons_from_db = Lesson.filter_and_sort(
         args,
         query=query,
@@ -140,11 +151,11 @@ def test_filter_and_sort(teacher, student, meetup, dropoff):
     )
     assert not lessons_from_db
     query = Lesson.query.filter_by(teacher_id=3)
-    args = {}
+    args = MultiDict()
     lessons_from_db = Lesson.filter_and_sort(args, query=query)
     assert len(lessons_from_db) == 1
     query = None
-    args = {"limit": 100_000_000_000_000}
+    args = MultiDict([("limit", 100_000_000_000_000)])
     lessons_from_db = Lesson.filter_and_sort(args, query=query, with_pagination=True)
     assert len(lessons_from_db.items) == 100
 
