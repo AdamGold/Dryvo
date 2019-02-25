@@ -90,5 +90,5 @@ class Lesson(SurrogatePK, Model):
         return (
             f"<Lesson date={self.date}, created_at={self.created_at},"
             f"student={self.student}, teacher={self.teacher}"
-            f",approved={self.is_approved}, number={self.lesson_number}>"
+            f",approved={self.is_approved}, number={self.lesson_number}, duration={self.duration}>"
         )
