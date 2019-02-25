@@ -12,7 +12,7 @@ test_req = [
 
 setup(
     name="dryvo",
-    version="0.2.1",
+    version="0.2.2",
     description="Dryvo Application",
     url="https://bitbucket.org/dryvo",
     author="Dryvo",
