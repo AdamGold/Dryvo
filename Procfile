@@ -1,1 +1,1 @@
-web: gunicorn  --chdir ./server "app:create_app()"
+web: gunicorn --preload --workers 3 --chdir ./server "app:create_app()"
