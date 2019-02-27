@@ -113,10 +113,13 @@ def delete_work_day(day_id):
 def available_hours(teacher_id):
     data = flask.request.get_json()
     teacher = Teacher.get_by_id(teacher_id)
+    duration = None
+    if data.get("duration"):
+        duration = int(data.get("duration"))
     return {
         "data": list(
             teacher.available_hours(
-                datetime.strptime(data.get("date"), "%Y-%m-%d"), data.get("duration")
+                datetime.strptime(data.get("date"), "%Y-%m-%d"), duration
             )
         )
     }
