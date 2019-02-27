@@ -115,7 +115,9 @@ def available_hours(teacher_id):
     teacher = Teacher.get_by_id(teacher_id)
     return {
         "data": list(
-            teacher.available_hours(datetime.strptime(data.get("date"), "%Y-%m-%d"))
+            teacher.available_hours(
+                datetime.strptime(data.get("date"), "%Y-%m-%d"), data.get("duration")
+            )
         )
     }
 

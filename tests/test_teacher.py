@@ -104,8 +104,12 @@ def test_available_hours_route(teacher, student, meetup, dropoff, auth, requeste
         dropoff_place=dropoff,
     )
     resp = requester.post(f"/teacher/{teacher.id}/available_hours", json={"date": date})
-    assert isinstance(resp.json["data"], list)
+    assert len(resp.json["data"]) == 4
     assert "14:10" in resp.json["data"][0][0]
+    resp = requester.post(
+        f"/teacher/{teacher.id}/available_hours", json={"date": date, "duration": 100}
+    )
+    assert len(resp.json["data"]) == 1
 
 
 def test_teacher_available_hours(teacher, student, requester):

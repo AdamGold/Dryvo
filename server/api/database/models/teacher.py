@@ -48,7 +48,7 @@ class Teacher(SurrogatePK, LessonCreator):
         return work_hours
 
     def available_hours(
-        self, requested_date: datetime
+        self, requested_date: datetime, duration: int = None
     ) -> Iterable[Tuple[datetime, datetime]]:
         """
         1. calculate available hours - decrease existing lessons times from work hours
@@ -74,7 +74,9 @@ class Teacher(SurrogatePK, LessonCreator):
                 requested_date.replace(hour=day.to_hour, minute=day.to_minutes),
             )
             yield from get_slots(
-                hours, taken_lessons, timedelta(minutes=self.lesson_duration)
+                hours,
+                taken_lessons,
+                timedelta(minutes=duration or self.lesson_duration),
             )
 
         for lesson in existing_lessons.filter_by(student_id=None).all():
