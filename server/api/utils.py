@@ -67,7 +67,14 @@ def build_pagination_url(func: callable, page, *args, **kwargs) -> str:
     )
 
 
-def get_slots(hours: (datetime, datetime), appointments: [tuple], duration: timedelta):
+def get_slots(
+    hours: (datetime, datetime),
+    appointments: [tuple],
+    duration: timedelta,
+    force_future: bool = False,
+):
+    """get a tuple with an hour range and a list of lessons, return empty slots
+    in that hour range"""
     minimum = (hours[0], hours[0])
     maximum = (hours[1], hours[1])
     available_lessons = []
@@ -77,6 +84,8 @@ def get_slots(hours: (datetime, datetime), appointments: [tuple], duration: time
     ]
     for start, end in ((slots[i][1], slots[i + 1][0]) for i in range(len(slots) - 1)):
         while start + duration <= end:
+            if start < datetime.utcnow() and force_future:
+                continue
             available_lessons.append((start, start + duration))
             start += duration
 
