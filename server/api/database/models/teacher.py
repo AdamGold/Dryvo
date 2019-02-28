@@ -38,9 +38,9 @@ class Teacher(SurrogatePK, LessonCreator):
     def work_hours_for_date(self, date: datetime):
         work_hours = self.work_days.filter_by(on_date=date.date()).all()
         if not work_hours:
-            weekday = ["NEVER USED", 2, 3, 4, 5, 6, 7, 1][
+            weekday = ["NEVER USED", 1, 2, 3, 4, 5, 6, 0][
                 date.isoweekday()
-            ]  # converty sundays to 1
+            ]  # converty sundays to 0
             work_hours = self.work_days.filter_by(day=weekday).all()
             logger.debug(f"No specific days found. Going with default")
 
