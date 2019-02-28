@@ -95,7 +95,7 @@ def lessons():
         user = current_user.student
 
     try:
-        return user.filter_lessons(flask.request.args.copy())
+        return user.filter_lessons(flask.request.args)
     except ValueError:
         raise RouteError("Wrong parameters passed.")
 
@@ -237,6 +237,6 @@ def payments():
         user = current_user.student
 
     try:
-        return user.filter_payments(flask.request.args.copy())
+        return user.filter_payments(flask.request.args)
     except ValueError:
         raise RouteError("Wrong parameters passed.")

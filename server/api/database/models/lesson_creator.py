@@ -22,7 +22,9 @@ class LessonCreator(Model):
     def user(self):
         return relationship(
             "User",
-            backref=backref(self.__tablename__[:-1], uselist=False),
+            backref=backref(
+                self.__tablename__[:-1], uselist=False
+            ),  # slice the `s` from table name
             uselist=False,
         )
 
@@ -30,6 +32,7 @@ class LessonCreator(Model):
 
     @hybrid_method
     def filter_lessons(self, args: werkzeug.datastructures.MultiDict):
+        args = args.copy()
         query = self.lessons
         if "deleted" not in args or self.__class__.__name__.lower() == "student":
             # default to non deleted items

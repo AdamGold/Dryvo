@@ -60,6 +60,8 @@ class User(UserMixin, SurrogatePK, Model):
     area = Column(db.String(80), nullable=True)
     firebase_token = Column(db.Text, nullable=True)
 
+    ALLOWED_FILTERS = ["name", "email", "area"]
+
     def __init__(self, email, password="", **kwargs):
         if not password:
             password = os.urandom(20)

@@ -69,19 +69,15 @@ class Teacher(SurrogatePK, LessonCreator):
         ]
         work_hours.sort(key=lambda x: x.from_hour)  # sort from early to late
         for day in work_hours:
-            from_date = requested_date.replace(
-                hour=day.from_hour, minute=day.from_minutes
-            )
-            if datetime.utcnow() > from_date:
-                continue
             hours = (
-                from_date,
+                requested_date.replace(hour=day.from_hour, minute=day.from_minutes),
                 requested_date.replace(hour=day.to_hour, minute=day.to_minutes),
             )
             yield from get_slots(
                 hours,
                 taken_lessons,
                 timedelta(minutes=duration or self.lesson_duration),
+                force_future=True,
             )
 
         for lesson in existing_lessons.filter_by(student_id=None).all():
@@ -91,6 +87,7 @@ class Teacher(SurrogatePK, LessonCreator):
 
     @hybrid_method
     def filter_work_days(self, args: werkzeug.datastructures.MultiDict):
+        args = args.copy()
         if "on_date" not in args:
             args["on_date"] = None
 
