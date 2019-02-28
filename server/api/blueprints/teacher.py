@@ -57,7 +57,8 @@ def new_work_day():
     if not isinstance(day, int):
         day = getattr(Day, day, 1)
     date_input = data.get("on_date")
-    date = datetime.strptime(date_input, "%Y-%m-%d")
+    if date_input:
+        date_input = datetime.strptime(date_input, "%Y-%m-%d")
     from_hour = max(min(data.get("from_hour"), 24), 0)
     to_hour = max(min(data.get("to_hour"), 24), 0)
     from_minutes = max(min(data.get("from_minutes"), 60), 0)
@@ -72,7 +73,7 @@ def new_work_day():
         from_minutes=from_minutes,
         to_hour=to_hour,
         to_minutes=to_minutes,
-        on_date=date,
+        on_date=date_input,
     )
     current_user.teacher.work_days.append(day)
     day.save()
