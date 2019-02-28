@@ -314,7 +314,7 @@ def test_payments(auth, teacher, student, requester):
         teacher=teacher,
         student=student,
         amount=100_000,
-        created_at=datetime.now() + timedelta(days=32),
+        created_at=datetime.now().replace(month=datetime.now().month + 1),
     )
     payments = []
     for x in range(4):
@@ -340,6 +340,7 @@ def test_payments(auth, teacher, student, requester):
     resp = requester.get(
         f"/lessons/payments?created_at=ge:{start_next_month}&created_at=lt:{end_next_month}"
     )
+    print(resp.json["data"])
     assert resp.json["data"][0]["amount"] == 100_000
     resp = requester.get(
         f"/lessons/payments?created_at=ge:{start_of_month}&created_at=lt:{start_of_month}"
