@@ -82,11 +82,11 @@ def get_slots(
         max(min(v, maximum), minimum)
         for v in sorted([minimum] + appointments + [maximum])
     ]
+
     for start, end in ((slots[i][1], slots[i + 1][0]) for i in range(len(slots) - 1)):
         while start + duration <= end:
-            if start < datetime.utcnow() and force_future:
-                continue
-            available_lessons.append((start, start + duration))
+            if not force_future or (start >= datetime.utcnow()):
+                available_lessons.append((start, start + duration))
             start += duration
 
     return available_lessons
