@@ -8,7 +8,7 @@ from server.consts import DATE_FORMAT, WORKDAY_DATE_FORMAT
 
 
 def test_work_days(teacher, auth, requester):
-    date = datetime.now() + timedelta(hours=10)
+    date = datetime.utcnow() + timedelta(hours=10)
     first_kwargs_hour = 13
     kwargs = {
         "teacher": teacher,

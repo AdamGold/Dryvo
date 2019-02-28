@@ -48,7 +48,7 @@ def get_lesson_data(data: dict, user: User) -> dict:
     date = data.get("date")
     if date:
         date = datetime.strptime(date, DATE_FORMAT)
-        if date < datetime.now():
+        if date < datetime.utcnow():
             raise RouteError("Date is not valid.")
     if user.student:
         duration = user.student.teacher.lesson_duration

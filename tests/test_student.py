@@ -40,7 +40,7 @@ def test_commons(teacher, student, meetup, dropoff):
             student=student,
             creator=teacher.user,
             duration=40,
-            date=datetime.now(),
+            date=datetime.utcnow(),
             meetup_place=meetup,
             dropoff_place=dropoff,
         )
@@ -57,7 +57,7 @@ def test_commons(teacher, student, meetup, dropoff):
         student=student,
         creator=teacher.user,
         duration=40,
-        date=datetime.now(),
+        date=datetime.utcnow(),
         meetup_place=second_meetup,
         dropoff_place=second_dropoff,
     )
@@ -69,7 +69,7 @@ def test_topics(auth, requester, teacher, student, topic):
     """create lesson with topic in progress and make sure
     the response from topics include it in progress"""
     auth.login(email=teacher.user.email)
-    date = ((datetime.now() + timedelta(days=1)).replace(hour=13, minute=00)).strftime(
+    date = ((datetime.utcnow() + timedelta(days=1)).replace(hour=13, minute=00)).strftime(
         DATE_FORMAT
     )
     resp = new_lesson(requester, date, student)
@@ -82,7 +82,7 @@ def test_topics(auth, requester, teacher, student, topic):
 
 def test_new_lesson_topics(auth, requester, student, topic, teacher):
     auth.login(email=teacher.user.email)
-    date = ((datetime.now() + timedelta(days=1)).replace(hour=13, minute=00)).strftime(
+    date = ((datetime.utcnow() + timedelta(days=1)).replace(hour=13, minute=00)).strftime(
         DATE_FORMAT
     )
     resp = new_lesson(requester, date, student)
@@ -96,7 +96,7 @@ def test_new_lesson_topics_with_finished_topic(
     auth, requester, student, topic, teacher
 ):
     auth.login(email=teacher.user.email)
-    date = ((datetime.now() + timedelta(days=1)).replace(hour=13, minute=00)).strftime(
+    date = ((datetime.utcnow() + timedelta(days=1)).replace(hour=13, minute=00)).strftime(
         DATE_FORMAT
     )
     resp = new_lesson(requester, date, student)
@@ -115,7 +115,7 @@ def test_new_lesson_number(teacher, student, meetup, dropoff):
         student=student,
         creator=teacher.user,
         duration=40,
-        date=datetime.now(),
+        date=datetime.utcnow(),
         meetup_place=meetup,
         dropoff_place=dropoff,
     )
@@ -140,7 +140,7 @@ def test_filter_topics(teacher, student, meetup, dropoff, topic, lesson):
         student=student,
         creator=teacher.user,
         duration=40,
-        date=datetime.now(),
+        date=datetime.utcnow(),
         meetup_place=meetup,
         dropoff_place=dropoff,
     )
@@ -158,7 +158,7 @@ def test_lesson_topics(teacher, student, topic, meetup, dropoff):
         student=student,
         creator=teacher.user,
         duration=40,
-        date=datetime.now(),
+        date=datetime.utcnow(),
         meetup_place=meetup,
         dropoff_place=dropoff,
     )
@@ -177,7 +177,7 @@ def test_topics_in_progress(teacher, student, topic, meetup, dropoff, lesson):
         student=student,
         creator=teacher.user,
         duration=40,
-        date=datetime.now(),
+        date=datetime.utcnow(),
         meetup_place=meetup,
         dropoff_place=dropoff,
     )
@@ -193,7 +193,7 @@ def test_topics_in_progress(teacher, student, topic, meetup, dropoff, lesson):
         student=student,
         creator=teacher.user,
         duration=40,
-        date=datetime.now(),
+        date=datetime.utcnow(),
         meetup_place=meetup,
         dropoff_place=dropoff,
     )

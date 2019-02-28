@@ -77,7 +77,7 @@ def setup_db(app):
         from_hour=00,
         to_hour=23,
         to_minutes=59,
-        on_date=(datetime.now() + timedelta(days=2)).date(),
+        on_date=(datetime.utcnow() + timedelta(days=2)).date(),
     )  # 2 days from now
     Topic.create(title="topic test", min_lesson_number=1, max_lesson_number=5)
     Lesson.create(
@@ -86,7 +86,7 @@ def setup_db(app):
         # schedule to 5 days from now to it won't bother with no test
         creator=teacher.user,
         duration=40,
-        date=(datetime.now() + timedelta(days=5)),
+        date=(datetime.utcnow() + timedelta(days=5)),
         meetup_place=meetup,
         dropoff_place=dropoff,
     )

@@ -23,7 +23,7 @@ class BlacklistToken(SurrogatePK, Model):
 
     def __init__(self, token):
         self.token = token
-        self.blacklisted_on = dt.datetime.now()
+        self.blacklisted_on = dt.datetime.utcnow()
 
     def __repr__(self):
         return "<id: token: {}".format(self.token)

@@ -24,7 +24,7 @@ def test_jsonify_response(app):
 
 
 def test_get_slots():
-    from_hour = datetime.now()
+    from_hour = datetime.utcnow()
     to_hour = from_hour + timedelta(hours=1)
     duration = timedelta(minutes=30)
     taken = [(from_hour, from_hour + duration)]
@@ -41,7 +41,7 @@ def test_sort_data(teacher, student, meetup, dropoff):
                 student=student,
                 creator=student.user,
                 duration=40,
-                date=datetime.now(),
+                date=datetime.utcnow(),
                 meetup_place=meetup,
                 dropoff_place=dropoff,
             )
@@ -58,7 +58,7 @@ def test_sort_data(teacher, student, meetup, dropoff):
 
 
 def test_filter_data(teacher, student, meetup, dropoff):
-    date = datetime.now() + timedelta(days=100)
+    date = datetime.utcnow() + timedelta(days=100)
     lesson = Lesson.create(
         teacher=teacher,
         student=student,
@@ -90,7 +90,7 @@ def test_filter_data(teacher, student, meetup, dropoff):
 
 
 def test_filter_multiple_params(teacher, student, meetup, dropoff):
-    date = datetime.now() + timedelta(days=100)
+    date = datetime.utcnow() + timedelta(days=100)
     month_start = date.replace(day=1, hour=0, minute=0, second=0, microsecond=0)
     month_end = date.replace(
         month=(month_start.month + 1), day=1, hour=0, minute=0, second=0, microsecond=0
@@ -127,7 +127,7 @@ def test_filter_multiple_params(teacher, student, meetup, dropoff):
 
 def test_filter_and_sort(teacher, student, meetup, dropoff):
     """test that limit is maxed to 100, base query, custom date, non allowed filters"""
-    date = datetime.now() + timedelta(days=100)
+    date = datetime.utcnow() + timedelta(days=100)
     for x in range(101):
         Lesson.create(
             teacher_id=x,

@@ -8,7 +8,7 @@ from server.api.database.models import Lesson, Payment, Place, Student, Topic, W
 from server.consts import DATE_FORMAT
 from server.error_handling import RouteError
 
-tomorrow = datetime.now() + timedelta(days=1)
+tomorrow = datetime.utcnow() + timedelta(days=1)
 
 
 def test_lessons(auth, teacher, student, meetup, dropoff, requester):
@@ -64,7 +64,7 @@ def test_deleted_lessons(auth, teacher, student, meetup, dropoff, requester):
 
 def test_student_new_lesson(auth, teacher, student, requester, topic):
     auth.login(email=student.user.email)
-    date = (datetime.now().replace(hour=22, minute=40)).strftime(DATE_FORMAT)
+    date = (datetime.utcnow().replace(hour=22, minute=40)).strftime(DATE_FORMAT)
     kwargs = {
         "teacher_id": teacher.id,
         "day": 1,
@@ -72,7 +72,7 @@ def test_student_new_lesson(auth, teacher, student, requester, topic):
         "from_minutes": 0,
         "to_hour": 23,
         "to_minutes": 59,
-        "on_date": datetime.now().date(),
+        "on_date": datetime.utcnow().date(),
     }
     WorkDay.create(**kwargs)
     logger.debug(f"added work day for {teacher}")
@@ -184,7 +184,7 @@ def test_delete_lesson(auth, teacher, student, meetup, dropoff, requester):
         student=student,
         creator=student.user,
         duration=40,
-        date=datetime.now(),
+        date=datetime.utcnow(),
         meetup_place=meetup,
         dropoff_place=dropoff,
     )
@@ -200,7 +200,7 @@ def test_approve_lesson(auth, teacher, student, meetup, dropoff, requester):
         student=student,
         creator=teacher.user,
         duration=40,
-        date=datetime.now(),
+        date=datetime.utcnow(),
         meetup_place=meetup,
         dropoff_place=dropoff,
     )
@@ -220,7 +220,7 @@ def test_user_edit_lesson(app, auth, student, teacher, meetup, dropoff, requeste
         student=student,
         creator=student.user,
         duration=40,
-        date=datetime.now(),
+        date=datetime.utcnow(),
         meetup_place=meetup,
         dropoff_place=dropoff,
     )
@@ -245,7 +245,7 @@ def test_handle_places(student: Student, meetup: Place):
     ("data_dict", "error"),
     (
         (
-            {"date": (datetime.now() - timedelta(minutes=2)).strftime(DATE_FORMAT)},
+            {"date": (datetime.utcnow() - timedelta(minutes=2)).strftime(DATE_FORMAT)},
             "Date is not valid.",
         ),
         ({"date": (tomorrow.strftime(DATE_FORMAT))}, "This hour is not available."),
@@ -262,7 +262,7 @@ def test_student_invalid_get_lesson_data(student, data_dict: dict, error: str):
     (
         (
             {
-                "date": (datetime.now() + timedelta(days=2))
+                "date": (datetime.utcnow() + timedelta(days=2))
                 .replace(hour=10, minute=0)
                 .strftime(DATE_FORMAT),
                 "student_id": 0,
@@ -294,7 +294,7 @@ def test_lesson_number(teacher, student, meetup, dropoff):
                 student=student,
                 creator=student.user,
                 duration=40,
-                date=datetime.now(),
+                date=datetime.utcnow(),
                 meetup_place=meetup,
                 dropoff_place=dropoff,
             )
@@ -314,7 +314,7 @@ def test_payments(auth, teacher, student, requester):
         teacher=teacher,
         student=student,
         amount=100_000,
-        created_at=datetime.now().replace(month=datetime.now().month + 1),
+        created_at=datetime.utcnow().replace(month=datetime.utcnow().month + 1),
     )
     payments = []
     for x in range(4):
