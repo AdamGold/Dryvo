@@ -33,6 +33,10 @@ class Student(SurrogatePK, LessonCreator):
     __tablename__ = "students"
     teacher_id = reference_col("teachers", nullable=False)
     teacher = relationship("Teacher", backref=backref("students", lazy="dynamic"))
+    is_approved = Column(db.Boolean, default=False, nullable=False)
+    is_active = Column(db.Boolean, default=True, nullable=False)
+    creator_id = reference_col("users", nullable=False)
+    creator = relationship("User")
 
     default_sort_column = "id"
     ALLOWED_FILTERS = []
