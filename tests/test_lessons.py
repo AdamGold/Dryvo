@@ -64,7 +64,7 @@ def test_deleted_lessons(auth, teacher, student, meetup, dropoff, requester):
 
 def test_student_new_lesson(auth, teacher, student, requester, topic):
     auth.login(email=student.user.email)
-    date = (datetime.utcnow().replace(hour=22, minute=40)).strftime(DATE_FORMAT)
+    date = (tomorrow.replace(hour=22, minute=40)).strftime(DATE_FORMAT)
     kwargs = {
         "teacher_id": teacher.id,
         "day": 1,
@@ -72,7 +72,7 @@ def test_student_new_lesson(auth, teacher, student, requester, topic):
         "from_minutes": 0,
         "to_hour": 23,
         "to_minutes": 59,
-        "on_date": datetime.utcnow().date(),
+        "on_date": tomorrow.date(),
     }
     WorkDay.create(**kwargs)
     logger.debug(f"added work day for {teacher}")

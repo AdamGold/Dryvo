@@ -69,8 +69,13 @@ class Teacher(SurrogatePK, LessonCreator):
         ]
         work_hours.sort(key=lambda x: x.from_hour)  # sort from early to late
         for day in work_hours:
+            from_date = requested_date.replace(
+                hour=day.from_hour, minute=day.from_minutes
+            )
+            if datetime.utcnow() > from_date:
+                continue
             hours = (
-                requested_date.replace(hour=day.from_hour, minute=day.from_minutes),
+                from_date,
                 requested_date.replace(hour=day.to_hour, minute=day.to_minutes),
             )
             yield from get_slots(
@@ -80,6 +85,8 @@ class Teacher(SurrogatePK, LessonCreator):
             )
 
         for lesson in existing_lessons.filter_by(student_id=None).all():
+            if datetime.utcnow() > lesson.date:
+                continue
             yield (lesson.date, lesson.date + timedelta(minutes=lesson.duration))
 
     @hybrid_method

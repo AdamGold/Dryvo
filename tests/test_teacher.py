@@ -82,7 +82,8 @@ def test_delete_work_day(teacher, auth, requester):
 
 def test_available_hours_route(teacher, student, meetup, dropoff, auth, requester):
     auth.login(email=teacher.user.email)
-    date = "2018-11-27"
+    tomorrow = datetime.utcnow() + timedelta(days=1)
+    date = tomorrow.strftime(WORKDAY_DATE_FORMAT)
     time_and_date = date + "T13:30:20.123123Z"
     data = {
         "day": "tuesday",
@@ -113,20 +114,20 @@ def test_available_hours_route(teacher, student, meetup, dropoff, auth, requeste
 
 
 def test_teacher_available_hours(teacher, student, requester):
-    date = "2018-11-27"
+    tomorrow = datetime.utcnow() + timedelta(days=1)
+    date = tomorrow.strftime(WORKDAY_DATE_FORMAT)
     time_and_date = date + "T13:30:20.123123Z"
     kwargs = {
         "teacher_id": teacher.id,
         "day": 1,
-        "from_hour": 13,
-        "from_minutes": 30,
-        "to_hour": 17,
-        "to_minutes": 0,
-        "on_date": datetime(year=2018, month=11, day=27),
+        "from_hour": tomorrow.hour,
+        "from_minutes": tomorrow.minute,
+        "to_hour": 23,
+        "to_minutes": 59,
+        "on_date": tomorrow,
     }
     WorkDay.create(**kwargs)
-    req_day = datetime.strptime(time_and_date, DATE_FORMAT)
-    assert next(teacher.available_hours(req_day))[0] == req_day
+    assert next(teacher.available_hours(tomorrow))[0] == tomorrow
 
 
 def test_add_payment(auth, requester, teacher, student):
