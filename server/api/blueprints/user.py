@@ -1,10 +1,11 @@
 import flask
 from flask import Blueprint
 from flask_login import current_user, login_required
+from sqlalchemy import and_
 
 from server.api.blueprints import teacher_required
 from server.api.database.models import Student, Teacher, User
-from server.api.utils import jsonify_response
+from server.api.utils import jsonify_response, paginate
 from server.error_handling import RouteError
 
 user_routes = Blueprint("user", __name__, url_prefix="/user")
@@ -29,9 +30,13 @@ def me():
 @user_routes.route("/search", methods=["GET"])
 @jsonify_response
 @teacher_required
+@paginate
 def search():
     try:
-        return User.filter_and_sort(flask.request.args, with_pagination=True)
+        query = User.query.filter(and_(User.teacher == None, User.student == None))
+        return User.filter_and_sort(
+            flask.request.args, query=query, with_pagination=True
+        )
     except ValueError:
         raise RouteError("Wrong parameters passed.")
 
