@@ -8,7 +8,7 @@ def test_make_teacher(user, admin, auth, requester):
         "/user/make_teacher",
         json={"user_id": user.id, "price": 100, "phone": "052222222"},
     )
-    assert resp.json.get("message") == "Teacher created successfully."
+    assert resp.json["data"]["user"]["id"] == user.id
 
 
 def test_not_admin_make_teacher(user, auth, requester):
@@ -41,19 +41,15 @@ def test_invalid_make_teacher(
 
 def test_make_student(admin, user, auth, requester):
     auth.login(admin.email, "test")
-    resp = requester.post(
-        "/user/make_student", json={"user_id": user.id, "teacher_id": 1}
-    )
-    assert resp.json.get("message") == "Student created successfully."
+    resp = requester.get(f"/user/make_student?user_id={user.id}&teacher_id=1")
+    assert resp.json["data"]["my_teacher"]["teacher_id"] == 1
 
 
 def test_make_student_invalid_teacher(admin, user, auth, requester):
     auth.login(admin.email, "test")
-    resp = requester.post(
-        "/user/make_student", json={"user_id": user.id, "teacher_id": 3}
-    )
+    resp = requester.get(f"/user/make_student?user_id={user.id}&teacher_id=3")
     assert resp.status_code == 400
-    assert resp.json.get("message") == "Teacher not found."
+    assert resp.json.get("message") == "Teacher was not found."
 
 
 def test_make_student_already_assigned(
@@ -61,14 +57,14 @@ def test_make_student_already_assigned(
 ):
     with app.app_context():
         auth.login(admin.email, "test")
-        resp = requester.post(
-            "/user/make_student", json={"user_id": student.user_id, "teacher_id": 1}
+        resp = requester.get(
+            f"/user/make_student?user_id={student.user_id}&teacher_id=1"
         )
-        assert resp.json.get("message") == "Already student or teacher."
-        resp = requester.post(
-            "/user/make_student", json={"user_id": teacher.user_id, "teacher_id": 1}
+        assert "already a student" in resp.json.get("message")
+        resp = requester.get(
+            f"/user/make_student?user_id={teacher.user_id}&teacher_id=1"
         )
-        assert resp.json.get("message") == "Already student or teacher."
+        assert "already a student" in resp.json.get("message")
 
 
 def test_register_token(auth, requester):

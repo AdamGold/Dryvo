@@ -69,9 +69,9 @@ def test_topics(auth, requester, teacher, student, topic):
     """create lesson with topic in progress and make sure
     the response from topics include it in progress"""
     auth.login(email=teacher.user.email)
-    date = ((datetime.utcnow() + timedelta(days=1)).replace(hour=13, minute=00)).strftime(
-        DATE_FORMAT
-    )
+    date = (
+        (datetime.utcnow() + timedelta(days=1)).replace(hour=13, minute=00)
+    ).strftime(DATE_FORMAT)
     resp = new_lesson(requester, date, student)
     lesson_id = resp.json["data"]["id"]
     new_topics(requester, {"progress": [topic.id], "finished": []}, lesson_id)
@@ -82,9 +82,9 @@ def test_topics(auth, requester, teacher, student, topic):
 
 def test_new_lesson_topics(auth, requester, student, topic, teacher):
     auth.login(email=teacher.user.email)
-    date = ((datetime.utcnow() + timedelta(days=1)).replace(hour=13, minute=00)).strftime(
-        DATE_FORMAT
-    )
+    date = (
+        (datetime.utcnow() + timedelta(days=1)).replace(hour=13, minute=00)
+    ).strftime(DATE_FORMAT)
     resp = new_lesson(requester, date, student)
     lesson_id = resp.json["data"]["id"]
     new_topics(requester, {"progress": [topic.id], "finished": []}, lesson_id)
@@ -96,9 +96,9 @@ def test_new_lesson_topics_with_finished_topic(
     auth, requester, student, topic, teacher
 ):
     auth.login(email=teacher.user.email)
-    date = ((datetime.utcnow() + timedelta(days=1)).replace(hour=13, minute=00)).strftime(
-        DATE_FORMAT
-    )
+    date = (
+        (datetime.utcnow() + timedelta(days=1)).replace(hour=13, minute=00)
+    ).strftime(DATE_FORMAT)
     resp = new_lesson(requester, date, student)
     lesson_id = resp.json["data"]["id"]
     new_topics(requester, {"finished": [topic.id]}, lesson_id)
@@ -224,4 +224,20 @@ def test_total_paid(teacher, student):
 def test_total_lessons_price(teacher, student, lesson):
     st = Student.query.filter(Student.total_lessons_price == teacher.price).first()
     assert st == student
+
+
+def test_approve(auth, requester, student, teacher):
+    student_email = student.user.email
+    auth.login(email=teacher.user.email)
+    resp = requester.get(f"/student/{student.id}/approve")
+    assert "Not authorized." == resp.json["message"]
+    auth.login(email=student_email)
+    resp = requester.get(f"/student/{student.id}/approve")
+    assert resp.json["data"]["is_approved"]
+
+
+def test_disactivate(auth, requester, student, teacher):
+    auth.login(email=teacher.user.email)
+    resp = requester.get(f"/student/{student.id}/disactivate")
+    assert not resp.json["data"]["is_active"]
 

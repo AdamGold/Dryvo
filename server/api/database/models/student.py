@@ -2,10 +2,11 @@ import itertools
 from datetime import datetime
 from typing import List
 
+from flask_login import current_user
 from sqlalchemy import and_, func, select
-from sqlalchemy.sql.functions import coalesce
 from sqlalchemy.ext.hybrid import hybrid_method, hybrid_property
 from sqlalchemy.orm import backref
+from sqlalchemy.sql.functions import coalesce
 
 from server.api.database import db
 from server.api.database.mixins import (
@@ -17,13 +18,13 @@ from server.api.database.mixins import (
 )
 from server.api.database.models import (
     Lesson,
+    LessonCreator,
     LessonTopic,
+    Payment,
     Place,
     PlaceType,
-    Topic,
-    LessonCreator,
-    Payment,
     Teacher,
+    Topic,
 )
 
 
@@ -36,13 +37,15 @@ class Student(SurrogatePK, LessonCreator):
     is_approved = Column(db.Boolean, default=False, nullable=False)
     is_active = Column(db.Boolean, default=True, nullable=False)
     creator_id = reference_col("users", nullable=False)
-    creator = relationship("User")
+    creator = relationship("User", foreign_keys=[creator_id])
 
     default_sort_column = "id"
     ALLOWED_FILTERS = []
 
     def __init__(self, **kwargs):
         """Create instance."""
+        if current_user and not kwargs.get("creator") and current_user.is_authenticated:
+            self.creator = current_user
         db.Model.__init__(self, **kwargs)
 
     def _lesson_topics(self, is_finished: bool):
@@ -159,6 +162,8 @@ class Student(SurrogatePK, LessonCreator):
             "balance": self.balance,
             "new_lesson_number": self.new_lesson_number,
             "user": self.user.to_dict(),
+            "is_approved": self.is_approved,
+            "is_active": self.is_active,
         }
 
     def __repr__(self):

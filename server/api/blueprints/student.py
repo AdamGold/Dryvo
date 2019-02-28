@@ -80,7 +80,7 @@ def approve(student_id):
         # only allow approving for the user himself or
         # the teacher that is requested. don't allow for the requester to approve.
         student.update(is_approved=True)
-        return {"data": student}
+        return {"data": student.to_dict()}
 
     raise RouteError("Not authorized.", 401)
 
@@ -97,4 +97,4 @@ def disactivate(student_id):
         raise RouteError("Not authorized.", 401)
 
     student.update(is_active=False)
-    return {"data": student}
+    return {"data": student.to_dict()}

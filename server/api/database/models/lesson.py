@@ -52,7 +52,7 @@ class Lesson(SurrogatePK, Model):
 
     def __init__(self, **kwargs):
         """Create instance."""
-        if not kwargs.get("creator") and current_user.is_authenticated:
+        if current_user and not kwargs.get("creator") and current_user.is_authenticated:
             self.creator = current_user
         self.lesson_number = (
             kwargs["student"].new_lesson_number if kwargs.get("student") else None

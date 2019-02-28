@@ -51,7 +51,9 @@ def make_student():
         user_id = current_user.id
     user = User.get_by_id(user_id)
 
-    if user.teacher or user.student or not user:
+    if not user:
+        raise RouteError("User was not found.", 401)
+    if user.teacher or user.student:
         raise RouteError(
             "User was not found or the user is already a student or a teacher."
         )

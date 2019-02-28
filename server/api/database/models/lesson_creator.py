@@ -26,6 +26,7 @@ class LessonCreator(Model):
                 self.__tablename__[:-1], uselist=False
             ),  # slice the `s` from table name
             uselist=False,
+            foreign_keys=[self.user_id],
         )
 
     __abstract__ = True

@@ -164,7 +164,7 @@ def test_handle_extra_filters(teacher):
     new_user = User.create(
         email="a@a.c", password="huh", name="absolutely", area="nope"
     )
-    student = Student.create(teacher=teacher, user=new_user)
+    student = Student.create(teacher=teacher, creator=teacher.user, user=new_user)
 
     def custom_filter(model, key, value):
         return getattr(model, key) == value
