@@ -46,10 +46,7 @@ def search():
 @login_required
 def make_student():
     data = flask.request.args
-    user_id = data.get("user_id")
-    if current_user.student:
-        user_id = current_user.id
-    user = User.get_by_id(user_id)
+    user = current_user if current_user.student else User.get_by_id(data.get("user_id"))
 
     if not user:
         raise RouteError("User was not found.", 401)

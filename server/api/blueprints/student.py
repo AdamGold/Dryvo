@@ -73,8 +73,8 @@ def approve(student_id):
         raise RouteError("Student does not exist.", 404)
 
     if current_user != student.creator and (
-        current_user == student.teacher
-        or current_user == student.user
+        current_user.teacher == student.teacher
+        or current_user.student == student
         or current_user.is_admin
     ):
         # only allow approving for the user himself or
