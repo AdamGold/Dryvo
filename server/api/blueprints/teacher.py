@@ -38,9 +38,7 @@ def work_days():
         return {
             "data": [
                 day.to_dict()
-                for day in current_user.teacher.filter_work_days(
-                    flask.request.args.copy()
-                )
+                for day in current_user.teacher.filter_work_days(flask.request.args)
             ]
         }
     except ValueError:
@@ -157,7 +155,7 @@ def students():
 
     try:
         query = current_user.teacher.students
-        args = flask.request.args.copy()
+        args = flask.request.args
         extra_filters = {User: {"name": custom_filter, "area": custom_filter}}
         return Student.filter_and_sort(
             args, query, extra_filters=extra_filters, with_pagination=True

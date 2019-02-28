@@ -180,6 +180,7 @@ class Model(CRUDMixin, db.Model):
         -------
         ?limit=20&page=2&student=1&date=lt:2019-01-20T13:20Z&lesson_number=lte:5
         """
+        args = args.copy()
         query = query or cls.query
         query = (
             cls._handle_extra_filters(query, args, extra_filters)

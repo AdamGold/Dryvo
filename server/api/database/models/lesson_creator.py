@@ -22,7 +22,9 @@ class LessonCreator(Model):
     def user(self):
         return relationship(
             "User",
-            backref=backref(self.__tablename__[:-1], uselist=False),
+            backref=backref(
+                self.__tablename__[:-1], uselist=False
+            ),  # slice the `s` from table name
             uselist=False,
         )
 
