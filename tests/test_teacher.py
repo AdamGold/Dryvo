@@ -155,7 +155,7 @@ def test_students(auth, teacher, requester):
     new_user = User.create(
         email="a@a.c", password="huh", name="absolutely", area="nope"
     )
-    new_student = Student.create(teacher=teacher, user=new_user)
+    new_student = Student.create(teacher=teacher, creator=teacher.user, user=new_user)
     id_ = new_student.id
     auth.login(email=teacher.user.email)
     resp = requester.get("/teacher/students?order_by=balance desc")

@@ -41,30 +41,28 @@ def search():
         raise RouteError("Wrong parameters passed.")
 
 
-@user_routes.route("/make_student", methods=["POST"])
+@user_routes.route("/make_student", methods=["GET"])
 @jsonify_response
 @login_required
 def make_student():
-    data = flask.request.get_json()
-    user_id = data.get("user_id")
-    if user_id == 0:
-        user = current_user
-    elif current_user.is_admin:
-        user = User.get_by_id(user_id)
-    else:
-        raise RouteError("Not authorized.", 401)
+    data = flask.request.args
+    user = current_user if current_user.student else User.get_by_id(data.get("user_id"))
 
+    if not user:
+        raise RouteError("User was not found.", 401)
     if user.teacher or user.student:
-        raise RouteError("Already student or teacher.")
+        raise RouteError(
+            "User was not found or the user is already a student or a teacher."
+        )
 
-    teacher_id = data.get("teacher_id")
-    teacher = Teacher.get_by_id(teacher_id)
+    teacher = current_user.teacher or Teacher.get_by_id(data.get("teacher_id"))
     if not teacher:
-        raise RouteError("Teacher not found.")
+        raise RouteError("Teacher was not found.")
 
-    student = Student(user_id=user.id, teacher_id=teacher_id)
-    student.save()
-    return {"message": "Student created successfully."}, 201
+    student = Student.create(
+        user_id=user.id, teacher_id=teacher.id, creator=current_user
+    )
+    return {"data": student.to_dict()}, 201
 
 
 @user_routes.route("/make_teacher", methods=["POST"])
@@ -88,14 +86,13 @@ def make_teacher():
     if price <= 0:
         raise RouteError("Price must be above 0.")
 
-    teacher = Teacher(
+    teacher = Teacher.create(
         user_id=user_id,
         price=price,
         phone=phone,
         lesson_duration=data.get("lesson_duration"),
     )
-    teacher.save()
-    return {"message": "Teacher created successfully."}, 201
+    return {"data": teacher.to_dict()}, 201
 
 
 @user_routes.route("/register_firebase_token", methods=["POST"])
