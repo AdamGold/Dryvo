@@ -236,8 +236,8 @@ def test_approve(auth, requester, student, teacher):
     assert resp.json["data"]["is_approved"]
 
 
-def test_disactivate(auth, requester, student, teacher):
+def test_deactivate(auth, requester, student, teacher):
     auth.login(email=teacher.user.email)
-    resp = requester.get(f"/student/{student.id}/disactivate")
+    resp = requester.get(f"/student/{student.id}/deactivate")
     assert not resp.json["data"]["is_active"]
 

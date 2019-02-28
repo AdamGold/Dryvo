@@ -85,10 +85,10 @@ def approve(student_id):
     raise RouteError("Not authorized.", 401)
 
 
-@student_routes.route("/<int:student_id>/disactivate", methods=["GET"])
+@student_routes.route("/<int:student_id>/deactivate", methods=["GET"])
 @jsonify_response
 @teacher_required
-def disactivate(student_id):
+def deactivate(student_id):
     student = Student.get_by_id(student_id)
     if not student:
         raise RouteError("Student does not exist.", 404)
