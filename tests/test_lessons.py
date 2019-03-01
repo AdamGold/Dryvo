@@ -303,18 +303,14 @@ def test_payments(auth, teacher, student, requester):
     assert not resp.json["data"]
 
 
-def test_lesson_topics(auth, requester, student, topic, teacher):
+def test_lesson_topics(auth, requester, student, meetup, dropoff, topic, teacher):
     """test for:
     1. lesson without topics
     2. lesson with topics
     3. lesson with finished topics"""
-
+    lesson = create_lesson(teacher, student, meetup, dropoff, datetime.utcnow())
+    id_ = lesson.id
     auth.login(email=teacher.user.email)
-    date = (
-        (datetime.utcnow() + timedelta(days=1)).replace(hour=13, minute=00)
-    ).strftime(DATE_FORMAT)
-    resp = new_lesson(requester, date, student)
-    lesson_id = resp.json["data"]["id"]
-    new_topics(requester, {"progress": [topic.id], "finished": []}, lesson_id)
-    resp = requester.get(f"/student/{student.id}/new_lesson_topics")
+    resp = requester.get(f"/lessons/{id_}/topics")
+    print(resp.json)
     assert topic.id == resp.json["data"][0]["id"]

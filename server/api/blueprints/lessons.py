@@ -240,3 +240,26 @@ def payments():
         return user.filter_payments(flask.request.args)
     except ValueError:
         raise RouteError("Wrong parameters passed.")
+
+
+@lessons_routes.route("/<int:lesson_id>/topics", methods=["GET"])
+@jsonify_response
+@login_required
+def topics(lesson_id: int):
+    """return all available topics of a lesson -
+    1. topics that fit its number
+    2. topics in progress of the lesson's student
+    3. topics that were picked in this lesson"""
+    lesson = Lesson.query.filter_by(id=lesson_id).first()
+    if not lesson or not lesson.student:
+        raise RouteError("Lesson does not exist or not assigned.", 404)
+
+    topics_for_lesson = set(Topic.for_lesson(lesson.lesson_number)) - set(
+        lesson.student.topics(is_finished=True)
+    )
+    in_progress_topics = lesson.student.topics(is_finished=False)
+    non_duplicates = set(lesson.topics).union(
+        topics_for_lesson.union(set(in_progress_topics))
+    )
+    return {"data": [topic.to_dict() for topic in non_duplicates]}
+
