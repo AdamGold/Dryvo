@@ -24,11 +24,9 @@ def topics(student_id: int):
     student = Student.get_by_id(student_id)
     if not student:
         raise RouteError("Student does not exist.", 404)
-    finished_topics = [
-        topic.to_dict() for topic in student.filter_topics(is_finished=True)
-    ]
+    finished_topics = [topic.to_dict() for topic in student.topics(is_finished=True)]
     in_progress_topics = [
-        topic.to_dict() for topic in student.filter_topics(is_finished=False)
+        topic.to_dict() for topic in student.topics(is_finished=False)
     ]
     new_topics = [
         topic.to_dict()
@@ -43,25 +41,6 @@ def topics(student_id: int):
             "new": new_topics,
         }
     }
-
-
-@student_routes.route("/<int:student_id>/new_lesson_topics", methods=["GET"])
-@jsonify_response
-@teacher_required
-def new_lesson_topics(student_id: int):
-    """return possible topics for next lesson (without duplicates):
-    { Lesson.topics_for_lesson + student.in progress topics }"""
-    student = Student.get_by_id(student_id)
-    if not student:
-        raise RouteError("Student does not exist.", 404)
-    topics_for_lesson = set(Lesson.topics_for_lesson(student.new_lesson_number)) - set(
-        student.filter_topics(is_finished=True)
-    )
-    in_progress_topics = student.filter_topics(is_finished=False)
-    non_duplicates = list(topics_for_lesson) + list(
-        set(in_progress_topics) - topics_for_lesson
-    )
-    return {"data": [topic.to_dict() for topic in non_duplicates]}
 
 
 @student_routes.route("/<int:student_id>/approve", methods=["GET"])

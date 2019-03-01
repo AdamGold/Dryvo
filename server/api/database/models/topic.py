@@ -28,5 +28,11 @@ class Topic(SurrogatePK, Model):
         """Create instance."""
         db.Model.__init__(self, **kwargs)
 
+    @staticmethod
+    def for_lesson(num: int):
+        return Topic.query.filter(
+            and_(Topic.min_lesson_number <= num, Topic.max_lesson_number >= num)
+        ).all()
+
     def to_dict(self) -> dict:
         return {"id": self.id, "title": self.title, "created_at": self.created_at}

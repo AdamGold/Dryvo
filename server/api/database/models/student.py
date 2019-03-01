@@ -73,7 +73,7 @@ class Student(SurrogatePK, LessonCreator):
         )
         return list(set(in_progress_topics))
 
-    def filter_topics(self, is_finished: bool) -> List[LessonTopic]:
+    def topics(self, is_finished: bool) -> List[LessonTopic]:
         """get topics for student. if status is finished,
         get all finished lesson_topics. if in progress, get lesson_topics
         that do not have finished status - get latest row of each one.
