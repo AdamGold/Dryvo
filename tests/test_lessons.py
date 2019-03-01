@@ -11,26 +11,23 @@ from server.error_handling import RouteError
 tomorrow = datetime.utcnow() + timedelta(days=1)
 
 
+def create_lesson(teacher, student, meetup, dropoff, date, duration=40, deleted=False):
+    return Lesson.create(
+        teacher=teacher,
+        student=student,
+        creator=student.user,
+        duration=duration,
+        date=date,
+        meetup_place=meetup,
+        dropoff_place=dropoff,
+        deleted=deleted,
+    )
+
+
 def test_lessons(auth, teacher, student, meetup, dropoff, requester):
-    Lesson.create(
-        teacher=teacher,
-        student=student,
-        creator=student.user,
-        duration=40,
-        date=datetime(year=2018, month=11, day=27, hour=13, minute=00),
-        meetup_place=meetup,
-        dropoff_place=dropoff,
-    )
-    Lesson.create(
-        teacher=teacher,
-        student=student,
-        creator=student.user,
-        duration=40,
-        date=datetime(year=2018, month=11, day=27, hour=13, minute=00),
-        meetup_place=meetup,
-        dropoff_place=dropoff,
-        deleted=True,
-    )
+    date = datetime(year=2018, month=11, day=27, hour=13, minute=00)
+    create_lesson(teacher, student, meetup, dropoff, date)
+    create_lesson(teacher, student, meetup, dropoff, date)
     auth.login(email=student.user.email)
     resp1 = requester.get("/lessons/?limit=1&page=1")  # no filters
     assert isinstance(resp1.json["data"], list)
@@ -47,16 +44,7 @@ def test_lessons(auth, teacher, student, meetup, dropoff, requester):
 
 def test_deleted_lessons(auth, teacher, student, meetup, dropoff, requester):
     date = datetime(year=2018, month=11, day=27, hour=13, minute=00)
-    Lesson.create(
-        teacher=teacher,
-        student=student,
-        creator=student.user,
-        duration=80,
-        date=date,
-        meetup_place=meetup,
-        dropoff_place=dropoff,
-        deleted=True,
-    )
+    create_lesson(teacher, student, meetup, dropoff, date, deleted)
     auth.login(email=teacher.user.email)
     resp = requester.get("/lessons/?deleted=true")
     assert resp.json["data"][0]["duration"] == 80
@@ -179,15 +167,7 @@ def test_teacher_new_lesson_with_student(auth, teacher, student, requester):
 
 
 def test_delete_lesson(auth, teacher, student, meetup, dropoff, requester):
-    lesson = Lesson.create(
-        teacher=teacher,
-        student=student,
-        creator=student.user,
-        duration=40,
-        date=datetime.utcnow(),
-        meetup_place=meetup,
-        dropoff_place=dropoff,
-    )
+    lesson = create_lesson(teacher, student, meetup, dropoff, datetime.utcnow())
     id_ = lesson.id
     auth.login(email=student.user.email)
     resp = requester.delete(f"/lessons/{id_}")
@@ -195,15 +175,7 @@ def test_delete_lesson(auth, teacher, student, meetup, dropoff, requester):
 
 
 def test_approve_lesson(auth, teacher, student, meetup, dropoff, requester):
-    lesson = Lesson.create(
-        teacher=teacher,
-        student=student,
-        creator=teacher.user,
-        duration=40,
-        date=datetime.utcnow(),
-        meetup_place=meetup,
-        dropoff_place=dropoff,
-    )
+    lesson = create_lesson(teacher, student, meetup, dropoff, datetime.utcnow())
     id_ = lesson.id
     auth.login(email=teacher.user.email)
     resp = requester.get(f"/lessons/{id_}/approve")
@@ -215,15 +187,7 @@ def test_approve_lesson(auth, teacher, student, meetup, dropoff, requester):
 
 def test_user_edit_lesson(app, auth, student, teacher, meetup, dropoff, requester):
     """ test that is_approved turns false when user edits lesson"""
-    lesson = Lesson.create(
-        teacher=teacher,
-        student=student,
-        creator=student.user,
-        duration=40,
-        date=datetime.utcnow(),
-        meetup_place=meetup,
-        dropoff_place=dropoff,
-    )
+    lesson = create_lesson(teacher, student, meetup, dropoff, datetime.utcnow())
     id_ = lesson.id
     auth.login(email=student.user.email)
     resp = requester.post(f"/lessons/{id_}", json={"meetup_place": "no"})
@@ -289,15 +253,7 @@ def test_lesson_number(teacher, student, meetup, dropoff):
     lessons = []
     for _ in range(2):
         lessons.append(
-            Lesson.create(
-                teacher=teacher,
-                student=student,
-                creator=student.user,
-                duration=40,
-                date=datetime.utcnow(),
-                meetup_place=meetup,
-                dropoff_place=dropoff,
-            )
+            create_lesson(teacher, student, meetup, dropoff, datetime.utcnow())
         )
     assert lessons[1].lesson_number == student.new_lesson_number - 1
 
@@ -306,7 +262,7 @@ def test_topics_for_lesson(app):
     topic = Topic.create(
         title="not important", min_lesson_number=1, max_lesson_number=2
     )
-    assert topic in Lesson.topics_for_lesson(1)
+    assert topic in Topic.for_lesson(1)
 
 
 def test_payments(auth, teacher, student, requester):
@@ -340,10 +296,25 @@ def test_payments(auth, teacher, student, requester):
     resp = requester.get(
         f"/lessons/payments?created_at=ge:{start_next_month}&created_at=lt:{end_next_month}"
     )
-    print(resp.json["data"])
     assert resp.json["data"][0]["amount"] == 100_000
     resp = requester.get(
         f"/lessons/payments?created_at=ge:{start_of_month}&created_at=lt:{start_of_month}"
     )
     assert not resp.json["data"]
 
+
+def test_lesson_topics(auth, requester, student, topic, teacher):
+    """test for:
+    1. lesson without topics
+    2. lesson with topics
+    3. lesson with finished topics"""
+
+    auth.login(email=teacher.user.email)
+    date = (
+        (datetime.utcnow() + timedelta(days=1)).replace(hour=13, minute=00)
+    ).strftime(DATE_FORMAT)
+    resp = new_lesson(requester, date, student)
+    lesson_id = resp.json["data"]["id"]
+    new_topics(requester, {"progress": [topic.id], "finished": []}, lesson_id)
+    resp = requester.get(f"/student/{student.id}/new_lesson_topics")
+    assert topic.id == resp.json["data"][0]["id"]

@@ -63,12 +63,6 @@ class Lesson(SurrogatePK, Model):
         args = {k: v for k, v in kwargs.items() if v or isinstance(v, bool)}
         self.update(**args)
 
-    @staticmethod
-    def topics_for_lesson(num: int):
-        return Topic.query.filter(
-            and_(Topic.min_lesson_number <= num, Topic.max_lesson_number >= num)
-        ).all()
-
     def to_dict(self):
         return {
             "id": self.id,
