@@ -258,7 +258,11 @@ def topics(lesson_id: int):
         lesson.student.topics(is_finished=True)
     )
     in_progress_topics = lesson.student.topics(is_finished=False)
-    available_user_topics = topics_for_lesson.union(set(in_progress_topics))
+    available_topics = topics_for_lesson.union(set(in_progress_topics))
     finished_in_this_lesson = lesson.topics.filter_by(is_finished=True).all()
-    return {"data": available_user_topics.union(set(finished_in_this_lesson))}
+    return {
+        "data": [
+            t.to_dict() for t in available_topics.union(set(finished_in_this_lesson))
+        ]
+    }
 

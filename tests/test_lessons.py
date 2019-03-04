@@ -38,13 +38,11 @@ def test_lessons(auth, teacher, student, meetup, dropoff, requester):
     assert not resp.json["data"]
     resp = requester.get("/lessons/?date=2018-20-01T20")
     assert "wrong parameters" in resp.json["message"].lower()
-    resp = requester.get("/lessons/?deleted=true")
-    assert len(resp.json["data"]) == 2
 
 
 def test_deleted_lessons(auth, teacher, student, meetup, dropoff, requester):
     date = datetime(year=2018, month=11, day=27, hour=13, minute=00)
-    create_lesson(teacher, student, meetup, dropoff, date, deleted)
+    create_lesson(teacher, student, meetup, dropoff, date, deleted=True)
     auth.login(email=teacher.user.email)
     resp = requester.get("/lessons/?deleted=true")
     assert resp.json["data"][0]["duration"] == 80
@@ -306,11 +304,28 @@ def test_payments(auth, teacher, student, requester):
 def test_lesson_topics(auth, requester, student, meetup, dropoff, topic, teacher):
     """test for:
     1. lesson without topics
-    2. lesson with topics
-    3. lesson with finished topics"""
+    2. lesson with finished topics
+    3. lesson without topics, but user with topics"""
     lesson = create_lesson(teacher, student, meetup, dropoff, datetime.utcnow())
-    id_ = lesson.id
+    another_lesson = create_lesson(teacher, student, meetup, dropoff, datetime.utcnow())
+    another_topic = Topic.create(
+        title="test3", min_lesson_number=20, max_lesson_number=22
+    )
+    (lesson_id, topic_id, another_topic_id, another_lesson_id) = (
+        lesson.id,
+        topic.id,
+        another_topic.id,
+        another_lesson.id,
+    )
     auth.login(email=teacher.user.email)
-    resp = requester.get(f"/lessons/{id_}/topics")
-    print(resp.json)
-    assert topic.id == resp.json["data"][0]["id"]
+    resp = requester.get(f"/lessons/{lesson_id}/topics")
+    assert resp.json["data"][0]["id"] == topic_id
+    requester.post(
+        f"/lessons/{lesson_id}/topics",
+        json={"topics": {"progress": [topic_id], "finished": [another_topic_id]}},
+    )
+    resp = requester.get(f"/lessons/{lesson_id}/topics")
+    assert resp.json["data"][0]["id"] == another_topic_id
+    resp = requester.get(f"/lessons/{another_lesson_id}/topics")
+    assert resp.json["data"][0]["id"] == topic_id
+
