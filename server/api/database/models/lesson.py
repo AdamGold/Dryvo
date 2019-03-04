@@ -1,7 +1,6 @@
 import datetime as dt
 
 from flask_login import current_user
-from sqlalchemy import and_
 from sqlalchemy.orm import backref
 
 from server.api.database import db
