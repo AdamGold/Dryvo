@@ -9,7 +9,7 @@ import json
 from pathlib import Path
 
 from server import create_app
-from server.api.database import db, reset_db
+from server.api.database import db, reset_db, close_db
 from server.api.database.models import (
     Lesson,
     Place,
@@ -44,8 +44,8 @@ def app() -> flask.Flask:
             db.init_app(app)
             reset_db(db)
             setup_db(app)
-
-        yield app
+            yield app
+            close_db()
 
 
 def setup_db(app):
@@ -106,13 +106,13 @@ def db_instance(app: flask.Flask):
 @pytest.fixture
 def user(app: flask.Flask):
     with app.app_context():
-        return User.query.filter_by(email="t@test.com").one()
+        yield User.query.filter_by(email="t@test.com").one()
 
 
 @pytest.fixture
 def admin(app: flask.Flask):
     with app.app_context():
-        return User.query.filter_by(email="admin@test.com").one()
+        yield User.query.filter_by(email="admin@test.com").one()
 
 
 class Requester:
@@ -176,8 +176,20 @@ class AuthActions(object):
         return req
 
 
+class TestClient(flask.testing.FlaskClient):
+    """Fix for SQLAlchemy sessions
+    https://stackoverflow.com/questions/51016103/unable-to-retrieve-database-objects-in-flask-test-case-session"""
+
+    def open(self, *args, **kwargs):
+        if "json" in kwargs:
+            kwargs["data"] = json.dumps(kwargs.pop("json"))
+            kwargs["content_type"] = "application/json"
+        return super(TestClient, self).open(*args, **kwargs)
+
+
 @pytest.fixture
 def client(app):
+    app.test_client_class = TestClient
     return app.test_client()
 
 
@@ -193,37 +205,43 @@ def auth(requester):
 
 @pytest.fixture
 def teacher(app):
-    return Teacher.query.first()
+    with app.app_context():
+        yield Teacher.query.first()
 
 
 @pytest.fixture
 def student(app):
-    return Student.query.first()
+    with app.app_context():
+        yield Student.query.first()
 
 
 @pytest.fixture
 def meetup(app, student):
-    return (
-        Place.query.filter_by(student=student)
-        .filter_by(used_as=PlaceType.meetup.value)
-        .first()
-    )
+    with app.app_context():
+        yield (
+            Place.query.filter_by(student=student)
+            .filter_by(used_as=PlaceType.meetup.value)
+            .first()
+        )
 
 
 @pytest.fixture
 def dropoff(app, student):
-    return (
-        Place.query.filter_by(student=student)
-        .filter_by(used_as=PlaceType.dropoff.value)
-        .first()
-    )
+    with app.app_context():
+        yield (
+            Place.query.filter_by(student=student)
+            .filter_by(used_as=PlaceType.dropoff.value)
+            .first()
+        )
 
 
 @pytest.fixture
 def topic(app):
-    return Topic.query.first()
+    with app.app_context():
+        yield Topic.query.first()
 
 
 @pytest.fixture
 def lesson(app):
-    return Lesson.query.first()
+    with app.app_context():
+        yield Lesson.query.first()

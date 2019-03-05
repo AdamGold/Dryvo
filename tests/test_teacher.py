@@ -156,12 +156,11 @@ def test_students(auth, teacher, requester):
         email="a@a.c", password="huh", name="absolutely", area="nope"
     )
     new_student = Student.create(teacher=teacher, creator=teacher.user, user=new_user)
-    id_ = new_student.id
     auth.login(email=teacher.user.email)
     resp = requester.get("/teacher/students?order_by=balance desc")
-    assert resp.json["data"][1]["student_id"] == id_
+    assert resp.json["data"][1]["student_id"] == new_student.id
     resp = requester.get("/teacher/students?name=solut")
-    assert resp.json["data"][0]["student_id"] == id_
+    assert resp.json["data"][0]["student_id"] == new_student.id
     resp = requester.get("/teacher/students?name=le:no way")
     assert not resp.json["data"]
     resp = requester.get("/teacher/students?limit=1")
