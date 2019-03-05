@@ -270,4 +270,3 @@ def topics(lesson_id: int):
         finished_in_this_lesson = lesson.topics.filter_by(is_finished=True).all()
         available_topics = available_topics.union(set(finished_in_this_lesson))
     return {"data": [t.to_dict() for t in available_topics]}
-
