@@ -312,7 +312,7 @@ def test_lesson_topics(auth, requester, student, meetup, dropoff, topic, teacher
         json={"topics": {"progress": [another_topic.id], "finished": [topic.id]}},
     )
     resp = requester.get(f"/lessons/{lesson.id}/topics")
-    assert another_topic.id == resp.json["data"][1]["id"]
+    assert another_topic.id in [topic["id"] for topic in resp.json["data"]]
 
     another_lesson = create_lesson(teacher, student, meetup, dropoff, datetime.utcnow())
     resp = requester.get(f"/lessons/{another_lesson.id}/topics")
