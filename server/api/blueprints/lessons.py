@@ -250,18 +250,24 @@ def topics(lesson_id: int):
     1. topics that fit its number
     2. topics in progress of the lesson's student
     3. topics that were picked in this lesson"""
-    lesson = Lesson.query.filter_by(id=lesson_id).first()
-    if not lesson or not lesson.student:
-        raise RouteError("Lesson does not exist or not assigned.", 404)
+    student = Student.query.filter_by(id=flask.request.args.get("student_id")).first()
+    lesson = None
+    if lesson_id == 0 and student:
+        # lesson hasn't been created yet, let's treat this like a new lesson
+        lesson_number = student.new_lesson_number
+    else:
+        lesson = Lesson.query.filter_by(id=lesson_id).first()
+        if not lesson or not lesson.student:
+            raise RouteError("Lesson does not exist or not assigned.", 404)
+        (student, lesson_number) = (lesson.student, lesson.lesson_number)
 
-    topics_for_lesson = set(Topic.for_lesson(lesson.lesson_number)) - set(
-        lesson.student.topics(is_finished=True)
+    topics_for_lesson = set(Topic.for_lesson(lesson_number)) - set(
+        student.topics(is_finished=True)
     )
-    in_progress_topics = lesson.student.topics(is_finished=False)
+    in_progress_topics = student.topics(is_finished=False)
     available_topics = topics_for_lesson.union(set(in_progress_topics))
-    finished_in_this_lesson = lesson.topics.filter_by(is_finished=True).all()
-    return {
-        "data": [
-            t.to_dict() for t in available_topics.union(set(finished_in_this_lesson))
-        ]
-    }
+    if lesson:
+        finished_in_this_lesson = lesson.topics.filter_by(is_finished=True).all()
+        available_topics = available_topics.union(set(finished_in_this_lesson))
+    return {"data": [t.to_dict() for t in available_topics]}
+

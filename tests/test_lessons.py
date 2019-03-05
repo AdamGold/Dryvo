@@ -320,3 +320,24 @@ def test_lesson_topics(auth, requester, student, meetup, dropoff, topic, teacher
     resp = requester.get(f"/lessons/{another_lesson.id}/topics")
     assert another_topic.id == resp.json["data"][0]["id"]
     assert len(resp.json["data"]) == 1
+
+
+def test_new_lesson_topics(
+    auth, requester, student, meetup, dropoff, topic, lesson, teacher
+):
+    auth.login(email=teacher.user.email)
+    resp = requester.get(f"/lessons/0/topics")
+    assert "Lesson does not exist" in resp.json["message"]
+    resp = requester.get(f"/lessons/0/topics?student_id=1000")
+    assert "Lesson does not exist" in resp.json["message"]
+    another_topic = Topic.create(
+        title="test3", min_lesson_number=20, max_lesson_number=22
+    )
+    requester.post(
+        f"/lessons/{lesson.id}/topics",
+        json={"topics": {"progress": [another_topic.id], "finished": [topic.id]}},
+    )
+    requester.get(f"/lessons/{lesson.id}/topics")
+    resp = requester.get(f"/lessons/0/topics?student_id={student.id}")
+    assert resp.json["data"][0]["id"] == another_topic.id
+
