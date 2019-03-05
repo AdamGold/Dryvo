@@ -40,7 +40,7 @@ class Student(SurrogatePK, LessonCreator):
     creator = relationship("User", foreign_keys=[creator_id])
 
     default_sort_column = "id"
-    ALLOWED_FILTERS = []
+    ALLOWED_FILTERS = ["is_active", "is_approved"]
 
     def __init__(self, **kwargs):
         """Create instance."""
