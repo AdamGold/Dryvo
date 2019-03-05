@@ -27,7 +27,7 @@ def create_lesson(teacher, student, meetup, dropoff, date, duration=40, deleted=
 def test_lessons(auth, teacher, student, meetup, dropoff, requester):
     date = datetime(year=2018, month=11, day=27, hour=13, minute=00)
     create_lesson(teacher, student, meetup, dropoff, date)
-    create_lesson(teacher, student, meetup, dropoff, date)
+    create_lesson(teacher, student, meetup, dropoff, date, deleted=True)
     auth.login(email=student.user.email)
     resp1 = requester.get("/lessons/?limit=1&page=1")  # no filters
     assert isinstance(resp1.json["data"], list)
@@ -38,6 +38,8 @@ def test_lessons(auth, teacher, student, meetup, dropoff, requester):
     assert not resp.json["data"]
     resp = requester.get("/lessons/?date=2018-20-01T20")
     assert "wrong parameters" in resp.json["message"].lower()
+    resp = requester.get("/lessons/?deleted=true")
+    assert len(resp.json["data"]) == 2
 
 
 def test_deleted_lessons(auth, teacher, student, meetup, dropoff, requester):
