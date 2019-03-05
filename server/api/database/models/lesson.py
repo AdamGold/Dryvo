@@ -1,7 +1,6 @@
 import datetime as dt
 
 from flask_login import current_user
-from sqlalchemy import and_
 from sqlalchemy.orm import backref
 
 from server.api.database import db
@@ -62,12 +61,6 @@ class Lesson(SurrogatePK, Model):
     def update_only_changed_fields(self, **kwargs):
         args = {k: v for k, v in kwargs.items() if v or isinstance(v, bool)}
         self.update(**args)
-
-    @staticmethod
-    def topics_for_lesson(num: int):
-        return Topic.query.filter(
-            and_(Topic.min_lesson_number <= num, Topic.max_lesson_number >= num)
-        ).all()
 
     def to_dict(self):
         return {

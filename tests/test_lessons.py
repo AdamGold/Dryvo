@@ -11,26 +11,23 @@ from server.error_handling import RouteError
 tomorrow = datetime.utcnow() + timedelta(days=1)
 
 
+def create_lesson(teacher, student, meetup, dropoff, date, duration=40, deleted=False):
+    return Lesson.create(
+        teacher=teacher,
+        student=student,
+        creator=student.user,
+        duration=duration,
+        date=date,
+        meetup_place=meetup,
+        dropoff_place=dropoff,
+        deleted=deleted,
+    )
+
+
 def test_lessons(auth, teacher, student, meetup, dropoff, requester):
-    Lesson.create(
-        teacher=teacher,
-        student=student,
-        creator=student.user,
-        duration=40,
-        date=datetime(year=2018, month=11, day=27, hour=13, minute=00),
-        meetup_place=meetup,
-        dropoff_place=dropoff,
-    )
-    Lesson.create(
-        teacher=teacher,
-        student=student,
-        creator=student.user,
-        duration=40,
-        date=datetime(year=2018, month=11, day=27, hour=13, minute=00),
-        meetup_place=meetup,
-        dropoff_place=dropoff,
-        deleted=True,
-    )
+    date = datetime(year=2018, month=11, day=27, hour=13, minute=00)
+    create_lesson(teacher, student, meetup, dropoff, date)
+    create_lesson(teacher, student, meetup, dropoff, date, deleted=True)
     auth.login(email=student.user.email)
     resp1 = requester.get("/lessons/?limit=1&page=1")  # no filters
     assert isinstance(resp1.json["data"], list)
@@ -47,16 +44,7 @@ def test_lessons(auth, teacher, student, meetup, dropoff, requester):
 
 def test_deleted_lessons(auth, teacher, student, meetup, dropoff, requester):
     date = datetime(year=2018, month=11, day=27, hour=13, minute=00)
-    Lesson.create(
-        teacher=teacher,
-        student=student,
-        creator=student.user,
-        duration=80,
-        date=date,
-        meetup_place=meetup,
-        dropoff_place=dropoff,
-        deleted=True,
-    )
+    create_lesson(teacher, student, meetup, dropoff, date, duration=80, deleted=True)
     auth.login(email=teacher.user.email)
     resp = requester.get("/lessons/?deleted=true")
     assert resp.json["data"][0]["duration"] == 80
@@ -80,7 +68,6 @@ def test_student_new_lesson(auth, teacher, student, requester, topic):
         "/lessons/",
         json={"date": date, "meetup_place": "test", "dropoff_place": "test"},
     )
-    print(resp.json)
     assert not resp.json["data"]["is_approved"]
     assert resp.json["data"]["lesson_number"] == len(
         Lesson.query.filter_by(student=student).all()
@@ -179,34 +166,16 @@ def test_teacher_new_lesson_with_student(auth, teacher, student, requester):
 
 
 def test_delete_lesson(auth, teacher, student, meetup, dropoff, requester):
-    lesson = Lesson.create(
-        teacher=teacher,
-        student=student,
-        creator=student.user,
-        duration=40,
-        date=datetime.utcnow(),
-        meetup_place=meetup,
-        dropoff_place=dropoff,
-    )
-    id_ = lesson.id
+    lesson = create_lesson(teacher, student, meetup, dropoff, datetime.utcnow())
     auth.login(email=student.user.email)
-    resp = requester.delete(f"/lessons/{id_}")
+    resp = requester.delete(f"/lessons/{lesson.id}")
     assert "successfully" in resp.json["message"]
 
 
 def test_approve_lesson(auth, teacher, student, meetup, dropoff, requester):
-    lesson = Lesson.create(
-        teacher=teacher,
-        student=student,
-        creator=teacher.user,
-        duration=40,
-        date=datetime.utcnow(),
-        meetup_place=meetup,
-        dropoff_place=dropoff,
-    )
-    id_ = lesson.id
+    lesson = create_lesson(teacher, student, meetup, dropoff, datetime.utcnow())
     auth.login(email=teacher.user.email)
-    resp = requester.get(f"/lessons/{id_}/approve")
+    resp = requester.get(f"/lessons/{lesson.id}/approve")
     assert "approved" in resp.json["message"]
     resp = requester.get(f"/lessons/7/approve")
     assert "not exist" in resp.json["message"]
@@ -215,18 +184,9 @@ def test_approve_lesson(auth, teacher, student, meetup, dropoff, requester):
 
 def test_user_edit_lesson(app, auth, student, teacher, meetup, dropoff, requester):
     """ test that is_approved turns false when user edits lesson"""
-    lesson = Lesson.create(
-        teacher=teacher,
-        student=student,
-        creator=student.user,
-        duration=40,
-        date=datetime.utcnow(),
-        meetup_place=meetup,
-        dropoff_place=dropoff,
-    )
-    id_ = lesson.id
+    lesson = create_lesson(teacher, student, meetup, dropoff, datetime.utcnow())
     auth.login(email=student.user.email)
-    resp = requester.post(f"/lessons/{id_}", json={"meetup_place": "no"})
+    resp = requester.post(f"/lessons/{lesson.id}", json={"meetup_place": "no"})
     assert "successfully" in resp.json["message"]
     assert "no" == resp.json["data"]["meetup_place"]["name"]
     assert not resp.json["data"]["is_approved"]
@@ -289,15 +249,7 @@ def test_lesson_number(teacher, student, meetup, dropoff):
     lessons = []
     for _ in range(2):
         lessons.append(
-            Lesson.create(
-                teacher=teacher,
-                student=student,
-                creator=student.user,
-                duration=40,
-                date=datetime.utcnow(),
-                meetup_place=meetup,
-                dropoff_place=dropoff,
-            )
+            create_lesson(teacher, student, meetup, dropoff, datetime.utcnow())
         )
     assert lessons[1].lesson_number == student.new_lesson_number - 1
 
@@ -306,29 +258,27 @@ def test_topics_for_lesson(app):
     topic = Topic.create(
         title="not important", min_lesson_number=1, max_lesson_number=2
     )
-    assert topic in Lesson.topics_for_lesson(1)
+    assert topic in Topic.for_lesson(1)
 
 
 def test_payments(auth, teacher, student, requester):
-    Payment.create(
-        teacher=teacher,
-        student=student,
-        amount=100_000,
-        created_at=datetime.utcnow().replace(month=datetime.utcnow().month + 1),
-    )
     payments = []
     for x in range(4):
         payments.append(
             Payment.create(teacher=teacher, student=student, amount=x * 100)
         )
 
-    last_id = payments[-1].id
     auth.login(email=teacher.user.email)
-    resp = requester.get(
-        "/lessons/payments?limit=2"
-    )  # no filters, there is already one payment besides what we added()
+    resp = requester.get("/lessons/payments?limit=2")
     assert len(resp.json["data"]) == 2
-    assert resp.json["data"][1]["id"] == last_id
+    assert resp.json["data"][0]["id"] == payments[-1].id
+
+    Payment.create(
+        teacher=teacher,
+        student=student,
+        amount=100_000,
+        created_at=datetime.utcnow().replace(month=datetime.utcnow().month + 1),
+    )
     start_of_month = datetime.today().replace(
         day=1, hour=0, minute=0, second=0, microsecond=0
     )
@@ -340,10 +290,33 @@ def test_payments(auth, teacher, student, requester):
     resp = requester.get(
         f"/lessons/payments?created_at=ge:{start_next_month}&created_at=lt:{end_next_month}"
     )
-    print(resp.json["data"])
     assert resp.json["data"][0]["amount"] == 100_000
     resp = requester.get(
         f"/lessons/payments?created_at=ge:{start_of_month}&created_at=lt:{start_of_month}"
     )
     assert not resp.json["data"]
 
+
+def test_lesson_topics(auth, requester, student, meetup, dropoff, topic, teacher):
+    """test for:
+    1. lesson without topics
+    2. lesson with finished topics
+    3. lesson without topics, but user with topics"""
+    lesson = create_lesson(teacher, student, meetup, dropoff, datetime.utcnow())
+    auth.login(email=teacher.user.email)
+    resp = requester.get(f"/lessons/{lesson.id}/topics")
+    assert resp.json["data"][0]["id"] == topic.id
+    another_topic = Topic.create(
+        title="test3", min_lesson_number=20, max_lesson_number=22
+    )
+    requester.post(
+        f"/lessons/{lesson.id}/topics",
+        json={"topics": {"progress": [another_topic.id], "finished": [topic.id]}},
+    )
+    resp = requester.get(f"/lessons/{lesson.id}/topics")
+    assert another_topic.id in [topic["id"] for topic in resp.json["data"]]
+
+    another_lesson = create_lesson(teacher, student, meetup, dropoff, datetime.utcnow())
+    resp = requester.get(f"/lessons/{another_lesson.id}/topics")
+    assert another_topic.id == resp.json["data"][0]["id"]
+    assert len(resp.json["data"]) == 1

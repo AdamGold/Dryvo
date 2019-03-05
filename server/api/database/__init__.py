@@ -1,4 +1,4 @@
-from .database import get_db, reset_db
+from .database import get_db, reset_db, close_db
 
 
 db = get_db()

@@ -73,37 +73,12 @@ def test_topics(auth, requester, teacher, student, topic):
         (datetime.utcnow() + timedelta(days=1)).replace(hour=13, minute=00)
     ).strftime(DATE_FORMAT)
     resp = new_lesson(requester, date, student)
-    lesson_id = resp.json["data"]["id"]
-    new_topics(requester, {"progress": [topic.id], "finished": []}, lesson_id)
+    new_topics(
+        requester, {"progress": [topic.id], "finished": []}, resp.json["data"]["id"]
+    )
     resp = requester.get(f"/student/{student.id}/topics")
     assert len(resp.json["data"]["new"]) == 0
     assert topic.title == resp.json["data"]["in_progress"][0]["title"]
-
-
-def test_new_lesson_topics(auth, requester, student, topic, teacher):
-    auth.login(email=teacher.user.email)
-    date = (
-        (datetime.utcnow() + timedelta(days=1)).replace(hour=13, minute=00)
-    ).strftime(DATE_FORMAT)
-    resp = new_lesson(requester, date, student)
-    lesson_id = resp.json["data"]["id"]
-    new_topics(requester, {"progress": [topic.id], "finished": []}, lesson_id)
-    resp = requester.get(f"/student/{student.id}/new_lesson_topics")
-    assert topic.id == resp.json["data"][0]["id"]
-
-
-def test_new_lesson_topics_with_finished_topic(
-    auth, requester, student, topic, teacher
-):
-    auth.login(email=teacher.user.email)
-    date = (
-        (datetime.utcnow() + timedelta(days=1)).replace(hour=13, minute=00)
-    ).strftime(DATE_FORMAT)
-    resp = new_lesson(requester, date, student)
-    lesson_id = resp.json["data"]["id"]
-    new_topics(requester, {"finished": [topic.id]}, lesson_id)
-    resp = requester.get(f"/student/{student.id}/new_lesson_topics")
-    assert not resp.json["data"]
 
 
 def test_new_lesson_number(teacher, student, meetup, dropoff):
@@ -132,7 +107,7 @@ def test_filter_topics(teacher, student, meetup, dropoff, topic, lesson):
     topic2 = Topic.create(title="aa", min_lesson_number=3, max_lesson_number=5)
     lesson_topic = LessonTopic(is_finished=False, topic_id=topic.id)
     lesson.topics.append(lesson_topic)
-    assert topic in student.filter_topics(is_finished=False)
+    assert topic in student.topics(is_finished=False)
 
     # let's create another lesson with same topic
     lesson = Lesson.create(
@@ -148,8 +123,8 @@ def test_filter_topics(teacher, student, meetup, dropoff, topic, lesson):
     lesson.topics.append(lesson_topic)
     lesson_topic2 = LessonTopic(is_finished=False, topic_id=topic2.id)
     lesson.topics.append(lesson_topic2)
-    assert topic in student.filter_topics(is_finished=True)
-    assert topic2 in student.filter_topics(is_finished=False)
+    assert topic in student.topics(is_finished=True)
+    assert topic2 in student.topics(is_finished=False)
 
 
 def test_lesson_topics(teacher, student, topic, meetup, dropoff):
@@ -227,11 +202,10 @@ def test_total_lessons_price(teacher, student, lesson):
 
 
 def test_approve(auth, requester, student, teacher):
-    student_email = student.user.email
     auth.login(email=teacher.user.email)
     resp = requester.get(f"/student/{student.id}/approve")
     assert "Not authorized." == resp.json["message"]
-    auth.login(email=student_email)
+    auth.login(email=student.user.email)
     resp = requester.get(f"/student/{student.id}/approve")
     assert resp.json["data"]["is_approved"]
 
