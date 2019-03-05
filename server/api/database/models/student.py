@@ -139,6 +139,7 @@ class Student(SurrogatePK, LessonCreator):
         q = (
             select([func.count(Lesson.student_id) * Teacher.price])
             .where(and_(Lesson.student_id == cls.id, Teacher.id == cls.teacher_id))
+            .group_by(Teacher.price)
             .label("total_lessons_price")
         )
         return q
