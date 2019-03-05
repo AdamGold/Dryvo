@@ -4,7 +4,15 @@ import pytest
 from loguru import logger
 
 from server.api.blueprints.lessons import get_lesson_data, handle_places
-from server.api.database.models import Lesson, Payment, Place, Student, Topic, WorkDay
+from server.api.database.models import (
+    Lesson,
+    Payment,
+    Place,
+    Student,
+    Topic,
+    WorkDay,
+    LessonTopic,
+)
 from server.consts import DATE_FORMAT
 from server.error_handling import RouteError
 
@@ -93,6 +101,7 @@ def test_update_topics(auth, teacher, student, requester, topic):
     )
     assert topic.id == resp.json["data"]["topics"][0]["id"]
     assert resp.json["data"]["topics"][0]["is_finished"]
+    assert len(LessonTopic.query.all()) == 1
 
 
 @pytest.mark.parametrize(

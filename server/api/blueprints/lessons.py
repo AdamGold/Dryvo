@@ -149,6 +149,7 @@ def update_topics(lesson_id):
             lesson.topics.append(lesson_topic)
             appended_ids.append(topic_id)
 
+    lesson.save()
     return {"data": lesson.to_dict()}, 201
 
 
