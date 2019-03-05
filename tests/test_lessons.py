@@ -66,7 +66,6 @@ def test_student_new_lesson(auth, teacher, student, requester, topic):
         "/lessons/",
         json={"date": date, "meetup_place": "test", "dropoff_place": "test"},
     )
-    print(resp.json)
     assert not resp.json["data"]["is_approved"]
     assert resp.json["data"]["lesson_number"] == len(
         Lesson.query.filter_by(student=student).all()
@@ -166,17 +165,15 @@ def test_teacher_new_lesson_with_student(auth, teacher, student, requester):
 
 def test_delete_lesson(auth, teacher, student, meetup, dropoff, requester):
     lesson = create_lesson(teacher, student, meetup, dropoff, datetime.utcnow())
-    id_ = lesson.id
     auth.login(email=student.user.email)
-    resp = requester.delete(f"/lessons/{id_}")
+    resp = requester.delete(f"/lessons/{lesson.id}")
     assert "successfully" in resp.json["message"]
 
 
 def test_approve_lesson(auth, teacher, student, meetup, dropoff, requester):
     lesson = create_lesson(teacher, student, meetup, dropoff, datetime.utcnow())
-    id_ = lesson.id
     auth.login(email=teacher.user.email)
-    resp = requester.get(f"/lessons/{id_}/approve")
+    resp = requester.get(f"/lessons/{lesson.id}/approve")
     assert "approved" in resp.json["message"]
     resp = requester.get(f"/lessons/7/approve")
     assert "not exist" in resp.json["message"]
@@ -186,9 +183,8 @@ def test_approve_lesson(auth, teacher, student, meetup, dropoff, requester):
 def test_user_edit_lesson(app, auth, student, teacher, meetup, dropoff, requester):
     """ test that is_approved turns false when user edits lesson"""
     lesson = create_lesson(teacher, student, meetup, dropoff, datetime.utcnow())
-    id_ = lesson.id
     auth.login(email=student.user.email)
-    resp = requester.post(f"/lessons/{id_}", json={"meetup_place": "no"})
+    resp = requester.post(f"/lessons/{lesson.id}", json={"meetup_place": "no"})
     assert "successfully" in resp.json["message"]
     assert "no" == resp.json["data"]["meetup_place"]["name"]
     assert not resp.json["data"]["is_approved"]
@@ -264,25 +260,23 @@ def test_topics_for_lesson(app):
 
 
 def test_payments(auth, teacher, student, requester):
-    Payment.create(
-        teacher=teacher,
-        student=student,
-        amount=100_000,
-        created_at=datetime.utcnow().replace(month=datetime.utcnow().month + 1),
-    )
     payments = []
     for x in range(4):
         payments.append(
             Payment.create(teacher=teacher, student=student, amount=x * 100)
         )
 
-    last_id = payments[-1].id
     auth.login(email=teacher.user.email)
-    resp = requester.get(
-        "/lessons/payments?limit=2"
-    )  # no filters, there is already one payment besides what we added()
+    resp = requester.get("/lessons/payments?limit=2")
     assert len(resp.json["data"]) == 2
-    assert resp.json["data"][1]["id"] == last_id
+    assert resp.json["data"][0]["id"] == payments[-1].id
+
+    Payment.create(
+        teacher=teacher,
+        student=student,
+        amount=100_000,
+        created_at=datetime.utcnow().replace(month=datetime.utcnow().month + 1),
+    )
     start_of_month = datetime.today().replace(
         day=1, hour=0, minute=0, second=0, microsecond=0
     )
@@ -307,25 +301,20 @@ def test_lesson_topics(auth, requester, student, meetup, dropoff, topic, teacher
     2. lesson with finished topics
     3. lesson without topics, but user with topics"""
     lesson = create_lesson(teacher, student, meetup, dropoff, datetime.utcnow())
-    another_lesson = create_lesson(teacher, student, meetup, dropoff, datetime.utcnow())
+    auth.login(email=teacher.user.email)
+    resp = requester.get(f"/lessons/{lesson.id}/topics")
+    assert resp.json["data"][0]["id"] == topic.id
     another_topic = Topic.create(
         title="test3", min_lesson_number=20, max_lesson_number=22
     )
-    (lesson_id, topic_id, another_topic_id, another_lesson_id) = (
-        lesson.id,
-        topic.id,
-        another_topic.id,
-        another_lesson.id,
-    )
-    auth.login(email=teacher.user.email)
-    resp = requester.get(f"/lessons/{lesson_id}/topics")
-    assert resp.json["data"][0]["id"] == topic_id
     requester.post(
-        f"/lessons/{lesson_id}/topics",
-        json={"topics": {"progress": [topic_id], "finished": [another_topic_id]}},
+        f"/lessons/{lesson.id}/topics",
+        json={"topics": {"progress": [another_topic.id], "finished": [topic.id]}},
     )
-    resp = requester.get(f"/lessons/{lesson_id}/topics")
-    assert resp.json["data"][0]["id"] == another_topic_id
-    resp = requester.get(f"/lessons/{another_lesson_id}/topics")
-    assert resp.json["data"][0]["id"] == topic_id
+    resp = requester.get(f"/lessons/{lesson.id}/topics")
+    assert another_topic.id == resp.json["data"][1]["id"]
 
+    another_lesson = create_lesson(teacher, student, meetup, dropoff, datetime.utcnow())
+    resp = requester.get(f"/lessons/{another_lesson.id}/topics")
+    assert another_topic.id == resp.json["data"][0]["id"]
+    assert len(resp.json["data"]) == 1

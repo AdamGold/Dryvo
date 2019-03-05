@@ -73,8 +73,9 @@ def test_topics(auth, requester, teacher, student, topic):
         (datetime.utcnow() + timedelta(days=1)).replace(hour=13, minute=00)
     ).strftime(DATE_FORMAT)
     resp = new_lesson(requester, date, student)
-    lesson_id = resp.json["data"]["id"]
-    new_topics(requester, {"progress": [topic.id], "finished": []}, lesson_id)
+    new_topics(
+        requester, {"progress": [topic.id], "finished": []}, resp.json["data"]["id"]
+    )
     resp = requester.get(f"/student/{student.id}/topics")
     assert len(resp.json["data"]["new"]) == 0
     assert topic.title == resp.json["data"]["in_progress"][0]["title"]
@@ -201,11 +202,10 @@ def test_total_lessons_price(teacher, student, lesson):
 
 
 def test_approve(auth, requester, student, teacher):
-    student_email = student.user.email
     auth.login(email=teacher.user.email)
     resp = requester.get(f"/student/{student.id}/approve")
     assert "Not authorized." == resp.json["message"]
-    auth.login(email=student_email)
+    auth.login(email=student.user.email)
     resp = requester.get(f"/student/{student.id}/approve")
     assert resp.json["data"]["is_approved"]
 
