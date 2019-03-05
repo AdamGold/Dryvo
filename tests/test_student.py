@@ -80,20 +80,6 @@ def test_topics(auth, requester, teacher, student, topic):
     assert topic.title == resp.json["data"]["in_progress"][0]["title"]
 
 
-def test_new_lesson_topics_with_finished_topic(
-    auth, requester, student, topic, teacher
-):
-    auth.login(email=teacher.user.email)
-    date = (
-        (datetime.utcnow() + timedelta(days=1)).replace(hour=13, minute=00)
-    ).strftime(DATE_FORMAT)
-    resp = new_lesson(requester, date, student)
-    lesson_id = resp.json["data"]["id"]
-    new_topics(requester, {"finished": [topic.id]}, lesson_id)
-    resp = requester.get(f"/student/{student.id}/new_lesson_topics")
-    assert not resp.json["data"]
-
-
 def test_new_lesson_number(teacher, student, meetup, dropoff):
     """create new lesson for student,
     check new_lesson_number updates"""
