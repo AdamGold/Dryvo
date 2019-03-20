@@ -6,7 +6,7 @@ import flask_login
 from urllib import parse
 
 from server.api.database.models import User, BlacklistToken
-from server.api.blueprints.login import handle_facebook
+from server.api.blueprints.login import handle_facebook, validate_inputs
 
 
 def test_normal_register(app, auth: AuthActions):
@@ -15,21 +15,21 @@ def test_normal_register(app, auth: AuthActions):
     assert "refresh_token" in resp.json
     assert "user" in resp.json
     with app.app_context():
-        assert User.query.filter_by(email='test@test.com').one()
+        assert User.query.filter_by(email="test@test.com").one()
 
 
 def test_login(user, auth):
     resp = auth.login()
     assert "auth_token" in resp.json
     assert "refresh_token" in resp.json
-    assert user.to_dict()['id'] == resp.json["user"]["id"]
+    assert user.to_dict()["id"] == resp.json["user"]["id"]
     payload = User.decode_token(resp.json["auth_token"])
     assert "email" in payload
 
 
 def test_login_validate_input(auth: AuthActions):
     resp = auth.login("t@aaa.com", "123")
-    assert resp.json.get('message') == "Invalid email or password."
+    assert resp.json.get("message") == "Invalid email or password."
 
 
 def test_encode_auth_token(user):
@@ -51,8 +51,12 @@ def test_logout(auth: AuthActions):
     refresh_token = login.json.get("refresh_token")
     auth_token = login.json.get("auth_token")
     assert len(BlacklistToken.query.all()) == 2
-    assert all((token.token == auth_token or token.token ==
-                refresh_token for token in BlacklistToken.query.all()))
+    assert all(
+        (
+            token.token == auth_token or token.token == refresh_token
+            for token in BlacklistToken.query.all()
+        )
+    )
 
 
 def test_blacklist_token(app, auth: AuthActions):
@@ -66,7 +70,7 @@ def test_blacklist_token(app, auth: AuthActions):
 
 def test_invalid_token(auth: AuthActions):
     resp = auth.logout(headers={"Authorization": "Bearer NOPE"})
-    assert "INVALID_TOKEN" in resp.json.get('message')
+    assert "INVALID_TOKEN" in resp.json.get("message")
 
 
 @pytest.mark.parametrize(
@@ -77,10 +81,12 @@ def test_invalid_token(auth: AuthActions):
         ("ttom", "a", "test", "test", "Email is not valid."),
         ("test", "a", "test", "", "Area is required."),
         ("test", "a", "", "test", "Name is required."),
-        ("t@test.com", "a", "a", "A", "Email is already registered.")
+        ("t@test.com", "a", "a", "A", "Email is already registered."),
     ),
 )
-def test_register_validate_input(auth: AuthActions, email, password, name, area, message):
+def test_register_validate_input(
+    auth: AuthActions, email, password, name, area, message
+):
     resp = auth.register(email=email, password=password, name=name, area=area)
     assert message in resp.json.get("message")
 
@@ -90,7 +96,7 @@ def test_facebook_first_step(client, auth, requester):
         auth.login()
         resp = requester.get("/login/facebook")
         assert resp.status_code == 302  # redirect
-        assert flask.session['state']
+        assert flask.session["state"]
         auth.logout()
         assert flask_login.current_user.is_authenticated
     assert not flask_login.current_user.is_authenticated
@@ -98,7 +104,8 @@ def test_facebook_first_step(client, auth, requester):
 
 def test_exchange_token(requester, user: User):
     resp = requester.post(
-        "/login/exchange_token", json={"exchange_token": user.encode_exchange_token().decode()}
+        "/login/exchange_token",
+        json={"exchange_token": user.encode_exchange_token().decode()},
     )
     assert "user" in resp.json
     assert "auth_token" in resp.json
@@ -109,9 +116,9 @@ def test_refresh_token_payload(auth, user: User):
     """check that refresh token after login
     has a scope and a user_id"""
     resp = auth.login()
-    assert resp.json['refresh_token']
+    assert resp.json["refresh_token"]
     payload = User.decode_token(resp.json["refresh_token"])
-    assert payload['scope']
+    assert payload["scope"]
     assert User.from_payload(payload) == user
 
 
@@ -120,18 +127,36 @@ def test_refresh_token_endpoint(auth, requester):
     generates a new auth token, and an invalid token
     doesn't"""
     auth.login()
-    resp = requester.post('/login/refresh_token',
-                          json={'refresh_token': auth.refresh_token})
-    assert resp.json['auth_token']
-    resp = requester.post('/login/refresh_token',
-                          json={'refresh_token': 'none'})
-    assert 'INVALID_TOKEN' in resp.json["message"]
+    resp = requester.post(
+        "/login/refresh_token", json={"refresh_token": auth.refresh_token}
+    )
+    assert resp.json["auth_token"]
+    resp = requester.post("/login/refresh_token", json={"refresh_token": "none"})
+    assert "INVALID_TOKEN" in resp.json["message"]
 
 
 def test_refresh_without_refresh_token(requester):
     """call refresh endpoint without token"""
-    resp = requester.post('/login/refresh_token', json={'refresh_token': ''})
+    resp = requester.post("/login/refresh_token", json={"refresh_token": ""})
     assert "INAVLID_REFRESH_TOKEN" == resp.json["message"]
+
+
+def test_validate_inputs():
+    with pytest.raises(RouteError):
+        validate_inputs({"name": "test", "area": "test", "email": "test"})
+        validate_inputs({"name": "test"})
+    assert validate_inputs({"name": "test", "area": "test"}, all_required=False)
+
+
+def test_edit_data(app, user, requester, auth: AuthActions):
+    auth.login()
+    resp = requester.post("/login/edit_data", json={"name": "new"})
+    assert "new" == resp.json["data"]["name"]
+    assert user.area == resp.json["data"]["area"]
+    resp = requester.post("/login/edit_data", json={"area": "new"})
+    assert "new" == resp.json["data"]["area"]
+    assert requester.post("/login/edit_data", json={})
+    assert requester.post("/login/edit_data", json={"password": "new"})
 
 
 """def assert_facebook_redirect_url(url, user):

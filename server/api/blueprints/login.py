@@ -2,6 +2,7 @@ import os
 import random
 import re
 import string
+from typing import Tuple
 
 import flask
 import requests
@@ -75,24 +76,31 @@ def logout():
     return {"message": "Logged out successfully."}
 
 
+def validate_inputs(data, all_required=True) -> Tuple[str, str, str, str]:
+    email: str = data.get("email")
+    name: str = data.get("name")
+    area: str = data.get("area")
+    password: str = data.get("password")
+    if all_required:
+        if not name:
+            raise RouteError("Name is required.")
+        if not area:
+            raise RouteError("Area is required.")
+        if not password:
+            raise RouteError("Password is required.")
+        if not email:
+            raise RouteError("Email is required.")
+        if not re.match(r"[^@]+@[^@]+\.[^@]+", email):
+            raise RouteError("Email is not valid.")
+
+    return (name, area, email, password)
+
+
 @login_routes.route("/register", methods=["POST"])
 @jsonify_response
 def register():
     post_data = flask.request.get_json()
-    email = post_data.get("email")
-    name = post_data.get("name")
-    area = post_data.get("area")
-    password = post_data.get("password")
-    if not email:
-        raise RouteError("Email is required.")
-    if not name:
-        raise RouteError("Name is required.")
-    if not area:
-        raise RouteError("Area is required.")
-    if not password:
-        raise RouteError("Password is required.")
-    if not re.match(r"[^@]+@[^@]+\.[^@]+", email):
-        raise RouteError("Email is not valid.")
+    (name, area, email, password) = validate_inputs(post_data)
     # Query to see if the user already exists
     user = User.query.filter_by(email=email).first()
     if not user:
@@ -106,6 +114,26 @@ def register():
     # There is an existing user. We don't want to register users twice
     # Return a message to the user telling them that they they already exist
     raise RouteError("Email is already registered.")
+
+
+@login_routes.route("/edit_data", methods=["POST"])
+@jsonify_response
+@login_required
+def edit_data():
+    post_data = flask.request.get_json()
+    (name, area, _, password) = validate_inputs(post_data, all_required=False)
+    user = User.query.filter_by(email=current_user.email).first()
+    if not user:
+        raise RouteError("User was not found.")
+    if name:
+        user.name = name
+    if area:
+        user.area = area
+    if password:
+        user.set_password(password)
+
+    user.save()
+    return {"data": user.to_dict()}
 
 
 @login_routes.route("/facebook", methods=["GET"])
