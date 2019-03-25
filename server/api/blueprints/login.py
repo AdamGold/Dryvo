@@ -133,7 +133,7 @@ def edit_data():
         user.set_password(password)
 
     user.save()
-    return {"data": user.to_dict()}
+    return {"data": dict(**user.to_dict(), **get_user_info(user))}
 
 
 @login_routes.route("/facebook", methods=["GET"])
