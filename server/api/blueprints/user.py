@@ -76,7 +76,7 @@ def make_teacher():
     user_id = data.get("user_id")
     user = User.get_by_id(user_id)
     if not user or user.student or user.teacher:
-        raise RouteError("User not found.")
+        raise RouteError("User was not found.")
 
     price = data.get("price")
     phone = data.get("phone")
