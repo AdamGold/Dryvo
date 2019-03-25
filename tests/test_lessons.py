@@ -108,7 +108,7 @@ def test_update_topics(auth, teacher, student, requester, topic):
     ("student_id", "topics", "error"),
     (
         (None, {}, "Lesson must have a student assigned."),
-        (1, {"progress": [5]}, "Invalid topic id."),
+        (1, {"progress": [5]}, "Topic does not exist."),
     ),
 )
 def test_invalid_update_topics(
@@ -236,7 +236,7 @@ def test_student_invalid_get_lesson_data(student, data_dict: dict, error: str):
                 .strftime(DATE_FORMAT),
                 "student_id": 0,
             },
-            "No student with this ID.",
+            "Student does not exist.",
         ),
     ),
 )

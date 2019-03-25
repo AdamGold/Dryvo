@@ -141,7 +141,7 @@ def update_topics(lesson_id):
     for key, topic_ids in data.get("topics").items():
         for topic_id in topic_ids:
             if not Topic.get_by_id(topic_id):
-                raise RouteError("Invalid topic id.")
+                raise RouteError("Topic does not exist.")
             if topic_id in appended_ids:  # we don't want the same topic twice
                 continue
             is_finished = True if key == FINISHED_KEY else False

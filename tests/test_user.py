@@ -25,7 +25,7 @@ def test_not_admin_make_teacher(user, auth, requester):
     (
         (1, 100, "", "Empty fields."),
         (1, -20, "0435345", "Price must be above 0."),
-        (6, 200, "12312312", "User not found."),
+        (6, 200, "12312312", "User was not found."),
     ),
 )
 def test_invalid_make_teacher(
