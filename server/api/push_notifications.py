@@ -17,9 +17,11 @@ def init_app(app):
 
 class FCM(object):
     @staticmethod
-    def notify(token, title, body):
+    def notify(token, title, body, payload=None):
         message = messaging.Message(
-            notification={"title": title, "body": body}, token=token
+            notification=messaging.Notification({"title": title, "body": body}),
+            token=token,
+            data=payload,
         )
         try:
             messaging.send(message)
