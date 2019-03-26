@@ -19,7 +19,7 @@ class FCM(object):
     @staticmethod
     def notify(token, title, body, payload=None):
         message = messaging.Message(
-            notification=messaging.Notification({"title": title, "body": body}),
+            notification=messaging.Notification(title=title, body=body),
             token=token,
             data=payload,
         )
