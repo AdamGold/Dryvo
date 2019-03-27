@@ -46,6 +46,7 @@ class Lesson(SurrogatePK, Model):
         "student_id",
         "created_at",
         "lesson_number",
+        "creator_id",
     ]
     default_sort_column = "date"
 
