@@ -103,5 +103,11 @@ def register_firebase_token():
     if not token:
         raise RouteError("Token is not valid.")
 
+    # now delete this token in other users (if this device connected to multiple users)
+    different_user = User.query.filter_by(firebase_token=token).first()
+    if different_user and different_user.id != current_user.id:
+        different_user.update(token=None)
+
     current_user.update(firebase_token=token)
+
     return {"message": "Token updated successfully."}
