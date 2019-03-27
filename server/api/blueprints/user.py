@@ -1,10 +1,12 @@
 import flask
 from flask import Blueprint
 from flask_login import current_user, login_required
+from loguru import logger
 from sqlalchemy import and_
 
 from server.api.blueprints import teacher_required
 from server.api.database.models import Student, Teacher, User
+from server.api.push_notifications import FCM
 from server.api.utils import jsonify_response, paginate
 from server.error_handling import RouteError
 
@@ -62,6 +64,17 @@ def make_student():
     student = Student.create(
         user_id=user.id, teacher_id=teacher.id, creator=current_user
     )
+    # send notification
+    user_to_send_to = student.user
+    if student.creator == user_to_send_to:
+        user_to_send_to = teacher.user
+    if user_to_send_to.firebase_token:
+        logger.debug(f"sending fcm to {user_to_send_to}")
+        FCM.notify(
+            token=user_to_send_to.firebase_token,
+            title="Join Request",
+            body=f"{user_to_send_to.name} wants you to join!",
+        )
     return {"data": student.to_dict()}, 201
 
 

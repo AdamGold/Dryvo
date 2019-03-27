@@ -4,8 +4,10 @@ from functools import wraps
 import flask
 from flask import Blueprint
 from flask_login import current_user, login_required, logout_user
+from loguru import logger
 
 from server.api.database.models import Day, Payment, Student, Teacher, User, WorkDay
+from server.api.push_notifications import FCM
 from server.api.utils import jsonify_response, paginate
 from server.error_handling import RouteError
 
@@ -131,13 +133,22 @@ def available_hours(teacher_id):
 def add_payment():
     data = flask.request.get_json()
     student = Student.get_by_id(data.get("student_id"))
+    amount = data.get("amount")
     if not student:
         raise RouteError("Student does not exist.")
-    if not data.get("amount"):
+    if not amount:
         raise RouteError("Amount must be given.")
     payment = Payment.create(
-        teacher=current_user.teacher, student=student, amount=data.get("amount")
+        teacher=current_user.teacher, student=student, amount=amount
     )
+    # send notification to student
+    if student.user.firebase_token:
+        logger.debug(f"sending fcm to {student.user}")
+        FCM.notify(
+            token=student.user.firebase_token,
+            title="New Payment",
+            body=f"{current_user.name} charged you for {amount}",
+        )
     return {"data": payment.to_dict()}, 201
 
 
