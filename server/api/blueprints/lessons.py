@@ -119,7 +119,7 @@ def new_lesson():
             token=user_to_send_to.firebase_token,
             title="New Lesson",
             body=f"New lesson at {lesson.date}",
-            payload=lesson.to_dict(),
+            payload=dict(lesson_id=lesson.id),
         )
     return {"data": lesson.to_dict()}, 201
 
@@ -176,7 +176,7 @@ def delete_lesson(lesson_id):
             token=user_to_send_to.firebase_token,
             title="Lesson Deleted",
             body=f"The lesson at {lesson.date} has been deleted.",
-            payload=lesson.to_dict(),
+            payload=dict(lesson_id=lesson.id),
         )
 
     return {"message": "Lesson deleted successfully."}
@@ -204,7 +204,7 @@ def update_lesson(lesson_id):
             token=user_to_send_to.firebase_token,
             title="Lesson Updated",
             body=f"Lesson with {lesson.student.user.name} updated to {lesson.date}",
-            payload=lesson.to_dict(),
+            payload=dict(lesson_id=lesson.id),
         )
 
     return {"message": "Lesson updated successfully.", "data": lesson.to_dict()}
