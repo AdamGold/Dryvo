@@ -7,13 +7,15 @@ from enum import Enum, auto
 from typing import Dict
 
 import jwt
+from cloudinary.utils import cloudinary_url
+from flask import current_app
 from flask_login import UserMixin
 from sqlalchemy.orm.exc import NoResultFound
-from flask import current_app
 
 from server.api.database import db
 from server.api.database.consts import (
     EXCHANGE_TOKEN_EXPIRY,
+    PROFILE_SIZE,
     REFRESH_TOKEN_EXPIRY,
     TOKEN_EXPIRY,
 )
@@ -59,6 +61,7 @@ class User(UserMixin, SurrogatePK, Model):
     is_admin = Column(db.Boolean, nullable=False, default=False)
     area = Column(db.String(80), nullable=True)
     firebase_token = Column(db.Text, nullable=True)
+    image = Column(db.String(240), nullable=True)
 
     ALLOWED_FILTERS = ["name", "email", "area"]
 
@@ -153,6 +156,18 @@ class User(UserMixin, SurrogatePK, Model):
             raise TokenError("INVALID_TOKEN")
 
     def to_dict(self):
+        image = ""
+        if self.image:
+            try:
+                image = cloudinary_url(
+                    self.image,
+                    width=PROFILE_SIZE,
+                    height=PROFILE_SIZE,
+                    crop="thumb",
+                    gravity="face",
+                )[0]
+            except Exception:
+                pass
         return {
             "id": self.id,
             "email": self.email,
@@ -160,4 +175,5 @@ class User(UserMixin, SurrogatePK, Model):
             "last_login": self.last_login,
             "area": self.area,
             "name": self.name,
+            "image": image,
         }
