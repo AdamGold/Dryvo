@@ -1,11 +1,12 @@
-from server.error_handling import NotificationError
-
+import json
 from pathlib import Path
+
 import firebase_admin
 from firebase_admin import credentials, messaging
 from firebase_admin.project_management import ApiCallError
-import json
 from loguru import logger
+
+from server.error_handling import NotificationError
 
 
 def init_app(app):
@@ -21,7 +22,7 @@ class FCM(object):
         message = messaging.Message(
             notification=messaging.Notification(title=title, body=body),
             token=token,
-            data=payload,
+            data=json.dumps(payload),
         )
         try:
             messaging.send(message)
