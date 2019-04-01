@@ -22,7 +22,7 @@ class FCM(object):
         message = messaging.Message(
             notification=messaging.Notification(title=title, body=body),
             token=token,
-            data=json.dumps(payload),
+            data=payload,
         )
         try:
             messaging.send(message)
