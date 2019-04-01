@@ -1,3 +1,4 @@
+from cloudinary.uploader import upload
 import flask
 from flask import Blueprint
 from flask_login import current_user, login_required
@@ -124,3 +125,13 @@ def register_firebase_token():
     current_user.update(firebase_token=token)
 
     return {"message": "Token updated successfully."}
+
+
+@user_routes.route("/image", methods=["POST"])
+@jsonify_response
+@login_required
+def upload_profile_image():
+    data = flask.request.files
+    uploaded_image = upload(data.get("image"))
+    current_user.update(image=uploaded_image["public_id"])
+    return {"image": uploaded_image["url"]}

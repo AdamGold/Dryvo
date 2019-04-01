@@ -33,6 +33,7 @@ setup(
         "requests-oauthlib==1.0.0",
         "psycopg2==2.7.5",
         "firebase-admin==2.14.0",
+        "cloudinary==1.15.0",
     ],
     tests_require=test_req,
     setup_requires=["pytest-runner==4.2"],

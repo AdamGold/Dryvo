@@ -1,5 +1,7 @@
-from server.api.blueprints import user
+import os
 import pytest
+
+from server.api.blueprints import user
 
 
 def test_make_teacher(user, admin, auth, requester):
@@ -105,3 +107,15 @@ def test_search_users(user, teacher, auth, requester):
     resp = requester.get(f"/user/search?name={user.name}")
     assert resp.json["data"][0]["id"] == user.id
 
+
+@pytest.mark.skip
+def test_upload_image(user, auth, requester):
+    """skip this one so we won't upload an image to cloudinary
+    on each tests - the test passes though"""
+    auth.login()
+    image = os.path.join("./tests/assets/av.png")
+    file = (image, "av.png")
+    resp = requester.post(
+        "/user/image", data={"image": file}, content_type="multipart/form-data"
+    )
+    assert requester.get(resp.json["image"])
