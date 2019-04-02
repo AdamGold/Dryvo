@@ -8,6 +8,7 @@ test_req = [
     "coverage==4.5.2",
     "testing.postgresql",
     "black==18.9b0",
+    "responses==0.10.6",
 ]
 
 setup(

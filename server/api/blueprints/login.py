@@ -13,10 +13,9 @@ from sqlalchemy.orm.exc import NoResultFound
 
 from server.api.blueprints.user import get_user_info
 from server.api.database.models import BlacklistToken, OAuth, Provider, TokenScope, User
-from server.api.social.facebook import Facebook
-from server.api.social.social_network import SocialNetwork
-from server.api.utils import jsonify_response
-from server.consts import DEBUG_MODE, FACEBOOK_SCOPES, MOBILE_LINK
+from server.api.social import Facebook, SocialNetwork
+from server.api.utils import jsonify_response, must_redirect
+from server.consts import DEBUG_MODE, FACEBOOK_SCOPES
 from server.error_handling import RouteError, TokenError
 from server.extensions import login_manager
 
@@ -147,26 +146,6 @@ def edit_data():
     return {"data": dict(**user.to_dict(), **get_user_info(user))}
 
 
-@login_routes.route("/facebook", methods=["GET"])
-def oauth_facebook():
-    """setup Facebook API, redirect to facebook login & permissions
-    when redirected back, check auth code and setup a server session
-    with credentials
-    """
-    # If authenticated from JWT, login using a session
-    # and blacklist token
-    auth_token = flask.request.values.get("token")
-    if auth_token:
-        user = User.from_login_token(auth_token)
-        BlacklistToken.create(token=auth_token)
-        logger.debug("logged wih token, creating session...")
-        login_user(user, remember=True)
-    # Store the state so the callback can verify the auth server response.
-    state = "".join(random.choices(string.ascii_uppercase + string.digits, k=6))
-    flask.session["state"] = state
-    return flask.redirect(Facebook.auth_url(state))
-
-
 @login_routes.route("/exchange_token", methods=["POST"])
 @jsonify_response
 def exchange_token():
@@ -193,24 +172,48 @@ def refresh_token():
     return {"auth_token": user.encode_auth_token().decode()}
 
 
+@login_routes.route("/facebook", methods=["GET"])
+def oauth_facebook():
+    """setup Facebook API, redirect to facebook login & permissions
+    when redirected back, check auth code and setup a server session
+    with credentials
+    """
+    # If authenticated from JWT, login using a session
+    # and blacklist token
+    auth_token = flask.request.values.get("token")
+    if auth_token:
+        user = User.from_login_token(auth_token)
+        BlacklistToken.create(token=auth_token)
+        logger.debug("logged wih token, creating session...")
+        login_user(user, remember=True)
+    # Store the state so the callback can verify the auth server response.
+    state = "".join(random.choices(string.ascii_uppercase + string.digits, k=6))
+    flask.session["state"] = state
+    return flask.redirect(Facebook.auth_url(state))
+
+
 @login_routes.route("/facebook/authorized", methods=["GET"])
 def facebook_authorized():
     # TODO handle association of a network when a user is already logged in
-    return handle_oauth(Facebook)
+    return oauth_process(Facebook)
 
 
-def handle_oauth(provider: Type[SocialNetwork]):
+def oauth_process(network: Type[SocialNetwork]):
     data = flask.request.values
-    access_token = provider.access_token(data.get("state"), data.get("code"))
+    access_token = network.access_token(data.get("state"), data.get("code"))
     logger.debug(f"got access token {access_token}")
+    return handle_oauth(network, access_token)
 
-    provider_user_id = provider.user_id(access_token)
-    oauth = create_or_get_oauth(
-        provider.__name__.lower(), provider_user_id, access_token
-    )
+
+@must_redirect
+def handle_oauth(network: Type[SocialNetwork], access_token: str):
+    if not access_token:
+        raise RouteError("No token received.")
+    network_user_id = network.user_id(access_token)
+    oauth = create_or_get_oauth(network.__name__.lower(), network_user_id, access_token)
     user = oauth.user
     if not user:
-        profile = provider.profile(provider_user_id, access_token)
+        profile = network.profile(network_user_id, access_token)
         logger.debug(f"profile of user is {profile}")
 
         if not profile.get("email"):
@@ -233,8 +236,7 @@ def handle_oauth(provider: Type[SocialNetwork]):
     exchange_token = user.encode_exchange_token().decode()
     logger.debug("Logging out of session")
     logout_user()
-    logger.debug(f"redirecting {user} to {MOBILE_LINK}?token=TOKEN")
-    return flask.redirect(f"{MOBILE_LINK}?token={exchange_token}")
+    return {"token": exchange_token}
 
 
 def create_or_get_oauth(provider_name: str, user_id: int, access_token: str) -> OAuth:

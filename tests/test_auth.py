@@ -1,12 +1,51 @@
-from tests import AuthActions
-from server.error_handling import RouteError, TokenError
-import pytest
+import urllib
+import contextlib
+from typing import Dict, List, Union, ContextManager
+
 import flask
 import flask_login
-from urllib import parse
+import pytest
+from tests import AuthActions
 
-from server.api.database.models import User, BlacklistToken
-from server.api.blueprints.login import validate_inputs
+from server.api.blueprints.login import (
+    handle_oauth,
+    validate_inputs,
+    create_or_get_oauth,
+)
+from server.api.database.models import BlacklistToken, User, OAuth, Provider
+from server.api.social import Facebook
+from server.error_handling import RouteError, TokenError
+
+
+@pytest.fixture
+def fake_profile():
+    return {
+        "name": "test",
+        "email": "t@t.com",
+        "picture": {"data": {"url": "test.jpg"}},
+        "provider_user_id": 1111,
+    }
+
+
+@pytest.fixture
+def mock_facebook_user_id(responses, fake_profile):
+    user_id = {"data": {"user_id": fake_profile["provider_user_id"]}}
+    responses.add(
+        responses.GET,
+        "https://graph.facebook.com/debug_token",
+        status=200,
+        json=user_id,
+    )
+
+
+@pytest.fixture
+def mock_facebook_profile(responses, fake_profile):
+    responses.add(
+        responses.GET,
+        f"https://graph.facebook.com/v3.2/{fake_profile['provider_user_id']}",
+        status=200,
+        json=fake_profile,
+    )
 
 
 def test_normal_register(app, auth: AuthActions):
@@ -159,30 +198,75 @@ def test_edit_data(app, user, requester, auth: AuthActions):
     assert requester.post("/login/edit_data", json={"password": "new"})
 
 
-"""def assert_facebook_redirect_url(url, user):
-    "Asserts that the url redirecting to the app is correctly formed"
-    url = parse.urlsplit(url)
-    url_args = dict(parse.parse_qsl(parse.urlsplit(url).query))
-    assert User.from_token(url_args["token"]) == user.id
-
-def test_login_with_facebook(client, requester):
-    with client:  # to keep the session
-        pass
-
-
-def test_register_with_facebook(client, requester):
-    pass
-
-
-def test_assosicate_with_facebook(client, requester):
-    pass
+def test_register_with_facebook(
+    app: flask.Flask,
+    fake_profile,
+    mock_facebook_user_id,
+    mock_facebook_profile,
+    fake_token,
+):
+    """Tests that a new user was registered"""
+    with app.test_request_context("/"):
+        resp = handle_oauth(Facebook, fake_token)
+        user = User.query.filter_by(name=fake_profile["name"]).first()
+        assert user.email
+        assert "token=" in resp.headers["Location"]
 
 
-def test_remove_session(client, requester, auth):
-    with client:
-        auth.login()
-        resp = requester.get("/login/facebook")
-        print(resp.__dict__)
-        handle_facebook(state, code, "test")
+def test_login_with_facebook(
+    app: flask.Flask, fake_token, user, mock_facebook_user_id, fake_profile, requester
+):
+    length = len(User.query.all())
+    OAuth.create(
+        provider=Provider.facebook,
+        provider_user_id=fake_profile["provider_user_id"],
+        token=fake_token,
+        user=user,
+    )
+    with app.test_request_context("/"):
+        resp = handle_oauth(Facebook, fake_token)
+        assert len(User.query.all()) == length
+        assert "token" in resp.headers["Location"]
+
+
+def test_facebook_no_token():
+    resp = handle_oauth(Facebook, None)
+    assert urllib.parse.quote("No token") in resp.headers["Location"]
+
+
+@contextlib.contextmanager
+def logged_in_context(app, auth, endpoint="", **kwargs) -> ContextManager[None]:
+    """A manager to enter and exit a logged-in request context"""
+    auth.login(**kwargs)
+    with app.test_request_context(
+        f"/{endpoint}", headers={"Authorization": f"Bearer {auth.auth_token}"}
+    ) as fp:
+        yield fp
+        auth.logout()
+
+
+def test_oauth_session(
+    app: flask.Flask, auth, fake_token, mock_facebook_profile, mock_facebook_user_id
+):
+    with logged_in_context(app, auth, "login/facebook"):
+        assert flask_login.current_user.is_authenticated
+        handle_oauth(Facebook, fake_token)
         assert not flask_login.current_user.is_authenticated
-"""
+
+
+def test_create_or_get_oauth(user, app, fake_profile, fake_token):
+    with app.app_context():
+        oauth = create_or_get_oauth(
+            "facebook", fake_profile["provider_user_id"], fake_token
+        )
+        assert oauth.token == fake_token
+        OAuth.create(
+            provider=Provider.facebook,
+            provider_user_id=fake_profile["provider_user_id"],
+            token=fake_token,
+            user=user,
+        )
+        oauth = create_or_get_oauth(
+            "facebook", fake_profile["provider_user_id"], fake_token
+        )
+        assert oauth.user == user

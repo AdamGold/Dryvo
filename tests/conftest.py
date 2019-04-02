@@ -1,15 +1,17 @@
 import json
+import random
+import string
 import tempfile
 from datetime import datetime, timedelta
+from pathlib import Path
 
 import flask
 import flask.testing
 import pytest
-import json
-from pathlib import Path
+import responses as responses_module
 
 from server import create_app
-from server.api.database import db, reset_db, close_db
+from server.api.database import close_db, db, reset_db
 from server.api.database.models import (
     Lesson,
     Place,
@@ -143,6 +145,7 @@ class AuthActions(object):
     def __init__(self, client):
         self._client = client
         self.refresh_token = ""
+        self.auth_token = ""
 
     def login(self, email="t@test.com", password="test"):
         return self.start_auth_session(
@@ -169,10 +172,10 @@ class AuthActions(object):
         """ Inserts the response token to the header
         for continue using that instance as authorized user"""
         req = self._client.request(method, endpoint, **kwargs)
-        auth_token = req.json.get("auth_token")
+        self.auth_token = req.json.get("auth_token")
         self.refresh_token = req.json.get("refresh_token")
-        if auth_token:
-            self._client.headers["Authorization"] = "Bearer " + auth_token
+        if self.auth_token:
+            self._client.headers["Authorization"] = "Bearer " + self.auth_token
         return req
 
 
@@ -245,3 +248,16 @@ def topic(app):
 def lesson(app):
     with app.app_context():
         yield Lesson.query.first()
+
+
+@pytest.fixture
+def fake_token():
+    return "".join(
+        [random.choice(string.ascii_letters + string.digits) for n in range(32)]
+    )
+
+
+@pytest.fixture
+def responses():
+    with responses_module.RequestsMock() as rsps:
+        yield rsps

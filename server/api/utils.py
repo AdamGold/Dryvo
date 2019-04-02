@@ -1,11 +1,14 @@
 import os
-from functools import wraps
 import traceback
+from datetime import datetime, timedelta
+from functools import wraps
+from typing import Dict
 
 import flask
 from flask.json import jsonify
-from server.consts import DEBUG_MODE
-from datetime import datetime, timedelta
+from loguru import logger
+
+from server.consts import DEBUG_MODE, MOBILE_LINK
 
 
 def jsonify_response(func):
@@ -90,3 +93,22 @@ def get_slots(
             start += duration
 
     return available_lessons
+
+
+def must_redirect(func):
+    @wraps(func)
+    def func_wrapper(*args, **kwargs):
+        try:
+            params = func(*args, **kwargs)
+        except Exception as e:
+            params = {"error": str(e)}
+        app_url = build_url(url=MOBILE_LINK, **params)
+        logger.info(f"Redirecting them to {app_url}")
+        return flask.redirect(app_url)
+
+    return func_wrapper
+
+
+def build_url(url: str, **params: Dict[str, str]) -> str:
+    param_str = "&".join(f"{key}={val}" for key, val in params.items())
+    return f"{url}?{param_str}"
