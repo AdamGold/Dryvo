@@ -2,10 +2,9 @@ import os
 import random
 import re
 import string
-from typing import Tuple
+from typing import Tuple, Type
 
 import flask
-import requests
 from cloudinary.uploader import upload
 from flask import Blueprint
 from flask_login import current_user, login_required, login_user, logout_user
@@ -14,6 +13,8 @@ from sqlalchemy.orm.exc import NoResultFound
 
 from server.api.blueprints.user import get_user_info
 from server.api.database.models import BlacklistToken, OAuth, Provider, TokenScope, User
+from server.api.social.facebook import Facebook
+from server.api.social.social_network import SocialNetwork
 from server.api.utils import jsonify_response
 from server.consts import DEBUG_MODE, FACEBOOK_SCOPES, MOBILE_LINK
 from server.error_handling import RouteError, TokenError
@@ -160,20 +161,10 @@ def oauth_facebook():
         BlacklistToken.create(token=auth_token)
         logger.debug("logged wih token, creating session...")
         login_user(user, remember=True)
-    state = "".join(random.choices(string.ascii_uppercase + string.digits, k=6))
-    redirect = flask.url_for(".facebook_authorized", _external=True)
-    auth_url = (
-        "https://www.facebook.com/v3.2/dialog/oauth?client_id={}"
-        "&redirect_uri={}&state={}&scope={}".format(
-            flask.current_app.config.get("FACEBOOK_CLIENT_ID"),
-            redirect,
-            state,
-            FACEBOOK_SCOPES,
-        )
-    )
     # Store the state so the callback can verify the auth server response.
+    state = "".join(random.choices(string.ascii_uppercase + string.digits, k=6))
     flask.session["state"] = state
-    return flask.redirect(auth_url)
+    return flask.redirect(Facebook.auth_url(state))
 
 
 @login_routes.route("/exchange_token", methods=["POST"])
@@ -204,65 +195,22 @@ def refresh_token():
 
 @login_routes.route("/facebook/authorized", methods=["GET"])
 def facebook_authorized():
-    data = flask.request.values
-    return handle_facebook(state=data.get("state"), code=data.get("code"))
-
-
-def handle_facebook(state, code):
     # TODO handle association of a network when a user is already logged in
-    # TODO refactor code
-    if state != flask.session.get("state") and not DEBUG_MODE:
-        raise RouteError("INVALID_STATE")
+    return handle_oauth(Facebook)
 
-    logger.debug("State is valid, moving on")
 
-    redirect = flask.url_for(
-        ".facebook_authorized", _external=True
-    )  # the url we are on
-    token_url = (
-        "https://graph.facebook.com/v3.2/oauth/access_token?client_id="
-        "{}&redirect_uri={}&client_secret={}&code={}".format(
-            flask.current_app.config.get("FACEBOOK_CLIENT_ID"),
-            redirect,
-            flask.current_app.config.get("FACEBOOK_CLIENT_SECRET"),
-            code,
-        )
-    )
-    access_token = requests.get(token_url).json().get("access_token")
-
+def handle_oauth(provider: Type[SocialNetwork]):
+    data = flask.request.values
+    access_token = provider.access_token(data.get("state"), data.get("code"))
     logger.debug(f"got access token {access_token}")
 
-    url = "https://graph.facebook.com/debug_token?input_token={}&access_token={}".format(
-        access_token, flask.current_app.config.get("FACEBOOK_TOKEN")
+    provider_user_id = provider.user_id(access_token)
+    oauth = create_or_get_oauth(
+        provider.__name__.lower(), provider_user_id, access_token
     )
-
-    validate_token_resp = requests.get(url).json()["data"]
-
-    # Find this OAuth token in the database, or create it
-    query = OAuth.query.filter_by(
-        provider=Provider.facebook, provider_user_id=validate_token_resp.get("user_id")
-    )
-
-    try:
-        oauth = query.one()
-        logger.debug(f"found existing oauth row {oauth}")
-    except NoResultFound:
-        oauth = OAuth(
-            provider=Provider.facebook,
-            provider_user_id=validate_token_resp.get("user_id"),
-            token=access_token,
-        )
-        logger.debug(f"Creating new oauth row {oauth}")
-
     user = oauth.user
     if not user:
-        profile = requests.get(
-            "https://graph.facebook.com/v3.2/{}?"
-            "fields=email,name&access_token={}".format(
-                validate_token_resp.get("user_id"), access_token
-            )
-        ).json()
-
+        profile = provider.profile(provider_user_id, access_token)
         logger.debug(f"profile of user is {profile}")
 
         if not profile.get("email"):
@@ -279,3 +227,15 @@ def handle_facebook(state, code):
     logout_user()
     logger.debug(f"redirecting {user} to {MOBILE_LINK}?token=TOKEN")
     return flask.redirect(f"{MOBILE_LINK}?token={exchange_token}")
+
+
+def create_or_get_oauth(provider_name: str, user_id: int, access_token: str) -> OAuth:
+    # Find this OAuth token in the database, or create it
+    provider = getattr(Provider, provider_name)
+    query = OAuth.query.filter_by(provider=provider, provider_user_id=user_id)
+    try:
+        logger.debug(f"found existing oauth row")
+        return query.one()
+    except NoResultFound:
+        logger.debug(f"Creating new oauth row")
+        return OAuth(provider=provider, provider_user_id=user_id, token=access_token)

@@ -6,7 +6,7 @@ import flask_login
 from urllib import parse
 
 from server.api.database.models import User, BlacklistToken
-from server.api.blueprints.login import handle_facebook, validate_inputs
+from server.api.blueprints.login import validate_inputs
 
 
 def test_normal_register(app, auth: AuthActions):
