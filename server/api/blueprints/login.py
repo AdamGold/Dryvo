@@ -216,8 +216,16 @@ def handle_oauth(provider: Type[SocialNetwork]):
         if not profile.get("email"):
             raise RouteError("Can not get email from user.")
 
+        try:
+            image_url = profile["picture"]["data"].get("url")
+            logger.info(f"Uploading {image_url} to Cloudinary...")
+            image = upload(image_url)["public_id"]
+        except Exception:
+            image = ""
         # Create a new local user account for this user
-        user = User(email=profile.get("email"), name=profile.get("name")).save()
+        user = User(
+            email=profile.get("email"), name=profile.get("name"), image=image
+        ).save()
         oauth.user = user
         oauth.save()
         logger.debug(f"creating new user {user}")

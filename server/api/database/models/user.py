@@ -12,10 +12,10 @@ from flask import current_app
 from flask_login import UserMixin
 from sqlalchemy.orm.exc import NoResultFound
 
+from server.consts import PROFILE_SIZE
 from server.api.database import db
 from server.api.database.consts import (
     EXCHANGE_TOKEN_EXPIRY,
-    PROFILE_SIZE,
     REFRESH_TOKEN_EXPIRY,
     TOKEN_EXPIRY,
 )

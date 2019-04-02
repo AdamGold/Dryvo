@@ -5,6 +5,7 @@ from loguru import logger
 from server.consts import DEBUG_MODE, FACEBOOK_SCOPES, MOBILE_LINK
 from server.error_handling import RouteError
 from server.api.social.social_network import SocialNetwork
+from server.consts import PROFILE_SIZE
 
 BASE_URL = "https://graph.facebook.com/v3.2"
 
@@ -53,11 +54,13 @@ class Facebook(SocialNetwork):
         )
 
         request = requests.get(url).json()
+        logger.debug(f"trying to get user id, got {request}")
         return request["data"]["user_id"]
 
     @staticmethod
     def profile(user_id: int, access_token: str):
         request = requests.get(
-            f"{BASE_URL}/{user_id}?" f"fields=email,name&access_token={access_token}"
+            f"{BASE_URL}/{user_id}?"
+            f"fields=email,name,picture.width({PROFILE_SIZE}).height({PROFILE_SIZE})&access_token={access_token}"
         ).json()
         return request
