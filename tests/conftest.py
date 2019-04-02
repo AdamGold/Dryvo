@@ -155,7 +155,7 @@ class AuthActions(object):
         return self.start_auth_session(
             "POST",
             "/login/register",
-            json={"email": email, "password": password, "name": name, "area": area},
+            data={"email": email, "password": password, "name": name, "area": area},
         )
 
     def logout(self, **kwargs):

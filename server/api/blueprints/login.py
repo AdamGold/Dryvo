@@ -6,6 +6,7 @@ from typing import Tuple
 
 import flask
 import requests
+from cloudinary.uploader import upload
 from flask import Blueprint
 from flask_login import current_user, login_required, login_user, logout_user
 from loguru import logger
@@ -99,14 +100,23 @@ def validate_inputs(data, all_required=True) -> Tuple[str, str, str, str]:
 @login_routes.route("/register", methods=["POST"])
 @jsonify_response
 def register():
-    post_data = flask.request.get_json()
+    post_data = flask.request.values
     (name, area, email, password) = validate_inputs(post_data)
+    image = flask.request.files.get("image")
     # Query to see if the user already exists
     user = User.query.filter_by(email=email).first()
     if not user:
         # There is no user so we'll try to register them
         # Register the user
         user = User(email=email, password=password, name=name, area=area)
+        if not flask.current_app.testing:
+            # we don't want our tests to upload images to cloudinary
+            if not image:
+                raise RouteError("Image is required.")
+            try:
+                user.image = upload(image)["public_id"]
+            except Exception:
+                raise RouteError("Image could not be uploaded.")
         user.save()
         # generate auth token
         tokens = user.generate_tokens()
@@ -199,6 +209,8 @@ def facebook_authorized():
 
 
 def handle_facebook(state, code):
+    # TODO handle association of a network when a user is already logged in
+    # TODO refactor code
     if state != flask.session.get("state") and not DEBUG_MODE:
         raise RouteError("INVALID_STATE")
 
