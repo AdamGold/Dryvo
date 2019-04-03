@@ -2,10 +2,9 @@ import os
 import random
 import re
 import string
-from typing import Tuple
+from typing import Tuple, Type
 
 import flask
-import requests
 from cloudinary.uploader import upload
 from flask import Blueprint
 from flask_login import current_user, login_required, login_user, logout_user
@@ -14,8 +13,9 @@ from sqlalchemy.orm.exc import NoResultFound
 
 from server.api.blueprints.user import get_user_info
 from server.api.database.models import BlacklistToken, OAuth, Provider, TokenScope, User
-from server.api.utils import jsonify_response
-from server.consts import DEBUG_MODE, FACEBOOK_SCOPES, MOBILE_LINK
+from server.api.social import Facebook, SocialNetwork
+from server.api.utils import jsonify_response, must_redirect
+from server.consts import DEBUG_MODE
 from server.error_handling import RouteError, TokenError
 from server.extensions import login_manager
 
@@ -146,36 +146,6 @@ def edit_data():
     return {"data": dict(**user.to_dict(), **get_user_info(user))}
 
 
-@login_routes.route("/facebook", methods=["GET"])
-def oauth_facebook():
-    """setup Facebook API, redirect to facebook login & permissions
-    when redirected back, check auth code and setup a server session
-    with credentials
-    """
-    # If authenticated from JWT, login using a session
-    # and blacklist token
-    auth_token = flask.request.values.get("token")
-    if auth_token:
-        user = User.from_login_token(auth_token)
-        BlacklistToken.create(token=auth_token)
-        logger.debug("logged wih token, creating session...")
-        login_user(user, remember=True)
-    state = "".join(random.choices(string.ascii_uppercase + string.digits, k=6))
-    redirect = flask.url_for(".facebook_authorized", _external=True)
-    auth_url = (
-        "https://www.facebook.com/v3.2/dialog/oauth?client_id={}"
-        "&redirect_uri={}&state={}&scope={}".format(
-            flask.current_app.config.get("FACEBOOK_CLIENT_ID"),
-            redirect,
-            state,
-            FACEBOOK_SCOPES,
-        )
-    )
-    # Store the state so the callback can verify the auth server response.
-    flask.session["state"] = state
-    return flask.redirect(auth_url)
-
-
 @login_routes.route("/exchange_token", methods=["POST"])
 @jsonify_response
 def exchange_token():
@@ -202,74 +172,63 @@ def refresh_token():
     return {"auth_token": user.encode_auth_token().decode()}
 
 
+@login_routes.route("/facebook", methods=["GET"])
+def oauth_facebook():
+    """setup Facebook API, redirect to facebook login & permissions
+    when redirected back, check auth code and setup a server session
+    with credentials
+    """
+    # If authenticated from JWT, login using a session
+    # and blacklist token
+    auth_token = flask.request.values.get("token")
+    if auth_token:
+        user = User.from_login_token(auth_token)
+        BlacklistToken.create(token=auth_token)
+        logger.debug("logged wih token, creating session...")
+        login_user(user, remember=True)
+    # Store the state so the callback can verify the auth server response.
+    state = "".join(random.choices(string.ascii_uppercase + string.digits, k=6))
+    flask.session["state"] = state
+    return flask.redirect(Facebook.auth_url(state))
+
+
 @login_routes.route("/facebook/authorized", methods=["GET"])
 def facebook_authorized():
-    data = flask.request.values
-    return handle_facebook(state=data.get("state"), code=data.get("code"))
-
-
-def handle_facebook(state, code):
     # TODO handle association of a network when a user is already logged in
-    # TODO refactor code
-    if state != flask.session.get("state") and not DEBUG_MODE:
-        raise RouteError("INVALID_STATE")
+    return oauth_process(Facebook)
 
-    logger.debug("State is valid, moving on")
 
-    redirect = flask.url_for(
-        ".facebook_authorized", _external=True
-    )  # the url we are on
-    token_url = (
-        "https://graph.facebook.com/v3.2/oauth/access_token?client_id="
-        "{}&redirect_uri={}&client_secret={}&code={}".format(
-            flask.current_app.config.get("FACEBOOK_CLIENT_ID"),
-            redirect,
-            flask.current_app.config.get("FACEBOOK_CLIENT_SECRET"),
-            code,
-        )
-    )
-    access_token = requests.get(token_url).json().get("access_token")
-
+def oauth_process(network: Type[SocialNetwork]):
+    data = flask.request.values
+    access_token = network.access_token(data.get("state"), data.get("code"))
     logger.debug(f"got access token {access_token}")
+    return handle_oauth(network, access_token)
 
-    url = "https://graph.facebook.com/debug_token?input_token={}&access_token={}".format(
-        access_token, flask.current_app.config.get("FACEBOOK_TOKEN")
-    )
 
-    validate_token_resp = requests.get(url).json()["data"]
-
-    # Find this OAuth token in the database, or create it
-    query = OAuth.query.filter_by(
-        provider=Provider.facebook, provider_user_id=validate_token_resp.get("user_id")
-    )
-
-    try:
-        oauth = query.one()
-        logger.debug(f"found existing oauth row {oauth}")
-    except NoResultFound:
-        oauth = OAuth(
-            provider=Provider.facebook,
-            provider_user_id=validate_token_resp.get("user_id"),
-            token=access_token,
-        )
-        logger.debug(f"Creating new oauth row {oauth}")
-
+@must_redirect
+def handle_oauth(network: Type[SocialNetwork], access_token: str):
+    if not access_token:
+        raise RouteError("No token received.")
+    network_user_id = network.token_metadata(access_token)
+    oauth = create_or_get_oauth(network.network_name, network_user_id, access_token)
     user = oauth.user
     if not user:
-        profile = requests.get(
-            "https://graph.facebook.com/v3.2/{}?"
-            "fields=email,name&access_token={}".format(
-                validate_token_resp.get("user_id"), access_token
-            )
-        ).json()
-
+        profile = network.profile(network_user_id, access_token)
         logger.debug(f"profile of user is {profile}")
 
         if not profile.get("email"):
             raise RouteError("Can not get email from user.")
 
+        try:
+            image_url = profile["picture"]["data"].get("url")
+            logger.info(f"Uploading {image_url} to Cloudinary...")
+            image = upload(image_url)["public_id"]
+        except Exception:
+            image = ""
         # Create a new local user account for this user
-        user = User(email=profile.get("email"), name=profile.get("name")).save()
+        user = User(
+            email=profile.get("email"), name=profile.get("name"), image=image
+        ).save()
         oauth.user = user
         oauth.save()
         logger.debug(f"creating new user {user}")
@@ -277,5 +236,16 @@ def handle_facebook(state, code):
     exchange_token = user.encode_exchange_token().decode()
     logger.debug("Logging out of session")
     logout_user()
-    logger.debug(f"redirecting {user} to {MOBILE_LINK}?token=TOKEN")
-    return flask.redirect(f"{MOBILE_LINK}?token={exchange_token}")
+    return {"token": exchange_token}
+
+
+def create_or_get_oauth(provider_name: str, user_id: int, access_token: str) -> OAuth:
+    # Find this OAuth token in the database, or create it
+    provider = getattr(Provider, provider_name)
+    query = OAuth.query.filter_by(provider=provider, provider_user_id=user_id)
+    try:
+        logger.debug(f"found existing oauth row")
+        return query.one()
+    except NoResultFound:
+        logger.debug(f"Creating new oauth row")
+        return OAuth(provider=provider, provider_user_id=user_id, token=access_token)
