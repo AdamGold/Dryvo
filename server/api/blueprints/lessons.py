@@ -100,6 +100,20 @@ def lessons():
         raise RouteError("Wrong parameters passed.")
 
 
+@lessons_routes.route("/<int:lesson_id>", methods=["GET"])
+@jsonify_response
+@login_required
+def lesson(lesson_id):
+    lesson = Lesson.get_by_id(lesson_id)
+    if not lesson:
+        raise RouteError("Lesson does not exist.")
+
+    if current_user.id not in (lesson.student.user.id, lesson.teacher.user.id):
+        raise RouteError("You are not allowed to view this lesson.", 401)
+
+    return {"data": lesson.to_dict()}
+
+
 @lessons_routes.route("/", methods=["POST"])
 @jsonify_response
 @login_required

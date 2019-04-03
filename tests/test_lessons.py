@@ -58,6 +58,18 @@ def test_deleted_lessons(auth, teacher, student, meetup, dropoff, requester):
     assert resp.json["data"][0]["duration"] == 80
 
 
+def test_single_lesson(auth, teacher, student, meetup, dropoff, requester):
+    date = datetime(year=2018, month=11, day=27, hour=13, minute=00)
+    lesson = create_lesson(teacher, student, meetup, dropoff, date)
+    auth.login(email=student.user.email)
+    resp = requester.get(f"/lessons/{lesson.id}")
+    assert resp.json["data"]
+    auth.logout()
+    auth.login()
+    resp = requester.get(f"/lessons/{lesson.id}")
+    assert resp._status_code == 401
+
+
 def test_student_new_lesson(auth, teacher, student, requester, topic):
     auth.login(email=student.user.email)
     date = (tomorrow.replace(hour=22, minute=40)).strftime(DATE_FORMAT)
