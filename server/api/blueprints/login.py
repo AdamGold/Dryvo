@@ -15,7 +15,7 @@ from server.api.blueprints.user import get_user_info
 from server.api.database.models import BlacklistToken, OAuth, Provider, TokenScope, User
 from server.api.social import Facebook, SocialNetwork
 from server.api.utils import jsonify_response, must_redirect
-from server.consts import DEBUG_MODE, FACEBOOK_SCOPES
+from server.consts import DEBUG_MODE
 from server.error_handling import RouteError, TokenError
 from server.extensions import login_manager
 
@@ -209,8 +209,8 @@ def oauth_process(network: Type[SocialNetwork]):
 def handle_oauth(network: Type[SocialNetwork], access_token: str):
     if not access_token:
         raise RouteError("No token received.")
-    network_user_id = network.user_id(access_token)
-    oauth = create_or_get_oauth(network.__name__.lower(), network_user_id, access_token)
+    network_user_id = network.token_metadata(access_token)
+    oauth = create_or_get_oauth(network.network_name, network_user_id, access_token)
     user = oauth.user
     if not user:
         profile = network.profile(network_user_id, access_token)

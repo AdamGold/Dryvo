@@ -13,7 +13,6 @@ from server.api.blueprints.login import (
     create_or_get_oauth,
 )
 from server.api.database.models import BlacklistToken, User, OAuth, Provider
-from server.api.social import Facebook
 from server.error_handling import RouteError, TokenError
 
 
@@ -28,21 +27,21 @@ def fake_profile():
 
 
 @pytest.fixture
-def mock_facebook_user_id(responses, fake_profile):
+def mock_oauth_user_id(responses, fake_profile, social_network):
     user_id = {"data": {"user_id": fake_profile["provider_user_id"]}}
     responses.add(
         responses.GET,
-        "https://graph.facebook.com/debug_token",
+        social_network.base_url + social_network.token_metadata_url,
         status=200,
         json=user_id,
     )
 
 
 @pytest.fixture
-def mock_facebook_profile(responses, fake_profile):
+def mock_oauth_profile(responses, fake_profile, social_network):
     responses.add(
         responses.GET,
-        f"https://graph.facebook.com/v3.2/{fake_profile['provider_user_id']}",
+        f"{social_network.base_url}{fake_profile['provider_user_id']}",
         status=200,
         json=fake_profile,
     )
@@ -130,17 +129,6 @@ def test_register_validate_input(
     assert message in resp.json.get("message")
 
 
-def test_facebook_first_step(client, auth, requester):
-    with client:
-        auth.login()
-        resp = requester.get("/login/facebook")
-        assert resp.status_code == 302  # redirect
-        assert flask.session["state"]
-        auth.logout()
-        assert flask_login.current_user.is_authenticated
-    assert not flask_login.current_user.is_authenticated
-
-
 def test_exchange_token(requester, user: User):
     resp = requester.post(
         "/login/exchange_token",
@@ -198,39 +186,57 @@ def test_edit_data(app, user, requester, auth: AuthActions):
     assert requester.post("/login/edit_data", json={"password": "new"})
 
 
-def test_register_with_facebook(
+def test_oauth_first_step(client, auth, requester, social_network):
+    with client:
+        auth.login()
+        resp = requester.get(f"/login/{social_network.network_name}")
+        assert resp.status_code == 302  # redirect
+        assert flask.session["state"]
+        auth.logout()
+        assert flask_login.current_user.is_authenticated
+    assert not flask_login.current_user.is_authenticated
+
+
+def test_register_with_oauth(
     app: flask.Flask,
     fake_profile,
-    mock_facebook_user_id,
-    mock_facebook_profile,
+    mock_oauth_user_id,
+    mock_oauth_profile,
     fake_token,
+    social_network,
 ):
     """Tests that a new user was registered"""
     with app.test_request_context("/"):
-        resp = handle_oauth(Facebook, fake_token)
+        resp = handle_oauth(social_network, fake_token)
         user = User.query.filter_by(name=fake_profile["name"]).first()
         assert user.email
         assert "token=" in resp.headers["Location"]
 
 
-def test_login_with_facebook(
-    app: flask.Flask, fake_token, user, mock_facebook_user_id, fake_profile, requester
+def test_login_with_oauth(
+    app: flask.Flask,
+    fake_token,
+    user,
+    mock_oauth_user_id,
+    fake_profile,
+    requester,
+    social_network,
 ):
     length = len(User.query.all())
     OAuth.create(
-        provider=Provider.facebook,
+        provider=getattr(Provider, social_network.network_name),
         provider_user_id=fake_profile["provider_user_id"],
         token=fake_token,
         user=user,
     )
     with app.test_request_context("/"):
-        resp = handle_oauth(Facebook, fake_token)
+        resp = handle_oauth(social_network, fake_token)
         assert len(User.query.all()) == length
         assert "token" in resp.headers["Location"]
 
 
-def test_facebook_no_token():
-    resp = handle_oauth(Facebook, None)
+def test_oauth_no_token(social_network):
+    resp = handle_oauth(social_network, None)
     assert urllib.parse.quote("No token") in resp.headers["Location"]
 
 
@@ -246,27 +252,32 @@ def logged_in_context(app, auth, endpoint="", **kwargs) -> ContextManager[None]:
 
 
 def test_oauth_session(
-    app: flask.Flask, auth, fake_token, mock_facebook_profile, mock_facebook_user_id
+    app: flask.Flask,
+    auth,
+    fake_token,
+    mock_oauth_profile,
+    mock_oauth_user_id,
+    social_network,
 ):
-    with logged_in_context(app, auth, "login/facebook"):
+    with logged_in_context(app, auth, f"login/{social_network.network_name}"):
         assert flask_login.current_user.is_authenticated
-        handle_oauth(Facebook, fake_token)
+        handle_oauth(social_network, fake_token)
         assert not flask_login.current_user.is_authenticated
 
 
-def test_create_or_get_oauth(user, app, fake_profile, fake_token):
+def test_create_or_get_oauth(user, app, fake_profile, fake_token, social_network):
     with app.app_context():
         oauth = create_or_get_oauth(
-            "facebook", fake_profile["provider_user_id"], fake_token
+            social_network.network_name, fake_profile["provider_user_id"], fake_token
         )
         assert oauth.token == fake_token
         OAuth.create(
-            provider=Provider.facebook,
+            provider=getattr(Provider, social_network.network_name),
             provider_user_id=fake_profile["provider_user_id"],
             token=fake_token,
             user=user,
         )
         oauth = create_or_get_oauth(
-            "facebook", fake_profile["provider_user_id"], fake_token
+            social_network.network_name, fake_profile["provider_user_id"], fake_token
         )
         assert oauth.user == user

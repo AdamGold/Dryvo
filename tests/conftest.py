@@ -22,6 +22,7 @@ from server.api.database.models import (
     User,
     WorkDay,
 )
+from server.api.social import SocialNetwork, social_networks_classes
 
 
 @pytest.fixture
@@ -261,3 +262,8 @@ def fake_token():
 def responses():
     with responses_module.RequestsMock() as rsps:
         yield rsps
+
+
+@pytest.fixture(params=social_networks_classes)
+def social_network(request) -> SocialNetwork:
+    return request.param

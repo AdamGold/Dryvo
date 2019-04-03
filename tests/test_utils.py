@@ -6,7 +6,7 @@ import pytest
 from werkzeug import MultiDict
 
 from server.api.database.models import Lesson, Student, User
-from server.api.utils import get_slots, jsonify_response
+from server.api.utils import get_slots, jsonify_response, must_redirect
 from server.consts import DATE_FORMAT, WORKDAY_DATE_FORMAT
 
 
@@ -178,3 +178,12 @@ def test_handle_extra_filters(teacher):
         query=Student.query, args={"area": "nope"}, extra_filters=extra_filters
     ).first()
     assert new_student == student
+
+
+def test_must_redirect(app):
+    @must_redirect
+    def test():
+        return {"test": "test"}
+
+    with app.app_context():
+        assert test()._status_code == 302
