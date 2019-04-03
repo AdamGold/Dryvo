@@ -179,9 +179,23 @@ def test_topics_in_progress(teacher, student, topic, meetup, dropoff, lesson):
     assert len(in_progress) == 0
 
 
-def test_balance(teacher, student):
+def test_balance(teacher, student, meetup, dropoff):
     # we have one lesson currently and 0 payments
     assert student.balance == -teacher.price
+    lesson = Lesson.create(
+        teacher=teacher,
+        student=student,
+        creator=teacher.user,
+        duration=40,
+        date=datetime.utcnow(),
+        meetup_place=meetup,
+        dropoff_place=dropoff,
+        is_approved=True,
+    )
+    assert student.balance < -teacher.price
+    lesson.update(is_approved=False)
+    assert student.balance == -teacher.price
+
     st = Student.query.filter(Student.balance == -teacher.price).first()
     assert st == student
     Payment.create(amount=teacher.price, teacher=teacher, student=student)
