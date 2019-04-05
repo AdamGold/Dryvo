@@ -1,4 +1,4 @@
-from datetime import datetime, timedelta
+from datetime import datetime, timedelta, date
 
 import pytest
 
@@ -23,7 +23,6 @@ def test_work_days(teacher, auth, requester):
     kwargs.pop("on_date")
     kwargs["from_hour"] = 15
     day2 = WorkDay.create(**kwargs)
-    print(WorkDay.query.all())
     auth.login(email=teacher.user.email)
     resp = requester.get("/teacher/work_days").json
     assert resp["data"][0]["from_hour"] == kwargs["from_hour"]
@@ -32,35 +31,35 @@ def test_work_days(teacher, auth, requester):
     assert resp["data"][0]["from_hour"] == first_kwargs_hour
 
 
-def test_add_work_day(teacher, auth, requester):
+def test_update_work_days(teacher, auth, requester):
     auth.login(email=teacher.user.email)
+    # update normal work days
+    data = {0: [{"from_hour": 23, "from_minutes": 0, "to_hour": 24, "to_minutes": 0}]}
+    resp = requester.post("/teacher/work_days", json=data)
+    assert resp.status_code == 200
+    assert WorkDay.query.filter_by(from_hour=23).first().day.value == 0
+    # check everything older gets deleted
+    data = {0: [{"from_hour": 11, "from_minutes": 0, "to_hour": 12, "to_minutes": 0}]}
+    resp = requester.post("/teacher/work_days", json=data)
+    assert resp.status_code == 200
+    assert not WorkDay.query.filter_by(day=0).filter_by(from_hour=23).first()
+    # update specific work days
     data = {
-        "day": "tuesday",
-        "from_hour": 13,
-        "from_minutes": 0,
-        "to_hour": 17,
-        "to_minutes": 0,
-        "on_date": "2018-11-27",
+        "2018-11-27": [
+            {"from_hour": 1, "from_minutes": 0, "to_hour": 2, "to_minutes": 0}
+        ]
     }
     resp = requester.post("/teacher/work_days", json=data)
-    assert "Day created" in resp.json["message"]
-    assert resp.json["data"]
-    assert resp.status_code == 201
-    assert WorkDay.query.filter_by(from_hour=13).first().from_hour == data["from_hour"]
+    assert resp.status_code == 200
+    assert WorkDay.query.filter_by(from_hour=1).first().on_date == date(2018, 11, 27)
 
 
 def test_add_work_day_invalid_values(teacher, auth, requester):
     auth.login(email=teacher.user.email)
-    data = {
-        "day": "tuesday",
-        "from_hour": 20,
-        "from_minutes": 0,
-        "to_hour": 19,
-        "to_minutes": 0,
-        "on_date": "2018-11-27",
-    }
+    # to_hour smaller than from_hour
+    data = {0: [{"from_hour": 24, "from_minutes": 0, "to_hour": 23, "to_minutes": 0}]}
     resp = requester.post("/teacher/work_days", json=data)
-    assert "difference" in resp.json["message"]
+    assert resp.status_code == 400
 
 
 def test_delete_work_day(teacher, auth, requester):
@@ -86,14 +85,15 @@ def test_available_hours_route(teacher, student, meetup, dropoff, auth, requeste
     date = tomorrow.strftime(WORKDAY_DATE_FORMAT)
     time_and_date = date + "T13:30:20.123123Z"
     data = {
-        "day": "tuesday",
+        "teacher_id": teacher.id,
         "from_hour": 13,
         "from_minutes": 0,
         "to_hour": 17,
         "to_minutes": 0,
-        "on_date": date,
+        "on_date": tomorrow,
     }
-    requester.post("/teacher/work_days", json=data)  # we add a day
+    WorkDay.create(**data)
+
     # now let's add a lesson
     Lesson.create(
         teacher_id=teacher.id,
