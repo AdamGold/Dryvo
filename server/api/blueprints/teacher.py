@@ -10,6 +10,7 @@ from server.api.database.models import Day, Payment, Student, Teacher, User, Wor
 from server.api.push_notifications import FCM
 from server.api.utils import jsonify_response, paginate
 from server.error_handling import RouteError
+from server.consts import WORKDAY_DATE_FORMAT
 
 teacher_routes = Blueprint("teacher", __name__, url_prefix="/teacher")
 
@@ -51,34 +52,49 @@ def work_days():
 @jsonify_response
 @login_required
 @teacher_required
-def new_work_day():
+def update_work_days():
     data = flask.request.get_json()
-    day = data.get("day")
-    if not isinstance(day, int):
-        day = getattr(Day, day, 1)
-    date_input = data.get("on_date")
-    if date_input:
-        date_input = datetime.strptime(date_input, "%Y-%m-%d")
-    from_hour = max(min(data.get("from_hour"), 24), 0)
-    to_hour = max(min(data.get("to_hour"), 24), 0)
-    from_minutes = max(min(data.get("from_minutes"), 60), 0)
-    to_minutes = max(min(data.get("to_minutes"), 60), 0)
-    from_time = datetime.strptime(f"{from_hour}:{from_minutes}", "%H:%M")
-    to_time = datetime.strptime(f"{to_hour}:{to_minutes}", "%H:%M")
-    if from_time >= to_time:
-        raise RouteError("There must be a bigger difference between the two times.")
-    day = WorkDay(
-        day=day,
-        from_hour=from_hour,
-        from_minutes=from_minutes,
-        to_hour=to_hour,
-        to_minutes=to_minutes,
-        on_date=date_input,
-    )
-    current_user.teacher.work_days.append(day)
-    day.save()
+    """ example data:
+    0: [{from_hour: 8, from_minutes: 0, to_hour: 14}], 1: {}....
+    OR
+    "03-15-2019": [{from_hour: 8}], "03-16-2019": []....
+    """
+    for day, hours_list in data.items():
+        # first, let's delete all current data with this date
+        # TODO better algorithm for that
+        try:
+            day = int(day)
+            params = dict(day=day)
+            WorkDay.query.filter_by(**params).delete()
+        except ValueError:
+            # probably a date
+            params = dict(on_date=datetime.strptime(day, WORKDAY_DATE_FORMAT))
+            WorkDay.query.filter_by(**params).delete()
 
-    return {"message": "Day created successfully.", "data": day.to_dict()}, 201
+        for hours in hours_list:
+            from_hour = max(min(hours.get("from_hour"), 24), 0)
+            to_hour = max(min(hours.get("to_hour"), 24), 0)
+            from_minutes = max(min(hours.get("from_minutes"), 60), 0)
+            to_minutes = max(min(hours.get("to_minutes"), 60), 0)
+
+            if from_hour >= to_hour:
+                raise RouteError(
+                    "There must be a bigger difference between the two times."
+                )
+
+            current_user.teacher.work_days.append(
+                WorkDay(
+                    from_hour=from_hour,
+                    from_minutes=from_minutes,
+                    to_hour=to_hour,
+                    to_minutes=to_minutes,
+                    **params,
+                )
+            )
+
+    current_user.save()
+
+    return {"message": "Days updated."}
 
 
 @teacher_routes.route("/work_days/<int:day_id>", methods=["POST"])
