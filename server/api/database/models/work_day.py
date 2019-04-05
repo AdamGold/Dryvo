@@ -48,7 +48,7 @@ class WorkDay(SurrogatePK, Model):
     def to_dict(self):
         return {
             "id": self.id,
-            "day": self.day.value,
+            "day": self.day.value if self.day else None,
             "from_hour": self.from_hour,
             "from_minutes": self.from_minutes,
             "to_hour": self.to_hour,
