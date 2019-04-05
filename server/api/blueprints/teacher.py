@@ -72,10 +72,10 @@ def update_work_days():
             WorkDay.query.filter_by(**params).delete()
 
         for hours in hours_list:
-            from_hour = max(min(hours.get("from_hour"), 24), 0)
-            to_hour = max(min(hours.get("to_hour"), 24), 0)
-            from_minutes = max(min(hours.get("from_minutes"), 60), 0)
-            to_minutes = max(min(hours.get("to_minutes"), 60), 0)
+            from_hour = max(min(int(hours.get("from_hour")), 24), 0)
+            to_hour = max(min(int(hours.get("to_hour")), 24), 0)
+            from_minutes = max(min(int(hours.get("from_minutes")), 60), 0)
+            to_minutes = max(min(int(hours.get("to_minutes")), 60), 0)
 
             if from_hour >= to_hour:
                 raise RouteError(

@@ -34,7 +34,9 @@ def test_work_days(teacher, auth, requester):
 def test_update_work_days(teacher, auth, requester):
     auth.login(email=teacher.user.email)
     # update normal work days
-    data = {0: [{"from_hour": 23, "from_minutes": 0, "to_hour": 24, "to_minutes": 0}]}
+    data = {
+        0: [{"from_hour": "23", "from_minutes": 0, "to_hour": "24", "to_minutes": 0}]
+    }
     resp = requester.post("/teacher/work_days", json=data)
     assert resp.status_code == 200
     assert WorkDay.query.filter_by(from_hour=23).first().day.value == 0
