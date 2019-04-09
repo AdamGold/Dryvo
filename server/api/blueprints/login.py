@@ -109,10 +109,7 @@ def register():
         # There is no user so we'll try to register them
         # Register the user
         user = User(email=email, password=password, name=name, area=area)
-        if not flask.current_app.testing:
-            # we don't want our tests to upload images to cloudinary
-            if not image:
-                raise RouteError("Image is required.")
+        if image:
             try:
                 user.image = upload(image)["public_id"]
             except Exception:
