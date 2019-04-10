@@ -22,7 +22,7 @@ def init_app(app):
 @jsonify_response
 @login_required
 def me():
-    return {"user": dict(**current_user.to_dict(), **current_user.role_info())}
+    return {"user": current_user.to_dict()}
 
 
 @user_routes.route("/search", methods=["GET"])

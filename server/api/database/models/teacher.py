@@ -97,7 +97,7 @@ class Teacher(SurrogatePK, LessonCreator):
             args, query=self.work_days, custom_date=custom_date_func
         )
 
-    def to_dict(self):
+    def to_dict(self, with_user=True):
         return {
             "teacher_id": self.id,
             "price": self.price,
@@ -105,5 +105,5 @@ class Teacher(SurrogatePK, LessonCreator):
             "price_rating": self.price_rating,
             "availabillity_rating": self.availabillity_rating,
             "content_rating": self.content_rating,
-            "user": self.user.to_dict(),
+            "user": self.user.to_dict() if with_user else None,
         }

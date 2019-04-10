@@ -56,8 +56,7 @@ def direct_login():
     # Try to authenticate the found user using their password
     if user and user.check_password(data.get("password")):
         tokens = user.generate_tokens()
-        user_dict = dict(**user.to_dict(), **user.role_info())
-        return dict(**tokens, **{"user": user_dict})
+        return dict(**tokens, **{"user": user.to_dict()})
     # User does not exist. Therefore, we return an error message
     raise RouteError("Invalid email or password.", 401)
 
@@ -141,7 +140,7 @@ def edit_data():
         user.phone = phone
 
     user.save()
-    return {"data": dict(**user.to_dict(), **user.role_info())}
+    return {"data": user.to_dict()}
 
 
 @login_routes.route("/exchange_token", methods=["POST"])

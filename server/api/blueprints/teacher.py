@@ -204,4 +204,4 @@ def edit_data():
             setattr(teacher, field, post_data.get(field))
 
     teacher.save()
-    return {"data": dict(**current_user.to_dict(), **current_user.role_info())}
+    return {"data": current_user.to_dict()}
