@@ -11,7 +11,6 @@ from flask_login import current_user, login_required, login_user, logout_user
 from loguru import logger
 from sqlalchemy.orm.exc import NoResultFound
 
-from server.api.blueprints.user import get_user_info
 from server.api.database.models import BlacklistToken, OAuth, Provider, TokenScope, User
 from server.api.social import Facebook, SocialNetwork
 from server.api.utils import jsonify_response, must_redirect
@@ -57,7 +56,7 @@ def direct_login():
     # Try to authenticate the found user using their password
     if user and user.check_password(data.get("password")):
         tokens = user.generate_tokens()
-        user_dict = dict(**user.to_dict(), **get_user_info(user))
+        user_dict = dict(**user.to_dict(), **user.role_info())
         return dict(**tokens, **{"user": user_dict})
     # User does not exist. Therefore, we return an error message
     raise RouteError("Invalid email or password.", 401)
@@ -140,7 +139,7 @@ def edit_data():
         user.set_password(password)
 
     user.save()
-    return {"data": dict(**user.to_dict(), **get_user_info(user))}
+    return {"data": dict(**user.to_dict(), **user.role_info())}
 
 
 @login_routes.route("/exchange_token", methods=["POST"])

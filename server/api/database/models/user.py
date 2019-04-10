@@ -155,6 +155,10 @@ class User(UserMixin, SurrogatePK, Model):
         except (jwt.InvalidTokenError, jwt.DecodeError):
             raise TokenError("INVALID_TOKEN")
 
+    def role_info(self):
+        info = self.teacher or self.student or {}
+        return info.to_dict() if info else {}
+
     def to_dict(self):
         image = ""
         if self.image:

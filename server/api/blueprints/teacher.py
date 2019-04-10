@@ -9,8 +9,8 @@ from loguru import logger
 from server.api.database.models import Day, Payment, Student, Teacher, User, WorkDay
 from server.api.push_notifications import FCM
 from server.api.utils import jsonify_response, paginate
-from server.error_handling import RouteError
 from server.consts import WORKDAY_DATE_FORMAT
+from server.error_handling import RouteError
 
 teacher_routes = Blueprint("teacher", __name__, url_prefix="/teacher")
 
@@ -189,3 +189,19 @@ def students():
         )
     except ValueError:
         raise RouteError("Wrong parameters passed.")
+
+
+@teacher_routes.route("/edit_data", methods=["POST"])
+@jsonify_response
+@login_required
+@teacher_required
+def edit_data():
+    post_data = flask.request.get_json()
+    teacher = current_user.teacher
+    fields = ("price", "lesson_duration")
+    for field in fields:
+        if post_data.get(field):
+            setattr(teacher, field, post_data.get(field))
+
+    teacher.save()
+    return {"data": dict(**current_user.to_dict(), **current_user.role_info())}

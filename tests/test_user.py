@@ -97,7 +97,7 @@ def test_me_not_teacher_or_student(auth, user, requester):
 
 
 def test_get_user_info(teacher):
-    info = user.get_user_info(teacher.user)
+    info = teacher.user.role_info()
     assert "teacher_id" in info
     assert "price" in info
 

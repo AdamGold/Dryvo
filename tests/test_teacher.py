@@ -168,3 +168,14 @@ def test_students(auth, teacher, requester):
     resp = requester.get("/teacher/students?limit=1")
     assert len(resp.json["data"]) == 1
 
+
+def test_edit_data(app, teacher, requester, auth):
+    auth.login(email=teacher.user.email)
+    resp = requester.post(
+        "/teacher/edit_data", json={"price": 200, "lesson_duration": 100}
+    )
+    assert teacher.lesson_duration == 100
+    assert resp.json["data"]["price"] == 200
+    assert requester.post("/login/edit_data", json={})
+    assert teacher.lesson_duration == 100
+
