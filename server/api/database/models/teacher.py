@@ -25,7 +25,6 @@ class Teacher(SurrogatePK, LessonCreator):
 
     __tablename__ = "teachers"
     price = Column(db.Integer, nullable=False)
-    phone = Column(db.String, nullable=False)
     price_rating = Column(db.Float, nullable=True)
     availabillity_rating = Column(db.Float, nullable=True)
     content_rating = Column(db.Float, nullable=True)
@@ -98,14 +97,13 @@ class Teacher(SurrogatePK, LessonCreator):
             args, query=self.work_days, custom_date=custom_date_func
         )
 
-    def to_dict(self):
+    def to_dict(self, with_user=True):
         return {
             "teacher_id": self.id,
             "price": self.price,
-            "phone": self.phone,
             "lesson_duration": self.lesson_duration,
             "price_rating": self.price_rating,
             "availabillity_rating": self.availabillity_rating,
             "content_rating": self.content_rating,
-            "user": self.user.to_dict(),
+            "user": self.user.to_dict() if with_user else None,
         }

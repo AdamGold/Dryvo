@@ -163,13 +163,13 @@ class Student(SurrogatePK, LessonCreator):
         )
         return q
 
-    def to_dict(self):
+    def to_dict(self, with_user=True):
         return {
             "student_id": self.id,
             "my_teacher": self.teacher.to_dict(),
             "balance": self.balance,
             "new_lesson_number": self.new_lesson_number,
-            "user": self.user.to_dict(),
+            "user": self.user.to_dict() if with_user else None,
             "is_approved": self.is_approved,
             "is_active": self.is_active,
         }

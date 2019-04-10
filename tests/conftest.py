@@ -52,20 +52,21 @@ def app() -> flask.Flask:
 
 
 def setup_db(app):
-    User.create(email="t@test.com", password="test", name="test", area="test")
+    User.create(
+        email="t@test.com", password="test", name="test", area="test", phone="044444444"
+    )
     User.create(
         email="admin@test.com",
         password="test",
         name="admin",
         area="test",
         is_admin=True,
+        phone="055555555",
     )
     teacher_user = User.create(
         email="teacher@test.com", password="test", name="teacher", area="test"
     )
-    teacher = Teacher.create(
-        user_id=teacher_user.id, price=100, phone="055555555", lesson_duration=40
-    )
+    teacher = Teacher.create(user_id=teacher_user.id, price=100, lesson_duration=40)
     student_user = User.create(
         email="student@test.com", password="test", name="student", area="test"
     )
@@ -154,12 +155,23 @@ class AuthActions(object):
         )
 
     def register(
-        self, email="test@test.com", password="test", name="test", area="test"
+        self,
+        email="test@test.com",
+        password="test",
+        name="test",
+        area="test",
+        phone="0511111111",
     ):
         return self.start_auth_session(
             "POST",
             "/login/register",
-            data={"email": email, "password": password, "name": name, "area": area},
+            data={
+                "email": email,
+                "password": password,
+                "name": name,
+                "area": area,
+                "phone": phone,
+            },
         )
 
     def logout(self, **kwargs):

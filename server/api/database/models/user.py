@@ -62,6 +62,7 @@ class User(UserMixin, SurrogatePK, Model):
     area = Column(db.String(80), nullable=True)
     firebase_token = Column(db.Text, nullable=True)
     image = Column(db.String(240), nullable=True)
+    phone = Column(db.String, nullable=True)
 
     ALLOWED_FILTERS = ["name", "email", "area"]
 
@@ -155,6 +156,10 @@ class User(UserMixin, SurrogatePK, Model):
         except (jwt.InvalidTokenError, jwt.DecodeError):
             raise TokenError("INVALID_TOKEN")
 
+    def role_info(self):
+        info = self.teacher or self.student or {}
+        return info.to_dict(with_user=False) if info else {}
+
     def to_dict(self):
         image = ""
         if self.image:
@@ -168,7 +173,7 @@ class User(UserMixin, SurrogatePK, Model):
                 )[0]
             except Exception:
                 pass
-        return {
+        attrs = {
             "id": self.id,
             "email": self.email,
             "created_at": self.created_at,
@@ -176,4 +181,7 @@ class User(UserMixin, SurrogatePK, Model):
             "area": self.area,
             "name": self.name,
             "image": image,
+            "phone": self.phone,
         }
+
+        return dict(**attrs, **self.role_info())
