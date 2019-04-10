@@ -67,7 +67,7 @@ def get_lesson_data(data: dict, user: User) -> dict:
         duration = data.get("duration", user.teacher.lesson_duration)
         teacher = user.teacher
         student = Student.get_by_id(data.get("student_id"))
-        if not student and data.get("student_id") is not None:
+        if not student:
             raise RouteError("Student does not exist.")
 
     meetup, dropoff = handle_places(

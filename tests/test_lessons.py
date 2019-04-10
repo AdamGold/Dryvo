@@ -23,7 +23,7 @@ def create_lesson(teacher, student, meetup, dropoff, date, duration=40, deleted=
     return Lesson.create(
         teacher=teacher,
         student=student,
-        creator=student.user,
+        creator=student.user if student else teacher.user,
         duration=duration,
         date=date,
         meetup_place=meetup,
@@ -124,21 +124,13 @@ def test_update_topics(auth, teacher, student, requester, topic):
     ),
 )
 def test_invalid_update_topics(
-    auth, teacher, requester, topic, student_id, topics, error
+    auth, meetup, dropoff, teacher, requester, topic, student_id, topics, error
 ):
     auth.login(email=teacher.user.email)
-    date = (tomorrow.replace(hour=13, minute=00)).strftime(DATE_FORMAT)
-    resp = requester.post(
-        "/lessons/",
-        json={
-            "date": date,
-            "student_id": student_id,
-            "meetup_place": "test",
-            "dropoff_place": "test",
-        },
-    )
-    lesson_id = resp.json["data"]["id"]
-    resp = requester.post(f"/lessons/{lesson_id}/topics", json={"topics": topics})
+    date = tomorrow.replace(hour=13, minute=00)
+    student = Student.get_by_id(student_id) if student_id else None
+    lesson = create_lesson(teacher, student, meetup, dropoff, date)
+    resp = requester.post(f"/lessons/{lesson.id}/topics", json={"topics": topics})
     assert resp.status_code == 400
     assert resp.json["message"] == error
 
@@ -168,7 +160,7 @@ def test_teacher_new_lesson_without_student(auth, teacher, student, requester):
     auth.login(email=teacher.user.email)
     date = (tomorrow.replace(hour=13, minute=00)).strftime(DATE_FORMAT)
     resp = requester.post("/lessons/", json={"date": date})
-    assert resp.json["data"]["is_approved"]
+    assert "does not exist" in resp.json["message"]
 
 
 def test_teacher_new_lesson_with_student(auth, teacher, student, requester):
