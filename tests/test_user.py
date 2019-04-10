@@ -6,36 +6,28 @@ from server.api.blueprints import user
 
 def test_make_teacher(user, admin, auth, requester):
     auth.login(admin.email, "test")
-    resp = requester.post(
-        "/user/make_teacher",
-        json={"user_id": user.id, "price": 100, "phone": "052222222"},
-    )
+    resp = requester.post("/user/make_teacher", json={"user_id": user.id, "price": 100})
     assert resp.json["data"]["user"]["id"] == user.id
 
 
 def test_not_admin_make_teacher(user, auth, requester):
     auth.login()
-    resp = requester.post(
-        "/user/make_teacher",
-        json={"user_id": user.id, "price": 100, "phone": "052222222"},
-    )
+    resp = requester.post("/user/make_teacher", json={"user_id": user.id, "price": 100})
     assert resp.json.get("message") == "Not authorized."
 
 
 @pytest.mark.parametrize(
-    ("user_id", "price", "phone", "message"),
+    ("user_id", "price", "message"),
     (
-        (1, 100, "", "Empty fields."),
-        (1, -20, "0435345", "Price must be above 0."),
-        (6, 200, "12312312", "User was not found."),
+        (1, None, "Empty fields."),
+        (1, -20, "Price must be above 0."),
+        (6, 200, "User was not found."),
     ),
 )
-def test_invalid_make_teacher(
-    admin, user, auth, requester, user_id, price, phone, message
-):
+def test_invalid_make_teacher(admin, user, auth, requester, user_id, price, message):
     auth.login(admin.email, "test")
     resp = requester.post(
-        "/user/make_teacher", json={"user_id": user_id, "price": price, "phone": phone}
+        "/user/make_teacher", json={"user_id": user_id, "price": price}
     )
     assert resp.status_code == 400
     assert resp.json.get("message") == message

@@ -62,6 +62,7 @@ class User(UserMixin, SurrogatePK, Model):
     area = Column(db.String(80), nullable=True)
     firebase_token = Column(db.Text, nullable=True)
     image = Column(db.String(240), nullable=True)
+    phone = Column(db.String, nullable=True)
 
     ALLOWED_FILTERS = ["name", "email", "area"]
 
@@ -180,4 +181,5 @@ class User(UserMixin, SurrogatePK, Model):
             "area": self.area,
             "name": self.name,
             "image": image,
+            "phone": self.phone,
         }

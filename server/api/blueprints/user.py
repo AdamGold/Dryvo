@@ -88,18 +88,14 @@ def make_teacher():
         raise RouteError("User was not found.")
 
     price = data.get("price")
-    phone = data.get("phone")
-    if not price or not phone:
+    if not price:
         raise RouteError("Empty fields.")
 
     if price <= 0:
         raise RouteError("Price must be above 0.")
 
     teacher = Teacher.create(
-        user_id=user_id,
-        price=price,
-        phone=phone,
-        lesson_duration=data.get("lesson_duration"),
+        user_id=user_id, price=price, lesson_duration=data.get("lesson_duration")
     )
     return {"data": teacher.to_dict()}, 201
 

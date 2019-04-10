@@ -177,9 +177,10 @@ def test_validate_inputs():
 
 def test_edit_data(app, user, requester, auth: AuthActions):
     auth.login()
-    resp = requester.post("/login/edit_data", json={"name": "new"})
+    resp = requester.post("/login/edit_data", json={"name": "new", "phone": "0533333"})
     assert "new" == resp.json["data"]["name"]
     assert user.area == resp.json["data"]["area"]
+    assert user.phone == "0533333"
     resp = requester.post("/login/edit_data", json={"area": "new"})
     assert "new" == resp.json["data"]["area"]
     assert requester.post("/login/edit_data", json={})

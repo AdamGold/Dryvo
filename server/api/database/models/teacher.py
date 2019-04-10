@@ -25,7 +25,6 @@ class Teacher(SurrogatePK, LessonCreator):
 
     __tablename__ = "teachers"
     price = Column(db.Integer, nullable=False)
-    phone = Column(db.String, nullable=False)
     price_rating = Column(db.Float, nullable=True)
     availabillity_rating = Column(db.Float, nullable=True)
     content_rating = Column(db.Float, nullable=True)
@@ -102,7 +101,6 @@ class Teacher(SurrogatePK, LessonCreator):
         return {
             "teacher_id": self.id,
             "price": self.price,
-            "phone": self.phone,
             "lesson_duration": self.lesson_duration,
             "price_rating": self.price_rating,
             "availabillity_rating": self.availabillity_rating,

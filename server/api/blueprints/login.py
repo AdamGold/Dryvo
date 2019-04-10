@@ -93,21 +93,21 @@ def validate_inputs(data, all_required=True) -> Tuple[str, str, str, str]:
         if not re.match(r"[^@]+@[^@]+\.[^@]+", email):
             raise RouteError("Email is not valid.")
 
-    return (name, area, email, password)
+    return (name, area, email, password, data.get("phone"))
 
 
 @login_routes.route("/register", methods=["POST"])
 @jsonify_response
 def register():
     post_data = flask.request.values
-    (name, area, email, password) = validate_inputs(post_data)
+    (name, area, email, password, phone) = validate_inputs(post_data)
     image = flask.request.files.get("image")
     # Query to see if the user already exists
     user = User.query.filter_by(email=email).first()
     if not user:
         # There is no user so we'll try to register them
         # Register the user
-        user = User(email=email, password=password, name=name, area=area)
+        user = User(email=email, password=password, name=name, area=area, phone=phone)
         if image:
             try:
                 user.image = upload(image)["public_id"]
@@ -127,7 +127,7 @@ def register():
 @login_required
 def edit_data():
     post_data = flask.request.get_json()
-    (name, area, _, password) = validate_inputs(post_data, all_required=False)
+    (name, area, _, password, phone) = validate_inputs(post_data, all_required=False)
     user = User.query.filter_by(email=current_user.email).first()
     if not user:
         raise RouteError("User was not found.")
@@ -137,6 +137,8 @@ def edit_data():
         user.area = area
     if password:
         user.set_password(password)
+    if phone:
+        user.phone = phone
 
     user.save()
     return {"data": dict(**user.to_dict(), **user.role_info())}
