@@ -38,8 +38,8 @@ class Student(SurrogatePK, LessonCreator):
     is_active = Column(db.Boolean, default=True, nullable=False)
     creator_id = reference_col("users", nullable=False)
     creator = relationship("User", foreign_keys=[creator_id])
+    created_at = Column(db.DateTime, nullable=False, default=datetime.utcnow)
 
-    default_sort_column = "id"
     ALLOWED_FILTERS = ["is_active", "is_approved"]
 
     def __init__(self, **kwargs):

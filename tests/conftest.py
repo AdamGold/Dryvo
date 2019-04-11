@@ -66,7 +66,9 @@ def setup_db(app):
     teacher_user = User.create(
         email="teacher@test.com", password="test", name="teacher", area="test"
     )
-    teacher = Teacher.create(user_id=teacher_user.id, price=100, lesson_duration=40)
+    teacher = Teacher.create(
+        user_id=teacher_user.id, price=100, lesson_duration=40, is_approved=True
+    )
     student_user = User.create(
         email="student@test.com", password="test", name="student", area="test"
     )
