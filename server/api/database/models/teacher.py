@@ -30,6 +30,9 @@ class Teacher(SurrogatePK, LessonCreator):
     content_rating = Column(db.Float, nullable=True)
     lesson_duration = Column(db.Integer, default=40, nullable=False)
     is_approved = Column(db.Boolean, default=False, nullable=False)  # admin approved
+    created_at = Column(db.DateTime, nullable=False, default=datetime.utcnow)
+
+    ALLOWED_FILTERS = ["price", "is_approved"]
 
     def __init__(self, **kwargs):
         """Create instance."""

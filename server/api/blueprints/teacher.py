@@ -30,6 +30,27 @@ def teacher_required(func):
     return func_wrapper
 
 
+def like_filter(model, key, value):
+    return getattr(model, key).like(f"%{value}%")
+
+
+@teacher_routes.route("/", methods=["GET"])
+@jsonify_response
+@paginate
+def teachers():
+    try:
+        extra_filters = {User: {"name": like_filter}}
+        query = Teacher.query.filter_by(is_approved=True)
+        return Teacher.filter_and_sort(
+            flask.request.args,
+            extra_filters=extra_filters,
+            query=query,
+            with_pagination=True,
+        )
+    except ValueError:
+        raise RouteError("Wrong parameters passed.")
+
+
 @teacher_routes.route("/work_days", methods=["GET"])
 @jsonify_response
 @login_required
@@ -176,14 +197,10 @@ def add_payment():
 def students():
     """allow filtering by name / area of student, and sort by balance,
     lesson number"""
-
-    def custom_filter(model, key, value):
-        return getattr(model, key).like(f"%{value}%")
-
     try:
         query = current_user.teacher.students
         args = flask.request.args
-        extra_filters = {User: {"name": custom_filter, "area": custom_filter}}
+        extra_filters = {User: {"name": like_filter, "area": like_filter}}
         return Student.filter_and_sort(
             args, query, extra_filters=extra_filters, with_pagination=True
         )

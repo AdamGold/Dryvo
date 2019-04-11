@@ -3,8 +3,32 @@ from datetime import datetime, timedelta, date
 import pytest
 
 from server.api.blueprints import user
-from server.api.database.models import Lesson, Student, User, WorkDay, Payment
+from server.api.database.models import Lesson, Student, User, WorkDay, Payment, Teacher
 from server.consts import DATE_FORMAT, WORKDAY_DATE_FORMAT
+
+
+def test_teachers(auth, teacher, requester):
+    new_user = User.create(
+        email="a@a.c", password="huh", name="absolutely", area="nope"
+    )
+    new_teacher = Teacher.create(
+        user=new_user, is_approved=True, price=100, lesson_duration=40
+    )
+    auth.login()
+    resp = requester.get("/teacher/")
+    first_length = len(resp.json["data"])
+    assert resp.json["data"][1]["teacher_id"] == new_teacher.id
+    resp = requester.get("/teacher/?order_by=created_at desc")
+    assert resp.json["data"][0]["teacher_id"] == new_teacher.id
+    resp = requester.get("/teacher/?name=solut")
+    assert resp.json["data"][0]["teacher_id"] == new_teacher.id
+    resp = requester.get("/teacher/?name=le:no way")
+    assert not resp.json["data"]
+    resp = requester.get("/teacher/?limit=1")
+    assert len(resp.json["data"]) == 1
+    new_teacher.is_approved = False
+    resp = requester.get("/teacher/")
+    assert len(resp.json["data"]) == first_length - 1
 
 
 def test_work_days(teacher, auth, requester):
@@ -118,7 +142,6 @@ def test_available_hours_route(teacher, student, meetup, dropoff, auth, requeste
 def test_teacher_available_hours(teacher, student, requester):
     tomorrow = datetime.utcnow() + timedelta(days=1)
     date = tomorrow.strftime(WORKDAY_DATE_FORMAT)
-    time_and_date = date + "T13:30:20.123123Z"
     kwargs = {
         "teacher_id": teacher.id,
         "day": 1,
