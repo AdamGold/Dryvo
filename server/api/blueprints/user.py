@@ -115,6 +115,15 @@ def register_firebase_token():
     return {"message": "Token updated successfully."}
 
 
+@user_routes.route("/delete_firebase_token", methods=["GET"])
+@jsonify_response
+@login_required
+def delete_firebase_token():
+    current_user.update(firebase_token=None)
+
+    return {"message": "Token deleted successfully."}
+
+
 @user_routes.route("/image", methods=["POST"])
 @jsonify_response
 @login_required

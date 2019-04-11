@@ -58,6 +58,12 @@ def test_register_token(auth, requester):
     assert "successfully" in resp.json.get("message")
 
 
+def test_delete_token(auth, requester):
+    auth.login()
+    resp = requester.get("/user/delete_firebase_token")
+    assert "successfully" in resp.json.get("message")
+
+
 def test_me_student(auth, user, requester, student):
     auth.login(email=student.user.email)
     resp = requester.get("/user/me")
