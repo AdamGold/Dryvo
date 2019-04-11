@@ -179,3 +179,11 @@ def test_edit_data(app, teacher, requester, auth):
     assert requester.post("/login/edit_data", json={})
     assert teacher.lesson_duration == 100
 
+
+def test_approve(auth, admin, requester, teacher):
+    auth.login(email=teacher.user.email)
+    resp = requester.get(f"/teacher/{teacher.id}/approve")
+    assert "Not authorized." == resp.json["message"]
+    auth.login(email=admin.email)
+    resp = requester.get(f"/teacher/{teacher.id}/approve")
+    assert resp.json["data"]["is_approved"]

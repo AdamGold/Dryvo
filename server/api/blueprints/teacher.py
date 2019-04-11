@@ -205,3 +205,14 @@ def edit_data():
 
     teacher.save()
     return {"data": current_user.to_dict()}
+
+
+@teacher_routes.route("/<int:teacher_id>/approve", methods=["GET"])
+@jsonify_response
+@login_required
+def approve(teacher_id):
+    if not current_user.is_admin:
+        raise RouteError("Not authorized.", 401)
+    teacher = Teacher.get_by_id(teacher_id)
+    teacher.update(is_approved=True)
+    return {"data": teacher.to_dict()}

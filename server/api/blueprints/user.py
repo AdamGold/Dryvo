@@ -79,8 +79,6 @@ def make_student():
 @login_required
 def make_teacher():
     data = flask.request.get_json()
-    if not current_user.is_admin:
-        raise RouteError("Not authorized.", 401)
 
     user_id = data.get("user_id")
     user = User.get_by_id(user_id)

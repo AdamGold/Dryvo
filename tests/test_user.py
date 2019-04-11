@@ -2,18 +2,16 @@ import os
 import pytest
 
 from server.api.blueprints import user
+from server.api.database.models import Teacher
 
 
 def test_make_teacher(user, admin, auth, requester):
     auth.login(admin.email, "test")
     resp = requester.post("/user/make_teacher", json={"user_id": user.id, "price": 100})
     assert resp.json["data"]["user"]["id"] == user.id
-
-
-def test_not_admin_make_teacher(user, auth, requester):
-    auth.login()
-    resp = requester.post("/user/make_teacher", json={"user_id": user.id, "price": 100})
-    assert resp.json.get("message") == "Not authorized."
+    teacher = Teacher.query.filter_by(user=user).first()
+    assert teacher
+    assert not teacher.is_approved
 
 
 @pytest.mark.parametrize(
