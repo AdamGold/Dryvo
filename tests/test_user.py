@@ -5,9 +5,9 @@ from server.api.blueprints import user
 from server.api.database.models import Teacher
 
 
-def test_make_teacher(user, admin, auth, requester):
-    auth.login(admin.email, "test")
-    resp = requester.post("/user/make_teacher", json={"user_id": user.id, "price": 100})
+def test_make_teacher(user, auth, requester):
+    auth.login()
+    resp = requester.post("/user/make_teacher", json={"price": 100})
     assert resp.json["data"]["user"]["id"] == user.id
     teacher = Teacher.query.filter_by(user=user).first()
     assert teacher
@@ -15,47 +15,40 @@ def test_make_teacher(user, admin, auth, requester):
 
 
 @pytest.mark.parametrize(
-    ("user_id", "price", "message"),
-    (
-        (1, None, "Empty fields."),
-        (1, -20, "Price must be above 0."),
-        (6, 200, "User was not found."),
-    ),
+    ("price", "message"), ((None, "Empty fields."), (-20, "Price must be above 0."))
 )
-def test_invalid_make_teacher(admin, user, auth, requester, user_id, price, message):
-    auth.login(admin.email, "test")
-    resp = requester.post(
-        "/user/make_teacher", json={"user_id": user_id, "price": price}
-    )
+def test_invalid_make_teacher(user, auth, requester, price, message):
+    auth.login()
+    resp = requester.post("/user/make_teacher", json={"price": price})
     assert resp.status_code == 400
     assert resp.json.get("message") == message
 
 
-def test_make_student(admin, user, auth, requester):
-    auth.login(admin.email, "test")
-    resp = requester.get(f"/user/make_student?user_id={user.id}&teacher_id=1")
+def test_make_student(user, auth, requester):
+    auth.login()
+    resp = requester.get(f"/user/make_student?teacher_id=1")
     assert resp.json["data"]["my_teacher"]["teacher_id"] == 1
 
 
-def test_make_student_invalid_teacher(admin, user, auth, requester):
-    auth.login(admin.email, "test")
-    resp = requester.get(f"/user/make_student?user_id={user.id}&teacher_id=3")
+def test_teacher_make_student(user, teacher, auth, requester):
+    auth.login(email=teacher.user.email)
+    resp = requester.get(f"/user/make_student?user_id={user.id}")
+    assert resp.json["data"]["my_teacher"]["teacher_id"] == 1
+
+
+def test_make_student_invalid_teacher(user, auth, requester):
+    auth.login()
+    resp = requester.get(f"/user/make_student?teacher_id=3")
     assert resp.status_code == 400
     assert resp.json.get("message") == "Teacher was not found."
 
 
 def test_make_student_already_assigned(
-    app, admin, student, teacher, auth, requester, db_instance
+    app, student, teacher, auth, requester, db_instance
 ):
     with app.app_context():
-        auth.login(admin.email, "test")
-        resp = requester.get(
-            f"/user/make_student?user_id={student.user_id}&teacher_id=1"
-        )
-        assert "already a student" in resp.json.get("message")
-        resp = requester.get(
-            f"/user/make_student?user_id={teacher.user_id}&teacher_id=1"
-        )
+        auth.login(email=student.user.email)
+        resp = requester.get(f"/user/make_student?teacher_id=1")
         assert "already a student" in resp.json.get("message")
 
 

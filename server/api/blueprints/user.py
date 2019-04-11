@@ -44,16 +44,17 @@ def search():
 @login_required
 def make_student():
     data = flask.request.args
-    user = current_user if current_user.student else User.get_by_id(data.get("user_id"))
+    user = current_user
+    teacher = Teacher.get_by_id(data.get("teacher_id"))
+    if current_user.teacher:
+        user = User.get_by_id(data.get("user_id"))
+        teacher = current_user.teacher
 
     if not user:
         raise RouteError("User was not found.", 401)
     if user.teacher or user.student:
-        raise RouteError(
-            "User was not found or the user is already a student or a teacher."
-        )
+        raise RouteError("User is already a student or a teacher.")
 
-    teacher = current_user.teacher or Teacher.get_by_id(data.get("teacher_id"))
     if not teacher:
         raise RouteError("Teacher was not found.")
 
@@ -80,9 +81,7 @@ def make_student():
 def make_teacher():
     data = flask.request.get_json()
 
-    user_id = data.get("user_id")
-    user = User.get_by_id(user_id)
-    if not user or user.student or user.teacher:
+    if not current_user or current_user.student or current_user.teacher:
         raise RouteError("User was not found.")
 
     price = data.get("price")
@@ -93,7 +92,7 @@ def make_teacher():
         raise RouteError("Price must be above 0.")
 
     teacher = Teacher.create(
-        user_id=user_id, price=price, lesson_duration=data.get("lesson_duration")
+        user=current_user, price=price, lesson_duration=data.get("lesson_duration")
     )
     return {"data": teacher.to_dict()}, 201
 
