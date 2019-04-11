@@ -233,4 +233,3 @@ def approve(teacher_id):
     teacher = Teacher.get_by_id(teacher_id)
     teacher.update(is_approved=True)
     return {"data": teacher.to_dict()}
-
