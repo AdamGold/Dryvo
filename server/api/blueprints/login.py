@@ -52,7 +52,11 @@ def token_tuple(request):
 @jsonify_response
 def direct_login():
     data = flask.request.get_json()
-    user = User.query.filter_by(email=data.get("email")).first()
+    email = data.get("email")
+    if not email:
+        raise RouteError("Email is required.")
+    email = email.lower()
+    user = User.query.filter_by(email=email).first()
     # Try to authenticate the found user using their password
     if user and user.check_password(data.get("password")):
         tokens = user.generate_tokens()
@@ -77,6 +81,8 @@ def logout():
 
 def validate_inputs(data, all_required=True) -> Tuple[str, str, str, str]:
     email: str = data.get("email")
+    if email:
+        email = email.lower()
     name: str = data.get("name")
     area: str = data.get("area")
     password: str = data.get("password")
