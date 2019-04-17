@@ -3,7 +3,7 @@ image: python:3.6-stretch
 stages:
     - lint
     - test
-    - stage
+    - staging
     - verify_staging
     - deploy
     - verify
@@ -28,14 +28,15 @@ test:
             - ~/.cache/pip # Cache dir according to https://pip.pypa.io/en/stable/reference/pip_install/#caching
             - /root/.cache/pip/ # Cache dir from an example pipeline run https://gitlab.com/glitzdev/glitz_hub/-/jobs/145930238
 
-stage:
-    stage: stage
+staging:
+    stage: staging
     script:
         - git push -f -q https://heroku:$HEROKU_API_KEY@git.heroku.com/$STAGING_HEROKU_APP_NAME.git HEAD:master
         - >-
             curl -n -s -X PATCH https://api.heroku.com/apps/$STAGING_HEROKU_APP_NAME/config-vars
             -d '{
             "DATABASE_URL": "'"$STAGING_DATABASE_URL"'",
+            "CLOUDINARY_URL": "'"$CLOUDINARY_URL"'",
             "FLASK_ENV": "'"$STAGING_FLASK_ENV"'",
             "FACEBOOK_CLIENT_ID": "'"$FACEBOOK_CLIENT_ID"'",
             "FACEBOOK_CLIENT_SECRET": "'"$FACEBOOK_CLIENT_SECRET"'",
@@ -70,6 +71,7 @@ deploy:
             curl -n -s -X PATCH https://api.heroku.com/apps/$PRODUCTION_HEROKU_APP_NAME/config-vars
             -d '{
             "DATABASE_URL": "'"$PRODUCTION_DATABASE_URL"'",
+            "CLOUDINARY_URL": "'"$CLOUDINARY_URL"'",
             "FLASK_ENV": "'"$PRODUCTION_FLASK_ENV"'",
             "FACEBOOK_CLIENT_ID": "'"$FACEBOOK_CLIENT_ID"'",
             "FACEBOOK_CLIENT_SECRET": "'"$FACEBOOK_CLIENT_SECRET"'",
