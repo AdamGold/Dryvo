@@ -140,7 +140,12 @@ class Student(SurrogatePK, LessonCreator):
 
     @hybrid_property
     def total_lessons_price(self):
-        return (self.lessons.filter_by(is_approved=True).count()) * self.teacher.price
+        return (
+            db.session.query(func.count(Lesson.id))
+            .select_from(Lesson)
+            .filter(and_(Lesson.is_approved == True, Lesson.student_id == self.id))
+            .scalar()
+        ) * self.teacher.price
 
     @total_lessons_price.expression
     def total_lessons_price(cls):
