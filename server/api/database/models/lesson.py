@@ -1,7 +1,9 @@
 import datetime as dt
 
 from flask_login import current_user
+from sqlalchemy.ext.hybrid import hybrid_property
 from sqlalchemy.orm import backref
+from sqlalchemy import func
 
 from server.api.database import db
 from server.api.database.mixins import (
@@ -37,7 +39,6 @@ class Lesson(SurrogatePK, Model):
     deleted = Column(db.Boolean, nullable=False, default=False)
     creator_id = reference_col("users", nullable=False)
     creator = relationship("User")
-    lesson_number = Column(db.Integer, nullable=True)
 
     ALLOWED_FILTERS = [
         "deleted",
@@ -45,7 +46,6 @@ class Lesson(SurrogatePK, Model):
         "date",
         "student_id",
         "created_at",
-        "lesson_number",
         "creator_id",
     ]
     default_sort_column = "date"
@@ -54,14 +54,20 @@ class Lesson(SurrogatePK, Model):
         """Create instance."""
         if current_user and not kwargs.get("creator") and current_user.is_authenticated:
             self.creator = current_user
-        self.lesson_number = (
-            kwargs["student"].new_lesson_number if kwargs.get("student") else None
-        )
         db.Model.__init__(self, **kwargs)
 
     def update_only_changed_fields(self, **kwargs):
         args = {k: v for k, v in kwargs.items() if v or isinstance(v, bool)}
         self.update(**args)
+
+    @hybrid_property
+    def lesson_number(self):
+        return (
+            db.session.query(func.count(Lesson.id))
+            .select_from(Lesson)
+            .filter(Lesson.date < self.date)
+            .scalar()
+        ) + 1
 
     def to_dict(self):
         return {

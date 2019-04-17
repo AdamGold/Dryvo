@@ -85,7 +85,7 @@ def test_new_lesson_number(teacher, student, meetup, dropoff):
     """create new lesson for student,
     check new_lesson_number updates"""
     old_lesson_number = student.new_lesson_number
-    Lesson.create(
+    lesson = Lesson.create(
         teacher=teacher,
         student=student,
         creator=teacher.user,
@@ -95,10 +95,18 @@ def test_new_lesson_number(teacher, student, meetup, dropoff):
         dropoff_place=dropoff,
     )
     assert student.new_lesson_number == old_lesson_number + 1
-    new_student = Student.query.filter(
-        Student.new_lesson_number == old_lesson_number + 1
-    ).first()
-    assert student.id == new_student.id
+    assert student.new_lesson_number == lesson.lesson_number + 1
+    old_lesson_number = student.new_lesson_number
+    Lesson.create(
+        teacher=teacher,
+        student=student,
+        creator=teacher.user,
+        duration=40,
+        date=datetime.utcnow() + timedelta(hours=20),
+        meetup_place=meetup,
+        dropoff_place=dropoff,
+    )
+    assert student.new_lesson_number == old_lesson_number
 
 
 def test_filter_topics(teacher, student, meetup, dropoff, topic, lesson):

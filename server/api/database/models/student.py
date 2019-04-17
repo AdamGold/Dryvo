@@ -108,14 +108,22 @@ class Student(SurrogatePK, LessonCreator):
     @hybrid_property
     def new_lesson_number(self) -> int:
         """return the number of a new lesson:
-        all lessons+1"""
-        return len(self.lessons.all()) + 1
+        num of latest lesson+1"""
+        latest_lesson = (
+            self.lessons.filter(Lesson.date < datetime.utcnow())
+            .order_by(Lesson.date.desc())
+            .limit(1)
+            .one_or_none()
+        )
+        if not latest_lesson:
+            return 1
+        return latest_lesson.lesson_number + 1
 
     @new_lesson_number.expression
     def new_lesson_number(cls):
         q = (
             select([func.count(Lesson.student_id) + 1])
-            .where(Lesson.student_id == cls.id)
+            .where(and_(Lesson.student_id == cls.id, Lesson.date < datetime.utcnow()))
             .label("new_lesson_number")
         )
         return q

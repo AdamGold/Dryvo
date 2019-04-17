@@ -89,9 +89,6 @@ def test_student_new_lesson(auth, teacher, student, requester, topic):
         json={"date": date, "meetup_place": "test", "dropoff_place": "test"},
     )
     assert not resp.json["data"]["is_approved"]
-    assert resp.json["data"]["lesson_number"] == len(
-        Lesson.query.filter_by(student=student).all()
-    )
 
 
 def test_update_topics(auth, teacher, student, requester, topic):
@@ -264,7 +261,15 @@ def test_lesson_number(teacher, student, meetup, dropoff):
         lessons.append(
             create_lesson(teacher, student, meetup, dropoff, datetime.utcnow())
         )
-    assert lessons[1].lesson_number == student.new_lesson_number - 1
+
+    assert lessons[1].lesson_number == 2
+
+    # now lesson number should be 1, because it's the earliest
+    new_lesson = create_lesson(
+        teacher, student, meetup, dropoff, datetime.utcnow() - timedelta(hours=10)
+    )
+    assert new_lesson.lesson_number == 1
+    assert lessons[1].lesson_number == 3
 
 
 def test_topics_for_lesson(app):
