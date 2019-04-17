@@ -106,7 +106,13 @@ def test_new_lesson_number(teacher, student, meetup, dropoff):
         meetup_place=meetup,
         dropoff_place=dropoff,
     )
-    assert student.new_lesson_number == old_lesson_number
+    assert (
+        student.new_lesson_number == old_lesson_number
+    )  # because it's later than now, it hasn't changed
+
+    # now test expression
+    st = Student.query.filter(Student.new_lesson_number == old_lesson_number).first()
+    assert st.id == student.id
 
 
 def test_filter_topics(teacher, student, meetup, dropoff, topic, lesson):
