@@ -3,7 +3,7 @@ import datetime as dt
 from flask_login import current_user
 from sqlalchemy.ext.hybrid import hybrid_property
 from sqlalchemy.orm import backref
-from sqlalchemy import func
+from sqlalchemy import func, and_
 
 from server.api.database import db
 from server.api.database.mixins import (
@@ -65,7 +65,7 @@ class Lesson(SurrogatePK, Model):
         return (
             db.session.query(func.count(Lesson.id))
             .select_from(Lesson)
-            .filter(Lesson.date < self.date)
+            .filter(and_(Lesson.date < self.date, Lesson.student == self.student))
             .scalar()
         ) + 1
 
