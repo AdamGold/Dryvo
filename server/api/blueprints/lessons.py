@@ -159,10 +159,16 @@ def update_topics(lesson_id):
                 raise RouteError("Topic does not exist.")
             if topic_id in appended_ids:  # we don't want the same topic twice
                 continue
+            appended_ids.append(topic_id)
             is_finished = True if key == FINISHED_KEY else False
+            existing_lesson_topic = lesson.topics.filter_by(
+                topic_id=topic_id
+            ).one_or_none()
+            if existing_lesson_topic and is_finished:
+                existing_lesson_topic.update(is_finished=is_finished)
+                continue
             lesson_topic = LessonTopic(is_finished=is_finished, topic_id=topic_id)
             lesson.topics.append(lesson_topic)
-            appended_ids.append(topic_id)
 
     lesson.save()
     return {"data": lesson.to_dict()}, 201
