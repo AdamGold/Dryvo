@@ -42,7 +42,7 @@ class Place(SurrogatePK, Model):
         try:
             ret = Place.query.filter(
                 and_(
-                    Place.name.like(f"{name}%"),
+                    Place.name == name,
                     Place.used_as == used_as.value,
                     Place.student == student,
                 )
