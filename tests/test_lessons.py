@@ -194,12 +194,28 @@ def test_approve_lesson(auth, teacher, student, meetup, dropoff, requester):
 
 def test_user_edit_lesson(app, auth, student, teacher, meetup, dropoff, requester):
     """ test that is_approved turns false when user edits lesson"""
-    lesson = create_lesson(teacher, student, meetup, dropoff, datetime.utcnow())
+    date = datetime.utcnow()
+    lesson = create_lesson(teacher, student, meetup, dropoff, date)
     auth.login(email=student.user.email)
-    resp = requester.post(f"/lessons/{lesson.id}", json={"meetup_place": "no"})
+    resp = requester.post(
+        f"/lessons/{lesson.id}",
+        json={"date": date.strftime(DATE_FORMAT), "meetup_place": "no"},
+    )
     assert "successfully" in resp.json["message"]
     assert "no" == resp.json["data"]["meetup_place"]["name"]
     assert not resp.json["data"]["is_approved"]
+    auth.logout()
+    auth.login(email=teacher.user.email)
+    resp = requester.post(
+        f"/lessons/{lesson.id}",
+        json={
+            "date": date.strftime(DATE_FORMAT),
+            "meetup_place": "yes",
+            "student_id": student.id,
+        },
+    )
+    assert "yes" == resp.json["data"]["meetup_place"]["name"]
+    assert resp.json["data"]["is_approved"]
 
 
 def test_handle_places(student: Student, meetup: Place):

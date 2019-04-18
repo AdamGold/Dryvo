@@ -1,6 +1,6 @@
 import itertools
 from datetime import datetime
-from typing import Tuple
+from typing import Tuple, Optional
 
 import flask
 from flask import Blueprint
@@ -41,26 +41,27 @@ def handle_places(
     )
 
 
-def get_lesson_data(data: dict, user: User) -> dict:
+def get_lesson_data(data: dict, user: User, lesson: Optional[Lesson] = None) -> dict:
     """get request data and a specific user
     - we need the user because we are not decorated in login_required here
     returns dict of new lesson or edited lesson"""
-    date = data.get("date")
-    if date:
-        date = datetime.strptime(date, DATE_FORMAT)
-        if date < datetime.utcnow():
-            raise RouteError("Date is not valid.")
+    if not data.get("date"):
+        raise RouteError("Date is not valid.")
+    date = datetime.strptime(data["date"], DATE_FORMAT)
+    if not lesson and date < datetime.utcnow():
+        # trying to add a new lesson in the past??
+        raise RouteError("Date is not valid.")
     if user.student:
         duration = user.student.teacher.lesson_duration
         student = user.student
-        if date:
-            available_hours = itertools.dropwhile(
-                lambda hour_with_date: hour_with_date[0] != date,
-                user.student.teacher.available_hours(date),
-            )
-            try:
-                next(available_hours)
-            except StopIteration:
+        available_hours = itertools.dropwhile(
+            lambda hour_with_date: hour_with_date[0] != date,
+            user.student.teacher.available_hours(date),
+        )
+        try:
+            next(available_hours)
+        except StopIteration:
+            if (lesson and date != lesson.date) or not lesson:
                 raise RouteError("This hour is not available.")
         teacher = user.student.teacher
     elif user.teacher:
@@ -213,7 +214,9 @@ def update_lesson(lesson_id):
     if not lesson:
         raise RouteError("Lesson does not exist", 404)
     data = flask.request.get_json()
-    lesson.update_only_changed_fields(**get_lesson_data(data, current_user))
+    lesson.update_only_changed_fields(
+        **get_lesson_data(data, current_user, lesson=lesson)
+    )
 
     user_to_send_to = lesson.teacher.user
     if current_user == lesson.teacher.user:
