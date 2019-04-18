@@ -359,3 +359,17 @@ def test_new_lesson_topics(
     resp = requester.get(f"/lessons/0/topics?student_id={student.id}")
     assert resp.json["data"][0]["id"] == another_topic.id
 
+    # let's say we're editing a lesson, and sending existing topics
+    resp = requester.post(
+        f"/lessons/{lesson.id}/topics",
+        json={"topics": {"progress": [another_topic.id], "finished": []}},
+    )
+    assert resp.json["data"]["topics"][0]["id"] == another_topic.id
+    # now we're marking a finished topic
+    resp = requester.post(
+        f"/lessons/{lesson.id}/topics",
+        json={"topics": {"progress": [], "finished": [another_topic.id]}},
+    )
+    assert resp.json["data"]["topics"][0]["id"] == another_topic.id
+    assert resp.json["data"]["topics"][0]["is_finished"]
+
