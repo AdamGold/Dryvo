@@ -194,28 +194,26 @@ def test_topics_in_progress(teacher, student, topic, meetup, dropoff, lesson):
 
 
 def test_balance(teacher, student, meetup, dropoff):
-    # we have one lesson currently and 0 payments
-    assert student.balance == -teacher.price
+    # we have one lesson currently and 0 payments, but the lesson hasn't yet happened
+    assert student.balance == 0
     lesson = Lesson.create(
         teacher=teacher,
         student=student,
         creator=teacher.user,
         duration=40,
-        date=datetime.utcnow(),
+        date=datetime.utcnow() - timedelta(hours=2),
         meetup_place=meetup,
         dropoff_place=dropoff,
         is_approved=True,
     )
-    assert student.balance < -teacher.price
-    lesson.update(is_approved=False)
     assert student.balance == -teacher.price
-
-    st = Student.query.filter(Student.balance == -teacher.price).first()
-    assert st == student
-    Payment.create(amount=teacher.price, teacher=teacher, student=student)
+    lesson.update(is_approved=False)
     assert student.balance == 0
+
     st = Student.query.filter(Student.balance == 0).first()
     assert st == student
+    Payment.create(amount=teacher.price, teacher=teacher, student=student)
+    assert student.balance == teacher.price
 
 
 def test_total_paid(teacher, student):
@@ -224,7 +222,21 @@ def test_total_paid(teacher, student):
     assert st == student
 
 
-def test_total_lessons_price(teacher, student, lesson):
+def test_total_lessons_price(teacher, student, meetup, dropoff):
+    st = Student.query.filter(
+        Student.total_lessons_price == 0
+    ).first()  # no lesson has been done yet
+    assert st == student
+    Lesson.create(
+        teacher=teacher,
+        student=student,
+        creator=teacher.user,
+        duration=40,
+        date=datetime.utcnow() - timedelta(hours=2),
+        meetup_place=meetup,
+        dropoff_place=dropoff,
+        is_approved=True,
+    )
     st = Student.query.filter(Student.total_lessons_price == teacher.price).first()
     assert st == student
 

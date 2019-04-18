@@ -110,7 +110,9 @@ class Student(SurrogatePK, LessonCreator):
         """return the number of a new lesson:
         num of latest lesson+1"""
         latest_lesson = (
-            self.lessons.filter(Lesson.date < datetime.utcnow())
+            self.lessons.filter(
+                and_(Lesson.date < datetime.utcnow(), Lesson.is_approved == True)
+            )
             .order_by(Lesson.date.desc())
             .limit(1)
             .one_or_none()
@@ -123,7 +125,13 @@ class Student(SurrogatePK, LessonCreator):
     def new_lesson_number(cls):
         q = (
             select([func.count(Lesson.student_id) + 1])
-            .where(and_(Lesson.student_id == cls.id, Lesson.date < datetime.utcnow()))
+            .where(
+                and_(
+                    Lesson.student_id == cls.id,
+                    Lesson.date < datetime.utcnow(),
+                    Lesson.is_approved == True,
+                )
+            )
             .label("new_lesson_number")
         )
         return q
@@ -140,26 +148,12 @@ class Student(SurrogatePK, LessonCreator):
 
     @hybrid_property
     def total_lessons_price(self):
-        return (
-            db.session.query(func.count(Lesson.id))
-            .select_from(Lesson)
-            .filter(and_(Lesson.is_approved == True, Lesson.student_id == self.id))
-            .scalar()
-        ) * self.teacher.price
+        return (self.new_lesson_number - 1) * self.teacher.price
 
     @total_lessons_price.expression
     def total_lessons_price(cls):
-        q = (
-            select([func.count(Lesson.student_id) * Teacher.price])
-            .where(
-                and_(
-                    Lesson.student_id == cls.id,
-                    Lesson.is_approved == True,
-                    Teacher.id == cls.teacher_id,
-                )
-            )
-            .group_by(Teacher.price)
-            .label("total_lessons_price")
+        q = select([(cls.new_lesson_number - 1) * Teacher.price]).label(
+            "total_lessons_price"
         )
         return q
 
