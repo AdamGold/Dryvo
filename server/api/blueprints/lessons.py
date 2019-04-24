@@ -288,8 +288,9 @@ def topics(lesson_id: int):
         (student, lesson_number) = (lesson.student, lesson.lesson_number)
 
     topics_for_lesson = student.topics(is_finished=False).union(
-        set(Topic.for_lesson(lesson_number)) - student.topics(is_finished=True)
-    )
+        set(Topic.for_lesson(lesson_number))
+    ) - student.topics(is_finished=True)
+
     in_progress: list = []
     finished_in_this_lesson: list = []
     if lesson:

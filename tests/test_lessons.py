@@ -367,6 +367,10 @@ def test_lesson_topics(auth, requester, student, meetup, dropoff, topic, teacher
     )
     requester.post(
         f"/lessons/{lesson.id}/topics",
+        json={"topics": {"progress": [topic.id], "finished": []}},
+    )
+    requester.post(
+        f"/lessons/{lesson.id}/topics",
         json={"topics": {"progress": [another_topic.id], "finished": [topic.id]}},
     )
     resp = requester.get(f"/lessons/{lesson.id}/topics")
@@ -379,7 +383,17 @@ def test_lesson_topics(auth, requester, student, meetup, dropoff, topic, teacher
     another_lesson = create_lesson(teacher, student, meetup, dropoff, datetime.utcnow())
     resp = requester.get(f"/lessons/{another_lesson.id}/topics")
     assert another_topic.id == resp.json["available"][0]["id"]
+    assert topic.id not in [topic["id"] for topic in resp.json["available"]]
     assert len(resp.json["available"]) == 1
+
+    # if we have 2 lessons with same topic, topic is finished on the 2nd
+    requester.post(
+        f"/lessons/{lesson.id}/topics",
+        json={"topics": {"progress": [], "finished": [another_topic.id]}},
+    )
+    resp = requester.get(f"/lessons/{lesson.id}/topics")
+    assert another_topic.id in [topic["id"] for topic in resp.json["available"]]
+    assert another_topic.id in resp.json["finished"]
 
 
 def test_new_lesson_topics(
