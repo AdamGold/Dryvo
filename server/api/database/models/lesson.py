@@ -80,7 +80,6 @@ class Lesson(SurrogatePK, Model):
             else None,
             "is_approved": self.is_approved,
             "comments": self.comments,
-            "topics": [topic.to_dict() for topic in self.topics.all()],
             "lesson_number": self.lesson_number,
             "created_at": self.created_at,
             "duration": self.duration,

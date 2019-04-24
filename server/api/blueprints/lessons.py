@@ -161,11 +161,11 @@ def update_topics(lesson_id):
             if topic_id in appended_ids:  # we don't want the same topic twice
                 continue
             is_finished = True if key == FINISHED_KEY else False
-            existing_lesson_topic = lesson.topics.filter_by(topic_id=topic_id).first()
-            if existing_lesson_topic:
-                if is_finished:
-                    existing_lesson_topic.update(is_finished=is_finished)
-                continue
+            # existing_lesson_topic = lesson.topics.filter_by(topic_id=topic_id).first()
+            # if existing_lesson_topic:
+            #     if is_finished:
+            #         existing_lesson_topic.update(is_finished=is_finished)
+            #     continue
             lesson_topic = LessonTopic(is_finished=is_finished, topic_id=topic_id)
             lesson.topics.append(lesson_topic)
             appended_ids.append(topic_id)
@@ -287,12 +287,25 @@ def topics(lesson_id: int):
             raise RouteError("Lesson does not exist or not assigned.", 404)
         (student, lesson_number) = (lesson.student, lesson.lesson_number)
 
-    topics_for_lesson = set(Topic.for_lesson(lesson_number)) - set(
-        student.topics(is_finished=True)
+    topics_for_lesson = student.topics(is_finished=False).union(
+        set(Topic.for_lesson(lesson_number)) - student.topics(is_finished=True)
     )
-    in_progress_topics = student.topics(is_finished=False)
-    available_topics = topics_for_lesson.union(set(in_progress_topics))
+    in_progress: list = []
+    finished_in_this_lesson: list = []
     if lesson:
-        finished_in_this_lesson = lesson.topics.filter_by(is_finished=True).all()
-        available_topics = available_topics.union(set(finished_in_this_lesson))
-    return {"data": [t.to_dict() for t in available_topics]}
+        in_progress = [
+            lt.topic_id for lt in lesson.topics.filter_by(is_finished=False).all()
+        ]
+        finished_in_this_lesson = [
+            lt.topic_id for lt in lesson.topics.filter_by(is_finished=True).all()
+        ]
+        # available lessons don't include student's finished topics,
+        # so we have to add this specific lesson finished topics
+        topics_for_lesson = topics_for_lesson.union(
+            {Topic.query.filter_by(id=t).first() for t in finished_in_this_lesson}
+        )
+    return dict(
+        available=[t.to_dict() for t in topics_for_lesson],
+        progress=in_progress,
+        finished=finished_in_this_lesson,
+    )
