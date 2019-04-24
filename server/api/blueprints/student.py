@@ -119,7 +119,7 @@ def edit_student(student_id):
         ):  # only teacher is allowed to edit num of lessons and theory
             extra_data = dict(
                 theory=data.get("theory", False) == "true",
-                number_of_old_lessons=data.get("number_of_old_lessons", 0),
+                number_of_old_lessons=int(data.get("number_of_old_lessons", 0)),
             )
         student.update(
             doctor_check=data.get("doctor_check", False) == "true",

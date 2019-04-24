@@ -315,3 +315,11 @@ def test_upload_green_form(teacher, auth, requester, student):
         content_type="multipart/form-data",
     )
     assert requester.get(resp.json["data"]["green_form"])
+
+
+def test_number_of_old_lessons(auth, requester, student, teacher):
+    old_lesson_number = student.new_lesson_number
+    old_balance = student.balance
+    student.update(number_of_old_lessons=40)
+    assert student.new_lesson_number == old_lesson_number + 40
+    assert student.balance == old_balance - 40 * teacher.price
