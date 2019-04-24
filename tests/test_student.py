@@ -1,15 +1,17 @@
+import os
 from datetime import datetime, timedelta
 
+import pytest
 from flask_sqlalchemy import BaseQuery
 
 from server.api.database.models import (
     Lesson,
-    Student,
     LessonTopic,
+    Payment,
     Place,
     PlaceType,
+    Student,
     Topic,
-    Payment,
     User,
 )
 from server.consts import DATE_FORMAT
@@ -212,6 +214,7 @@ def test_balance(teacher, student, meetup, dropoff):
     assert student.balance == 0
 
     st = Student.query.filter(Student.balance == 0).first()
+    print(Student.query.order_by(Student.balance).all())
     assert st == student
     Payment.create(amount=teacher.price, teacher=teacher, student=student)
     assert student.balance == teacher.price
@@ -273,3 +276,50 @@ def test_deactivate(auth, requester, student, teacher):
     resp = requester.get(f"/student/{student.id}/deactivate")
     assert not resp.json["data"]["is_active"]
 
+
+def test_edit_student(auth, requester, teacher, student):
+    auth.login(email=teacher.user.email)
+    resp = requester.post(
+        f"/student/{student.id}",
+        data={"theory": "true", "number_of_old_lessons": 10, "doctor_check": "true"},
+    )
+    assert not resp.json["data"]["eyes_check"]
+    assert resp.json["data"]["theory"]
+    auth.login(email=student.user.email)
+    resp = requester.post(
+        f"/student/{student.id}", data={"theory": "false", "eyes_check": "true"}
+    )
+    assert resp.json["data"]["theory"]
+    assert resp.json["data"]["eyes_check"]
+
+
+def test_not_authorized_edit_student(auth, requester, student, admin):
+    auth.login(email=admin.email)
+    resp = requester.post(
+        f"/student/{student.id}",
+        data={"theory": "true", "number_of_old_lessons": 10, "doctor_check": "true"},
+    )
+    assert "authorized" in resp.json["message"]
+
+
+@pytest.mark.skip
+def test_upload_green_form(teacher, auth, requester, student):
+    """skip this one so we won't upload an image to cloudinary
+    on each tests - the test passes though"""
+    auth.login(email=teacher.user.email)
+    image = os.path.join("./tests/assets/av.png")
+    file = (image, "av.png")
+    resp = requester.post(
+        f"/student/{student.id}",
+        data={"green_form": file},
+        content_type="multipart/form-data",
+    )
+    assert requester.get(resp.json["data"]["green_form"])
+
+
+def test_number_of_old_lessons(auth, requester, student, teacher):
+    old_lesson_number = student.new_lesson_number
+    old_balance = student.balance
+    student.update(number_of_old_lessons=40)
+    assert student.new_lesson_number == old_lesson_number + 40
+    assert student.balance == old_balance - 40 * teacher.price
