@@ -136,7 +136,7 @@ class Student(SurrogatePK, LessonCreator):
     @new_lesson_number.expression
     def new_lesson_number(cls):
         q = (
-            select([func.count(Lesson.student_id) + Student.number_of_old_lessons + 1])
+            select([func.count(Lesson.student_id) + 1])
             .where(
                 and_(
                     Lesson.student_id == cls.id,
@@ -146,7 +146,7 @@ class Student(SurrogatePK, LessonCreator):
             )
             .label("new_lesson_number")
         )
-        return q
+        return q + cls.number_of_old_lessons
 
     @hybrid_property
     def balance(self):
