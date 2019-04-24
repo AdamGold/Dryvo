@@ -10,6 +10,7 @@ from server.api.database.models import (
     PlaceType,
     Topic,
     Payment,
+    User,
 )
 from server.consts import DATE_FORMAT
 
@@ -248,6 +249,23 @@ def test_approve(auth, requester, student, teacher):
     auth.login(email=student.user.email)
     resp = requester.get(f"/student/{student.id}/approve")
     assert resp.json["data"]["is_approved"]
+
+
+def test_delete_student(auth, requester, student, teacher):
+    auth.login(email=teacher.user.email)
+    resp = requester.delete(f"/student/{student.id}")
+    assert "Can't delete" in resp.json["message"]
+    student_user = User.create(
+        email="aa@test.com", password="test", name="student", area="test"
+    )
+    new_student = Student.create(
+        user_id=student_user.id,
+        teacher_id=teacher.id,
+        creator=teacher.user,
+        is_approved=True,
+    )
+    resp = requester.delete(f"/student/{new_student.id}")
+    assert "deleted" in resp.json["message"]
 
 
 def test_deactivate(auth, requester, student, teacher):

@@ -43,6 +43,23 @@ def topics(student_id: int):
     }
 
 
+@student_routes.route("/<int:student_id>", methods=["DELETE"])
+@jsonify_response
+@teacher_required
+def delete_student(student_id):
+    student = Student.get_by_id(student_id)
+    if not student:
+        raise RouteError("Student does not exist.", 404)
+    if student.lessons.first():  # if any lessons exist
+        raise RouteError("Can't delete student.")
+
+    if current_user != student.teacher.user:
+        raise RouteError("Not authorized.", 401)
+
+    student.delete()
+    return {"message": "Student deleted."}
+
+
 @student_routes.route("/<int:student_id>/approve", methods=["GET"])
 @jsonify_response
 @login_required
