@@ -1,13 +1,15 @@
+from datetime import datetime
+from functools import wraps
+
 import flask
+from cloudinary.uploader import upload
 from flask import Blueprint
 from flask_login import current_user, login_required, logout_user
-from functools import wraps
-from datetime import datetime
 
+from server.api.blueprints.teacher import teacher_required
+from server.api.database.models import Lesson, Student, Topic
 from server.api.utils import jsonify_response, paginate
 from server.error_handling import RouteError
-from server.api.database.models import Topic, Student, Lesson
-from server.api.blueprints.teacher import teacher_required
 
 student_routes = Blueprint("student", __name__, url_prefix="/student")
 
@@ -94,3 +96,36 @@ def deactivate(student_id):
 
     student.update(is_active=False)
     return {"data": student.to_dict()}
+
+
+@student_routes.route("/<int:student_id>", methods=["POST"])
+@jsonify_response
+@login_required
+def edit_student(student_id):
+    student = Student.get_by_id(student_id)
+    if not student:
+        raise RouteError("Student does not exist.", 404)
+
+    if (current_user.teacher and student.teacher == current_user.teacher) or (
+        current_user.student and current_user.student == student
+    ):
+        data = flask.request.values
+        image = flask.request.files.get("green_form")
+        extra_data = dict()
+        if image:
+            extra_data["green_form"] = upload(image)["public_id"]
+        if (
+            current_user.teacher
+        ):  # only teacher is allowed to edit num of lessons and theory
+            extra_data = dict(
+                theory=data.get("theory", False) == "true",
+                number_of_old_lessons=data.get("number_of_old_lessons", 0),
+            )
+        student.update(
+            doctor_check=data.get("doctor_check", False) == "true",
+            eyes_check=data.get("eyes_check", False) == "true",
+            **extra_data
+        )
+        return {"data": student.to_dict()}
+
+    raise RouteError("Not authorized.", 401)

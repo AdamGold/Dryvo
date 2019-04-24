@@ -2,6 +2,7 @@ import itertools
 from datetime import datetime
 from typing import List, Set
 
+from cloudinary.utils import cloudinary_url
 from flask_login import current_user
 from flask_sqlalchemy import BaseQuery
 from sqlalchemy import and_, func, select
@@ -40,8 +41,20 @@ class Student(SurrogatePK, LessonCreator):
     creator_id = reference_col("users", nullable=False)
     creator = relationship("User", foreign_keys=[creator_id])
     created_at = Column(db.DateTime, nullable=False, default=datetime.utcnow)
+    number_of_old_lessons = Column(db.Integer, nullable=False, default=0)
+    theory = Column(db.Boolean, nullable=False, default=False)
+    doctor_check = Column(db.Boolean, nullable=False, default=False)
+    eyes_check = Column(db.Boolean, nullable=False, default=False)
+    green_form = Column(db.String(240), nullable=True)
 
-    ALLOWED_FILTERS = ["is_active", "is_approved"]
+    ALLOWED_FILTERS = [
+        "is_active",
+        "is_approved",
+        "theory",
+        "doctor_check",
+        "eyes_check",
+        "green_form",
+    ]
 
     def __init__(self, **kwargs):
         """Create instance."""
@@ -115,14 +128,15 @@ class Student(SurrogatePK, LessonCreator):
             .limit(1)
             .one_or_none()
         )
+        starting_count = self.number_of_old_lessons + 1
         if not latest_lesson:
-            return 1
-        return latest_lesson.lesson_number + 1
+            return starting_count
+        return starting_count + latest_lesson.lesson_number
 
     @new_lesson_number.expression
     def new_lesson_number(cls):
         q = (
-            select([func.count(Lesson.student_id) + 1])
+            select([func.count(Lesson.student_id) + Student.number_of_old_lessons + 1])
             .where(
                 and_(
                     Lesson.student_id == cls.id,
@@ -169,6 +183,12 @@ class Student(SurrogatePK, LessonCreator):
         return q
 
     def to_dict(self, with_user=True):
+        green_form = ""
+        if self.green_form:
+            try:
+                green_form = cloudinary_url(self.green_form)[0]
+            except Exception:
+                pass
         return {
             "student_id": self.id,
             "my_teacher": self.teacher.to_dict(),
@@ -177,6 +197,11 @@ class Student(SurrogatePK, LessonCreator):
             "user": self.user.to_dict() if with_user else None,
             "is_approved": self.is_approved,
             "is_active": self.is_active,
+            "theory": self.theory,
+            "eyes_check": self.eyes_check,
+            "doctor_check": self.doctor_check,
+            "number_of_old_lessons": self.number_of_old_lessons,
+            "green_form": green_form,
         }
 
     def __repr__(self):

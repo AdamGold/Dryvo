@@ -273,3 +273,27 @@ def test_deactivate(auth, requester, student, teacher):
     resp = requester.get(f"/student/{student.id}/deactivate")
     assert not resp.json["data"]["is_active"]
 
+
+def test_edit_student(auth, requester, teacher, student):
+    auth.login(email=teacher.user.email)
+    resp = requester.post(
+        f"/student/{student.id}",
+        data={"theory": "true", "number_of_old_lessons": 10, "doctor_check": "true"},
+    )
+    assert not resp.json["data"]["eyes_check"]
+    assert resp.json["data"]["theory"]
+    auth.login(email=student.user.email)
+    resp = requester.post(
+        f"/student/{student.id}", data={"theory": "false", "eyes_check": "true"}
+    )
+    assert resp.json["data"]["theory"]
+    assert resp.json["data"]["eyes_check"]
+
+
+def test_not_authorized_edit_student(auth, requester, student, admin):
+    auth.login(email=admin.email)
+    resp = requester.post(
+        f"/student/{student.id}",
+        data={"theory": "true", "number_of_old_lessons": 10, "doctor_check": "true"},
+    )
+    assert "authorized" in resp.json["message"]
