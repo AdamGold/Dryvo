@@ -243,7 +243,11 @@ def approve_lesson(lesson_id):
         raise RouteError("Lesson does not exist", 404)
     # check if there isn't another lesson at the same time
     same_time_lesson = Lesson.query.filter(
-        and_(Lesson.date == lesson.date, Lesson.id != lesson.id)
+        and_(
+            Lesson.date == lesson.date,
+            Lesson.id != lesson.id,
+            Lesson.is_approved == True,
+        )
     ).first()
     if same_time_lesson:
         raise RouteError("There is another lesson at the same time.")

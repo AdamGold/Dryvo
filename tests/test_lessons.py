@@ -19,7 +19,16 @@ from server.error_handling import RouteError
 tomorrow = datetime.utcnow() + timedelta(days=1)
 
 
-def create_lesson(teacher, student, meetup, dropoff, date, duration=40, deleted=False):
+def create_lesson(
+    teacher,
+    student,
+    meetup,
+    dropoff,
+    date,
+    duration=40,
+    deleted=False,
+    is_approved=True,
+):
     return Lesson.create(
         teacher=teacher,
         student=student,
@@ -29,6 +38,7 @@ def create_lesson(teacher, student, meetup, dropoff, date, duration=40, deleted=
         meetup_place=meetup,
         dropoff_place=dropoff,
         deleted=deleted,
+        is_approved=is_approved,
     )
 
 
@@ -212,6 +222,14 @@ def test_approve_lesson(auth, teacher, student, meetup, dropoff, requester):
     resp = requester.get(f"/lessons/7/approve")
     assert "not exist" in resp.json["message"]
     assert lesson.is_approved
+
+    # now we create 2 lessons at the same date - 1 of them approved.
+    # we shouldn't be able to approve the 2nd one
+    date = datetime.utcnow()
+    create_lesson(teacher, student, meetup, dropoff, date)
+    second = create_lesson(teacher, student, meetup, dropoff, date, is_approved=False)
+    resp = requester.get(f"/lessons/{second.id}/approve")
+    assert "There is another lesson at the same time" in resp.json["message"]
 
 
 def test_user_edit_lesson(app, auth, student, teacher, meetup, dropoff, requester):
