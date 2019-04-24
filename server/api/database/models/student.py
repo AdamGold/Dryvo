@@ -1,8 +1,9 @@
 import itertools
 from datetime import datetime
-from typing import List
+from typing import List, Set
 
 from flask_login import current_user
+from flask_sqlalchemy import BaseQuery
 from sqlalchemy import and_, func, select
 from sqlalchemy.ext.hybrid import hybrid_method, hybrid_property
 from sqlalchemy.orm import backref
@@ -57,12 +58,12 @@ class Student(SurrogatePK, LessonCreator):
             )
         ).order_by(LessonTopic.created_at.desc())
 
-    def _topics_in_progress(self, lesson_topics: list) -> List[LessonTopic]:
+    def _topics_in_progress(self, lesson_topics: BaseQuery) -> Set[Topic]:
         """loop through given lesson topics, check for rows
         that do not have is_finished in other rows -
         these are the in progress topics.
         """
-        topics = (Topic.get_by_id(lt.topic_id) for lt in lesson_topics.all())
+        topics = (lt.topic for lt in lesson_topics.all())
         in_progress_topics = itertools.dropwhile(
             lambda topic: (
                 LessonTopic.query.filter_by(topic_id=topic.id)
@@ -71,9 +72,9 @@ class Student(SurrogatePK, LessonCreator):
             ),
             topics,
         )
-        return list(in_progress_topics)
+        return set(list(in_progress_topics))
 
-    def topics(self, is_finished: bool) -> List[LessonTopic] or List[Topic]:
+    def topics(self, is_finished: bool) -> Set[Topic]:
         """get topics for student. if status is finished,
         get all finished lesson_topics. if in progress, get lesson_topics
         that do not have finished status - get latest row of each one.
@@ -82,10 +83,7 @@ class Student(SurrogatePK, LessonCreator):
         if is_finished:
             """if we check for is_finished,
             there should be one row with is_finished=True for each topic"""
-            return [
-                Topic.query.filter_by(id=lt.topic_id).first()
-                for lt in lesson_topics.all()
-            ]
+            return {lt.topic for lt in lesson_topics.all()}
 
         return self._topics_in_progress(lesson_topics)
 

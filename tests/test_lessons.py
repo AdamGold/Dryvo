@@ -108,9 +108,31 @@ def test_update_topics(auth, teacher, student, requester, topic):
         f"/lessons/{lesson_id}/topics",
         json={"topics": {"progress": [], "finished": [topic.id]}},
     )
-    assert topic.id == resp.json["data"]["topics"][0]["id"]
-    assert resp.json["data"]["topics"][0]["is_finished"]
+    assert resp.json["data"]
     assert len(LessonTopic.query.all()) == 1
+
+    another_topic = Topic.create(
+        title="test3", min_lesson_number=20, max_lesson_number=22
+    )
+    # let's say we're editing a lesson, and sending existing topics
+    resp = requester.post(
+        f"/lessons/{lesson_id}/topics",
+        json={"topics": {"progress": [another_topic.id], "finished": []}},
+    )
+    assert resp.json["data"]
+    assert LessonTopic.query.filter_by(topic=another_topic).first()
+    # now we're marking a finished topic
+    resp = requester.post(
+        f"/lessons/{lesson_id}/topics",
+        json={"topics": {"progress": [], "finished": [another_topic.id]}},
+    )
+    assert resp.json["data"]
+    assert (
+        LessonTopic.query.filter_by(topic=another_topic)
+        .order_by(LessonTopic.created_at.desc())
+        .first()
+        .is_finished
+    )
 
 
 @pytest.mark.parametrize(
@@ -339,7 +361,7 @@ def test_lesson_topics(auth, requester, student, meetup, dropoff, topic, teacher
     lesson = create_lesson(teacher, student, meetup, dropoff, datetime.utcnow())
     auth.login(email=teacher.user.email)
     resp = requester.get(f"/lessons/{lesson.id}/topics")
-    assert resp.json["data"][0]["id"] == topic.id
+    assert resp.json["available"][0]["id"] == topic.id
     another_topic = Topic.create(
         title="test3", min_lesson_number=20, max_lesson_number=22
     )
@@ -348,12 +370,16 @@ def test_lesson_topics(auth, requester, student, meetup, dropoff, topic, teacher
         json={"topics": {"progress": [another_topic.id], "finished": [topic.id]}},
     )
     resp = requester.get(f"/lessons/{lesson.id}/topics")
-    assert another_topic.id in [topic["id"] for topic in resp.json["data"]]
+    lesson_topics = [topic["id"] for topic in resp.json["available"]]
+    assert another_topic.id in resp.json["progress"]
+    assert another_topic.id in lesson_topics
+    assert topic.id in resp.json["finished"]
+    assert topic.id in lesson_topics
 
     another_lesson = create_lesson(teacher, student, meetup, dropoff, datetime.utcnow())
     resp = requester.get(f"/lessons/{another_lesson.id}/topics")
-    assert another_topic.id == resp.json["data"][0]["id"]
-    assert len(resp.json["data"]) == 1
+    assert another_topic.id == resp.json["available"][0]["id"]
+    assert len(resp.json["available"]) == 1
 
 
 def test_new_lesson_topics(
@@ -373,19 +399,5 @@ def test_new_lesson_topics(
     )
     requester.get(f"/lessons/{lesson.id}/topics")
     resp = requester.get(f"/lessons/0/topics?student_id={student.id}")
-    assert resp.json["data"][0]["id"] == another_topic.id
-
-    # let's say we're editing a lesson, and sending existing topics
-    resp = requester.post(
-        f"/lessons/{lesson.id}/topics",
-        json={"topics": {"progress": [another_topic.id], "finished": []}},
-    )
-    assert resp.json["data"]["topics"][0]["id"] == another_topic.id
-    # now we're marking a finished topic
-    resp = requester.post(
-        f"/lessons/{lesson.id}/topics",
-        json={"topics": {"progress": [], "finished": [another_topic.id]}},
-    )
-    assert resp.json["data"]["topics"][0]["id"] == another_topic.id
-    assert resp.json["data"]["topics"][0]["is_finished"]
+    assert resp.json["available"][0]["id"] == another_topic.id
 
