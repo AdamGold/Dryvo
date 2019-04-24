@@ -1,11 +1,12 @@
 import itertools
 from datetime import datetime
-from typing import Tuple, Optional
+from typing import Optional, Tuple
 
 import flask
 from flask import Blueprint
 from flask_login import current_user, login_required, logout_user
 from loguru import logger
+from sqlalchemy import and_
 
 from server.api.blueprints import teacher_required
 from server.api.database.models import (
@@ -240,6 +241,13 @@ def approve_lesson(lesson_id):
     lesson = current_user.teacher.lessons.filter_by(id=lesson_id).first()
     if not lesson:
         raise RouteError("Lesson does not exist", 404)
+    # check if there isn't another lesson at the same time
+    same_time_lesson = Lesson.query.filter(
+        and_(Lesson.date == lesson.date, Lesson.id != lesson.id)
+    ).first()
+    if same_time_lesson:
+        raise RouteError("There is another lesson at the same time.")
+
     lesson.update(is_approved=True)
 
     if lesson.student.user.firebase_token:
