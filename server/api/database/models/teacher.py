@@ -1,9 +1,10 @@
+import functools
 from datetime import datetime, timedelta
 from typing import Iterable, Tuple
 
 import werkzeug
 from loguru import logger
-from sqlalchemy import func
+from sqlalchemy import and_, func
 from sqlalchemy.ext.hybrid import hybrid_method
 from sqlalchemy.orm import backref
 
@@ -51,7 +52,10 @@ class Teacher(SurrogatePK, LessonCreator):
         return work_hours
 
     def available_hours(
-        self, requested_date: datetime, duration: int = None
+        self,
+        requested_date: datetime,
+        duration: int = None,
+        only_approved: bool = False,
     ) -> Iterable[Tuple[datetime, datetime]]:
         """
         1. calculate available hours - decrease existing lessons times from work hours
@@ -66,9 +70,15 @@ class Teacher(SurrogatePK, LessonCreator):
         existing_lessons = self.lessons.filter(
             func.extract("day", Lesson.date) == requested_date.day
         ).filter(func.extract("month", Lesson.date) == requested_date.month)
+
+        and_partial = functools.partial(and_, Lesson.student_id != None)
+        and_func = and_partial()
+        if only_approved:
+            and_func = and_partial(Lesson.is_approved == True)
+        taken_lessons = existing_lessons.filter(and_func).all()
         taken_lessons = [
             (lesson.date, lesson.date + timedelta(minutes=lesson.duration))
-            for lesson in existing_lessons.filter(Lesson.student_id != None).all()
+            for lesson in taken_lessons
         ]
         work_hours.sort(key=lambda x: x.from_hour)  # sort from early to late
         for day in work_hours:

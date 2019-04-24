@@ -121,7 +121,7 @@ def test_available_hours_route(teacher, student, meetup, dropoff, auth, requeste
     WorkDay.create(**data)
 
     # now let's add a lesson
-    Lesson.create(
+    lesson = Lesson.create(
         teacher_id=teacher.id,
         student_id=student.id,
         creator_id=teacher.user.id,
@@ -129,19 +129,26 @@ def test_available_hours_route(teacher, student, meetup, dropoff, auth, requeste
         date=datetime.strptime(time_and_date, DATE_FORMAT),
         meetup_place=meetup,
         dropoff_place=dropoff,
+        is_approved=False,
     )
     resp = requester.post(f"/teacher/{teacher.id}/available_hours", json={"date": date})
-    assert len(resp.json["data"]) == 4
-    assert "14:10" in resp.json["data"][0][0]
+
+    assert len(resp.json["data"]) == 6
+    lesson.update(is_approved=True)
     resp = requester.post(
         f"/teacher/{teacher.id}/available_hours", json={"date": date, "duration": "100"}
     )
     assert len(resp.json["data"]) == 1
 
+    # if we login as student, we shouldn't see any lesson dates (even non-approved)
+    auth.login(email=student.user.email)
+    lesson.update(is_approved=False)
+    resp = requester.post(f"/teacher/{teacher.id}/available_hours", json={"date": date})
+    assert len(resp.json["data"]) == 4
 
-def test_teacher_available_hours(teacher, student, requester):
+
+def test_teacher_available_hours(teacher, student, requester, meetup, dropoff):
     tomorrow = datetime.utcnow() + timedelta(days=1)
-    date = tomorrow.strftime(WORKDAY_DATE_FORMAT)
     kwargs = {
         "teacher_id": teacher.id,
         "day": 1,
@@ -153,6 +160,21 @@ def test_teacher_available_hours(teacher, student, requester):
     }
     WorkDay.create(**kwargs)
     assert next(teacher.available_hours(tomorrow))[0] == tomorrow
+
+    # we create a non approved lesson - available hours should still contain its date
+    lesson = Lesson.create(
+        teacher_id=teacher.id,
+        student_id=student.id,
+        creator_id=teacher.user.id,
+        duration=teacher.lesson_duration,
+        date=tomorrow,
+        meetup_place=meetup,
+        dropoff_place=dropoff,
+        is_approved=False,
+    )
+
+    assert next(teacher.available_hours(tomorrow, only_approved=True))[0] == tomorrow
+    assert next(teacher.available_hours(tomorrow, only_approved=False))[0] != tomorrow
 
 
 def test_add_payment(auth, requester, teacher, student):
