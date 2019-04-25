@@ -14,6 +14,7 @@ class Config(object):
     FACEBOOK_CLIENT_SECRET = os.environ.get("FACEBOOK_CLIENT_SECRET")
     FACEBOOK_TOKEN = os.environ.get("FACEBOOK_TOKEN")
     CLOUDINARY_URL = os.environ.get("CLOUDINARY_URL")
+    RECEIPTS_API_KEY = os.environ.get("RECEIPTS_API_KEY")
 
     def update(self, newdata):
         for key, value in newdata.items():

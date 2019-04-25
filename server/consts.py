@@ -7,3 +7,4 @@ MAXIMUM_PER_PAGE = 100
 MOBILE_LINK = "dryvo://auth/"
 LOG_RETENTION = "7 days"
 PROFILE_SIZE = 200
+RECEIPT_URL = "https://demo.ezcount.co.il/api/createDoc"

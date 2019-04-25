@@ -2,14 +2,23 @@ from datetime import datetime
 from functools import wraps
 
 import flask
+import requests
 from flask import Blueprint
 from flask_login import current_user, login_required, logout_user
 from loguru import logger
 
-from server.api.database.models import Day, Payment, Student, Teacher, User, WorkDay
+from server.api.database.models import (
+    Day,
+    Payment,
+    Student,
+    Teacher,
+    User,
+    WorkDay,
+    PaymentType,
+)
 from server.api.push_notifications import FCM
 from server.api.utils import jsonify_response, paginate
-from server.consts import WORKDAY_DATE_FORMAT
+from server.consts import RECEIPT_URL, WORKDAY_DATE_FORMAT
 from server.error_handling import RouteError
 
 teacher_routes = Blueprint("teacher", __name__, url_prefix="/teacher")
@@ -180,8 +189,14 @@ def add_payment():
         raise RouteError("Student does not exist.")
     if not amount:
         raise RouteError("Amount must be given.")
+
     payment = Payment.create(
-        teacher=current_user.teacher, student=student, amount=amount
+        teacher=current_user.teacher,
+        student=student,
+        amount=amount,
+        payment_type=getattr(PaymentType, data.get("payment_type", ""), 1),
+        details=data.get("details"),
+        crn=int(data.get("crn")) if data.get("crn") else None,
     )
     # send notification to student
     if student.user.firebase_token:
@@ -238,3 +253,45 @@ def approve(teacher_id):
     teacher = Teacher.get_by_id(teacher_id)
     teacher.update(is_approved=True)
     return {"data": teacher.to_dict()}
+
+
+@teacher_routes.route("/payments/<int:payment_id>/receipt", methods=["GET"])
+@jsonify_response
+@login_required
+@teacher_required
+def add_receipt(payment_id):
+    payment = Payment.get_by_id(payment_id)
+    if not payment or payment.teacher != current_user.teacher:
+        raise RouteError("Payment not found.", 404)
+
+    api_key = flask.current_app.config.get("RECEIPTS_API_KEY")
+    payload = {
+        "api_key": api_key,
+        "developer_email": "ronalister@gmail.com",
+        "created_by_api_key": api_key,
+        "transaction_id": payment.id,
+        "type": 320,
+        "customer_name": payment.student.user.name,
+        "customer_email": payment.student.user.email,
+        "customer_crn": payment.crn,
+        "item": {
+            1: {
+                "details": payment.details,
+                "amount": "1",
+                "price": payment.amount,
+                "price_inc_vat": 1,  # this price include the VAT
+            }
+        },
+        "payment": {
+            1: {"payment_type": payment.payment_type.value, "payment": payment.amount}
+        },
+        "price_total": payment.amount,  # /*THIS IS A MUST ONLY IN INVOICE RECIEPT*/
+    }
+
+    resp = requests.post(RECEIPT_URL, json=payload)
+    resp_json = resp.json()
+    if resp_json["success"]:
+        payment.update(pdf_link=resp_json["pdf_link"])
+        return {"message": "Receipt added successfully."}
+
+    raise RouteError(resp_json["errMsg"])
