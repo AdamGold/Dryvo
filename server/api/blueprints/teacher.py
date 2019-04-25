@@ -18,7 +18,11 @@ from server.api.database.models import (
 )
 from server.api.push_notifications import FCM
 from server.api.utils import jsonify_response, paginate
-from server.consts import RECEIPT_URL, WORKDAY_DATE_FORMAT
+from server.consts import (
+    WORKDAY_DATE_FORMAT,
+    STAGING_RECEIPT_URL,
+    PRODUCTION_RECEIPT_URL,
+)
 from server.error_handling import RouteError
 
 teacher_routes = Blueprint("teacher", __name__, url_prefix="/teacher")
@@ -288,7 +292,14 @@ def add_receipt(payment_id):
         "price_total": payment.amount,  # /*THIS IS A MUST ONLY IN INVOICE RECIEPT*/
     }
 
-    resp = requests.post(RECEIPT_URL, json=payload)
+    if payment.teacher.receipts_account_id:
+        payload["ua_uuid"] = payment.teacher.receipts_account_id
+
+    url = STAGING_RECEIPT_URL
+    if flask.current_app.config.get("FLASK_ENV") == "production":
+        url = PRODUCTION_RECEIPT_URL
+
+    resp = requests.post(url, json=payload)
     resp_json = resp.json()
     if resp_json["success"]:
         payment.update(pdf_link=resp_json["pdf_link"])
