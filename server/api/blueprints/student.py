@@ -112,8 +112,6 @@ def edit_student(student_id):
         data = flask.request.values
         image = flask.request.files.get("green_form")
         extra_data = dict()
-        if image:
-            extra_data["green_form"] = upload(image)["public_id"]
         if (
             current_user.teacher
         ):  # only teacher is allowed to edit num of lessons and theory
@@ -121,6 +119,8 @@ def edit_student(student_id):
                 theory=data.get("theory", False) == "true",
                 number_of_old_lessons=int(data.get("number_of_old_lessons", 0)),
             )
+        if image:
+            extra_data["green_form"] = upload(image)["public_id"]
         student.update(
             doctor_check=data.get("doctor_check", False) == "true",
             eyes_check=data.get("eyes_check", False) == "true",
