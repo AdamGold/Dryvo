@@ -39,6 +39,7 @@ class Lesson(SurrogatePK, Model):
     deleted = Column(db.Boolean, nullable=False, default=False)
     creator_id = reference_col("users", nullable=False)
     creator = relationship("User")
+    price = Column(db.Integer, nullable=True)
 
     ALLOWED_FILTERS = [
         "deleted",
@@ -55,6 +56,10 @@ class Lesson(SurrogatePK, Model):
         if current_user and not kwargs.get("creator") and current_user.is_authenticated:
             self.creator = current_user
         db.Model.__init__(self, **kwargs)
+        if not self.price:
+            self.price = self.teacher.price
+            if self.student:
+                self.price = self.student.price
 
     def update_only_changed_fields(self, **kwargs):
         args = {k: v for k, v in kwargs.items() if v or isinstance(v, bool)}

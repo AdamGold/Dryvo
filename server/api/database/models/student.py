@@ -46,6 +46,7 @@ class Student(SurrogatePK, LessonCreator):
     doctor_check = Column(db.Boolean, nullable=False, default=False)
     eyes_check = Column(db.Boolean, nullable=False, default=False)
     green_form = Column(db.String(240), nullable=True)
+    price = Column(db.Integer, nullable=True)
 
     ALLOWED_FILTERS = [
         "is_active",
@@ -61,6 +62,8 @@ class Student(SurrogatePK, LessonCreator):
         if current_user and not kwargs.get("creator") and current_user.is_authenticated:
             self.creator = current_user
         db.Model.__init__(self, **kwargs)
+        if not self.price:
+            self.price = self.teacher.price
 
     def _lesson_topics(self, is_finished: bool):
         lesson_ids = [lesson.id for lesson in self.lessons]
@@ -116,14 +119,16 @@ class Student(SurrogatePK, LessonCreator):
             .first()
         )
 
+    @staticmethod
+    def _custom_balance_filter(*args):
+        return and_(Lesson.date < datetime.utcnow(), Lesson.is_approved == True, *args)
+
     @hybrid_property
     def new_lesson_number(self) -> int:
         """return the number of a new lesson:
         num of latest lesson+1"""
         latest_lesson = (
-            self.lessons.filter(
-                and_(Lesson.date < datetime.utcnow(), Lesson.is_approved == True)
-            )
+            self.lessons.filter(self._custom_balance_filter())
             .order_by(Lesson.date.desc())
             .limit(1)
             .one_or_none()
@@ -137,13 +142,7 @@ class Student(SurrogatePK, LessonCreator):
     def new_lesson_number(cls):
         q = (
             select([func.count(Lesson.student_id) + 1])
-            .where(
-                and_(
-                    Lesson.student_id == cls.id,
-                    Lesson.date < datetime.utcnow(),
-                    Lesson.is_approved == True,
-                )
-            )
+            .where(cls._custom_balance_filter(Lesson.student_id == cls.id))
             .label("new_lesson_number")
         )
         return q + cls.number_of_old_lessons
@@ -160,14 +159,22 @@ class Student(SurrogatePK, LessonCreator):
 
     @hybrid_property
     def total_lessons_price(self):
-        return (self.new_lesson_number - 1) * self.teacher.price
+        return (
+            sum(
+                lesson.price
+                for lesson in self.lessons.filter(self._custom_balance_filter()).all()
+            )
+            + self.price * self.number_of_old_lessons
+        )
 
     @total_lessons_price.expression
     def total_lessons_price(cls):
-        q = select([(cls.new_lesson_number - 1) * Teacher.price]).label(
-            "total_lessons_price"
+        q = (
+            select([coalesce(func.sum(Lesson.price), 0)])
+            .where(cls._custom_balance_filter(Lesson.student_id == cls.id))
+            .label("total_lessons_price")
         )
-        return q
+        return q + cls.number_of_old_lessons * cls.price
 
     @hybrid_property
     def total_paid(self):
@@ -202,6 +209,7 @@ class Student(SurrogatePK, LessonCreator):
             "doctor_check": self.doctor_check,
             "number_of_old_lessons": self.number_of_old_lessons,
             "green_form": green_form,
+            "price": self.price,
         }
 
     def __repr__(self):

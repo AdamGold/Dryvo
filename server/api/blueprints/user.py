@@ -58,9 +58,7 @@ def make_student():
     if not teacher:
         raise RouteError("Teacher was not found.")
 
-    student = Student.create(
-        user_id=user.id, teacher_id=teacher.id, creator=current_user
-    )
+    student = Student.create(user=user, teacher=teacher, creator=current_user)
     # send notification
     user_to_send_to = student.user
     if student.creator == user_to_send_to:

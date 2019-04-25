@@ -5,7 +5,7 @@ import flask
 import pytest
 from werkzeug import MultiDict
 
-from server.api.database.models import Lesson, Student, User
+from server.api.database.models import Lesson, Student, User, Teacher
 from server.api.utils import get_slots, jsonify_response, must_redirect
 from server.consts import DATE_FORMAT, WORKDAY_DATE_FORMAT
 
@@ -125,12 +125,18 @@ def test_filter_multiple_params(teacher, student, meetup, dropoff):
     assert lessons_from_db[0] == lesson
 
 
-def test_filter_and_sort(teacher, student, meetup, dropoff):
+def test_filter_and_sort(user, teacher, student, meetup, dropoff):
     """test that limit is maxed to 100, base query, custom date, non allowed filters"""
     date = datetime.utcnow() + timedelta(days=100)
     for x in range(101):
+        user = User.create(
+            email=f"{x}@test.com", password="test", name="teacher", area="test"
+        )
+        teacher = Teacher.create(
+            user=user, price=100, lesson_duration=40, is_approved=True
+        )
         Lesson.create(
-            teacher_id=x,
+            teacher=teacher,
             student=student,
             creator=student.user,
             duration=40,

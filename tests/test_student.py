@@ -262,10 +262,7 @@ def test_delete_student(auth, requester, student, teacher):
         email="aa@test.com", password="test", name="student", area="test"
     )
     new_student = Student.create(
-        user_id=student_user.id,
-        teacher_id=teacher.id,
-        creator=teacher.user,
-        is_approved=True,
+        user=student_user, teacher=teacher, creator=teacher.user, is_approved=True
     )
     resp = requester.delete(f"/student/{new_student.id}")
     assert "deleted" in resp.json["message"]

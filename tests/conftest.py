@@ -69,7 +69,7 @@ def setup_db(app):
         email="teacher@test.com", password="test", name="teacher", area="test"
     )
     teacher = Teacher.create(
-        user_id=teacher_user.id,
+        user=teacher_user,
         price=100,
         lesson_duration=40,
         is_approved=True,
@@ -80,10 +80,7 @@ def setup_db(app):
         email="student@test.com", password="test", name="student", area="test"
     )
     student = Student.create(
-        user_id=student_user.id,
-        teacher_id=teacher.id,
-        creator=teacher.user,
-        is_approved=True,
+        user=student_user, teacher=teacher, creator=teacher.user, is_approved=True
     )
     meetup = Place.create(name="test", used_as=PlaceType.meetup.value, student=student)
     dropoff = Place.create(
