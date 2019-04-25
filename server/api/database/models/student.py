@@ -77,7 +77,7 @@ class Student(SurrogatePK, LessonCreator):
         these are the in progress topics.
         """
         topics = (lt.topic for lt in lesson_topics.all())
-        in_progress_topics = itertools.dropwhile(
+        in_progress_topics = itertools.filterfalse(
             lambda topic: (
                 LessonTopic.query.filter_by(topic_id=topic.id)
                 .filter_by(is_finished=True)
