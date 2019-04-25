@@ -3,7 +3,15 @@ from datetime import datetime, timedelta, date
 import pytest
 
 from server.api.blueprints import user
-from server.api.database.models import Lesson, Student, User, WorkDay, Payment, Teacher
+from server.api.database.models import (
+    Lesson,
+    Student,
+    User,
+    WorkDay,
+    Payment,
+    Teacher,
+    PaymentType,
+)
 from server.consts import DATE_FORMAT, WORKDAY_DATE_FORMAT
 
 
@@ -180,9 +188,27 @@ def test_teacher_available_hours(teacher, student, requester, meetup, dropoff):
 def test_add_payment(auth, requester, teacher, student):
     auth.login(email=teacher.user.email)
     resp = requester.post(
-        "/teacher/add_payment", json={"amount": teacher.price, "student_id": student.id}
+        "/teacher/add_payment",
+        json={
+            "amount": teacher.price,
+            "student_id": student.id,
+            "crn": "1101",
+            "payment_type": "cash",
+            "details": "test",
+        },
     )
     assert resp.json["data"]["amount"] == teacher.price
+    assert resp.json["data"]["crn"] == 1101
+
+    resp = requester.post(
+        "/teacher/add_payment",
+        json={
+            "amount": teacher.price,
+            "student_id": student.id,
+            "payment_type": "asdas",
+        },
+    )
+    assert resp.json["data"]["payment_type"] == "cash"
 
 
 @pytest.mark.parametrize(
@@ -232,3 +258,28 @@ def test_approve(auth, admin, requester, teacher):
     auth.login(email=admin.email)
     resp = requester.get(f"/teacher/{teacher.id}/approve")
     assert resp.json["data"]["is_approved"]
+
+
+def test_add_receipt(auth, requester, teacher, student):
+    auth.login(email=teacher.user.email)
+    payment = Payment.create(
+        teacher=teacher,
+        amount=teacher.price,
+        student=student,
+        payment_type=PaymentType.cash,
+        details="test",
+        crn=1101,
+    )
+    assert not payment.pdf_link
+    requester.get(
+        f"/teacher/payments/{payment.id}/receipt",
+        json={
+            "amount": teacher.price,
+            "student_id": student.id,
+            "crn": "1101",
+            "payment_type": "cash",
+            "details": "test",
+        },
+    )
+    assert payment.pdf_link
+
