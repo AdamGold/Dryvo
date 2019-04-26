@@ -121,7 +121,12 @@ class Student(SurrogatePK, LessonCreator):
 
     @staticmethod
     def _custom_balance_filter(*args):
-        return and_(Lesson.date < datetime.utcnow(), Lesson.is_approved == True, *args)
+        return and_(
+            Lesson.date < datetime.utcnow(),
+            Lesson.is_approved == True,
+            Lesson.deleted == False,
+            *args,
+        )
 
     @hybrid_property
     def new_lesson_number(self) -> int:

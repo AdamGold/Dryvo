@@ -57,9 +57,10 @@ class Lesson(SurrogatePK, Model):
             self.creator = current_user
         db.Model.__init__(self, **kwargs)
         if not self.price:
-            self.price = self.teacher.price
             if self.student:
                 self.price = self.student.price
+            else:
+                self.price = self.teacher.price
 
     def update_only_changed_fields(self, **kwargs):
         args = {k: v for k, v in kwargs.items() if v or isinstance(v, bool)}
@@ -70,7 +71,14 @@ class Lesson(SurrogatePK, Model):
         return (
             db.session.query(func.count(Lesson.id))
             .select_from(Lesson)
-            .filter(and_(Lesson.date < self.date, Lesson.student == self.student))
+            .filter(
+                and_(
+                    Lesson.date < self.date,
+                    Lesson.student == self.student,
+                    Lesson.deleted == False,
+                    Lesson.is_approved == True,
+                )
+            )
             .scalar()
         ) + 1
 
