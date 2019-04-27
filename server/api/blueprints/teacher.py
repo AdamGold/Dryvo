@@ -303,6 +303,6 @@ def add_receipt(payment_id):
     resp_json = resp.json()
     if resp_json["success"]:
         payment.update(pdf_link=resp_json["pdf_link"])
-        return {"message": "Receipt added successfully."}
+        return {"pdf_link": resp_json["pdf_link"]}
 
     raise RouteError(resp_json["errMsg"])
