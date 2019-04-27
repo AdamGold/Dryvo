@@ -189,17 +189,20 @@ def add_payment():
     data = flask.request.get_json()
     student = Student.get_by_id(data.get("student_id"))
     amount = data.get("amount")
+    details = data.get("details")
     if not student:
         raise RouteError("Student does not exist.")
     if not amount:
-        raise RouteError("Amount must be given.")
+        raise RouteError("Amount must not be empty.")
+    if not details:
+        raise RouteError("Details must not be empty.")
 
     payment = Payment.create(
         teacher=current_user.teacher,
         student=student,
         amount=amount,
         payment_type=getattr(PaymentType, data.get("payment_type", ""), 1),
-        details=data.get("details"),
+        details=details,
         crn=int(data.get("crn")) if data.get("crn") else None,
     )
     # send notification to student

@@ -206,19 +206,27 @@ def test_add_payment(auth, requester, teacher, student):
             "amount": teacher.price,
             "student_id": student.id,
             "payment_type": "asdas",
+            "details": "test",
         },
     )
     assert resp.json["data"]["payment_type"] == "cash"
 
 
 @pytest.mark.parametrize(
-    ("amount, student_id, error"),
-    ((None, 1, "Amount must be given."), (100, 10000, "Student does not exist.")),
+    ("amount", "details", "student_id", "error"),
+    (
+        (None, "test", 1, "Amount must not be empty."),
+        (100, "test", 10000, "Student does not exist."),
+        (100, "", 1, "Details must not be empty."),
+    ),
 )
-def test_add_invalid_payment(auth, requester, teacher, amount, student_id, error):
+def test_add_invalid_payment(
+    auth, requester, teacher, amount, details, student_id, error
+):
     auth.login(email=teacher.user.email)
     resp = requester.post(
-        "/teacher/add_payment", json={"amount": amount, "student_id": student_id}
+        "/teacher/add_payment",
+        json={"amount": amount, "details": details, "student_id": student_id},
     )
     assert resp.status_code == 400
     assert resp.json["message"] == error
