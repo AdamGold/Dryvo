@@ -291,3 +291,10 @@ def test_add_receipt(auth, requester, teacher, student):
     )
     assert payment.pdf_link
 
+
+def test_login_to_ezcount(auth, requester, teacher):
+    teacher.user.update(email="rr@rr.com")
+    auth.login(email=teacher.user.email)
+    resp = requester.get("/teacher/ezcount?redirect=backoffice/expenses")
+    assert resp.json["url"]
+

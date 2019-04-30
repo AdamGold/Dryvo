@@ -22,6 +22,7 @@ from server.consts import (
     WORKDAY_DATE_FORMAT,
     STAGING_RECEIPT_URL,
     PRODUCTION_RECEIPT_URL,
+    RECEIPTS_DEVELOPER_EMAIL,
 )
 from server.error_handling import RouteError
 
@@ -274,7 +275,7 @@ def add_receipt(payment_id):
     api_key = flask.current_app.config.get("RECEIPTS_API_KEY")
     payload = {
         "api_key": api_key,
-        "developer_email": "ronalister@gmail.com",
+        "developer_email": RECEIPTS_DEVELOPER_EMAIL,
         "created_by_api_key": api_key,
         "transaction_id": payment.id,
         "type": 320,
@@ -302,10 +303,32 @@ def add_receipt(payment_id):
     if flask.current_app.config.get("FLASK_ENV") == "production":
         url = PRODUCTION_RECEIPT_URL
 
-    resp = requests.post(url, json=payload)
+    resp = requests.post(url + "api/createDoc", json=payload)
     resp_json = resp.json()
     if resp_json["success"]:
         payment.update(pdf_link=resp_json["pdf_link"])
         return {"pdf_link": resp_json["pdf_link"]}
 
     raise RouteError(resp_json["errMsg"])
+
+
+@teacher_routes.route("/ezcount", methods=["GET"])
+@jsonify_response
+@login_required
+@teacher_required
+def login_to_ezcount():
+    email = current_user.email
+    api_key = flask.current_app.config.get("RECEIPTS_API_KEY")
+    url = STAGING_RECEIPT_URL
+    if flask.current_app.config.get("FLASK_ENV") == "production":
+        url = PRODUCTION_RECEIPT_URL
+    redirect = flask.request.args.get("redirect", "")
+    resp = requests.post(
+        url + f"api/getClientSafeUrl/login?redirectTo={redirect}",
+        json={
+            "api_key": api_key,
+            "api_email": email,
+            "developer_email": RECEIPTS_DEVELOPER_EMAIL,
+        },
+    )
+    return {"url": resp.json()["url"]}
