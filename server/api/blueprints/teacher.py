@@ -263,6 +263,40 @@ def approve(teacher_id):
     return {"data": teacher.to_dict()}
 
 
+@teacher_routes.route("/ezcount_user", methods=["GET"])
+@jsonify_response
+@login_required
+@teacher_required
+def create_ezcount_user():
+    # https://docs.google.com/document/d/1me6u9CpJtydTIEdMkY3OH1dresZkrPRCK0_xw5Rn0Do/edit#
+    teacher = current_user.teacher
+    if teacher.invoice_api_key:
+        raise RouteError("Teacher already has an invoice account.")
+
+    api_key = flask.current_app.config.get("RECEIPTS_API_KEY")
+    payload = {
+        "api_key": api_key,
+        "api_email": RECEIPTS_DEVELOPER_EMAIL,
+        "developer_email": RECEIPTS_DEVELOPER_EMAIL,
+        "create_signature": 1,
+        "company_crn": teacher.crn,
+        "company_email": current_user.email,
+        "user_key": str(current_user.id),
+        "company_name": current_user.name,
+        "company_type": 1,
+    }
+
+    resp = requests.post(get_receipt_url() + "api/user/create", json=payload)
+    resp_json = resp.json()
+    if resp_json["success"]:
+        teacher.update(
+            invoice_api_key=resp_json["u_api_key"], invoice_api_uid=resp_json["u_uuid"]
+        )
+        return {"message": "EZCount user created successfully."}
+
+    raise RouteError(resp_json["errMsg"])
+
+
 @teacher_routes.route("/payments/<int:payment_id>/receipt", methods=["GET"])
 @jsonify_response
 @login_required
@@ -273,9 +307,12 @@ def add_receipt(payment_id):
     if not payment or payment.teacher != current_user.teacher:
         raise RouteError("Payment not found.", 404)
 
+    if not payment.teacher.invoice_api_key:
+        raise RouteError("Teacher does not have an invoice account.")
+
     api_key = flask.current_app.config.get("RECEIPTS_API_KEY")
     payload = {
-        "api_key": api_key,
+        "api_key": payment.teacher.invoice_api_key,
         "developer_email": RECEIPTS_DEVELOPER_EMAIL,
         "created_by_api_key": api_key,
         "transaction_id": payment.id,
@@ -297,14 +334,7 @@ def add_receipt(payment_id):
         "price_total": payment.amount,  # /*THIS IS A MUST ONLY IN INVOICE RECIEPT*/
     }
 
-    if payment.teacher.receipts_account_id:
-        payload["ua_uuid"] = payment.teacher.receipts_account_id
-
-    url = STAGING_RECEIPT_URL
-    if flask.current_app.config.get("FLASK_ENV") == "production":
-        url = PRODUCTION_RECEIPT_URL
-
-    resp = requests.post(url + "api/createDoc", json=payload)
+    resp = requests.post(get_receipt_url() + "api/createDoc", json=payload)
     resp_json = resp.json()
     if resp_json["success"]:
         payment.update(pdf_link=resp_json["pdf_link"])
@@ -319,18 +349,24 @@ def add_receipt(payment_id):
 @teacher_required
 def login_to_ezcount():
     # https://docs.google.com/document/d/1me6u9CpJtydTIEdMkY3OH1dresZkrPRCK0_xw5Rn0Do/edit#
-    email = current_user.email
-    api_key = flask.current_app.config.get("RECEIPTS_API_KEY")
-    url = STAGING_RECEIPT_URL
-    if flask.current_app.config.get("FLASK_ENV") == "production":
-        url = PRODUCTION_RECEIPT_URL
+
+    if not current_user.teacher.invoice_api_key:
+        raise RouteError("Teacher does not have an invoice account.")
     redirect = flask.request.args.get("redirect", "")
     resp = requests.post(
-        url + f"api/getClientSafeUrl/login?redirectTo={redirect}",
+        get_receipt_url() + f"api/getClientSafeUrl/login?redirectTo={redirect}",
         json={
-            "api_key": api_key,
-            "api_email": email,
+            "api_key": current_user.teacher.invoice_api_key,
+            "api_email": current_user.email,
             "developer_email": RECEIPTS_DEVELOPER_EMAIL,
         },
     )
     return {"url": resp.json()["url"]}
+
+
+def get_receipt_url():
+    url = STAGING_RECEIPT_URL
+    if flask.current_app.config.get("FLASK_ENV") == "production":
+        return PRODUCTION_RECEIPT_URL
+
+    return url

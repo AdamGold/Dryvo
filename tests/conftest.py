@@ -24,6 +24,8 @@ from server.api.database.models import (
 )
 from server.api.social import SocialNetwork, social_networks_classes
 
+DEMO_API_KEY = "ccbd100c5bcd1b3d31aaa33851917ca45a251d41988d6c6a3a9e0c68b13d47c2"
+
 
 @pytest.fixture
 def app() -> flask.Flask:
@@ -67,7 +69,12 @@ def setup_db(app):
         email="teacher@test.com", password="test", name="teacher", area="test"
     )
     teacher = Teacher.create(
-        user_id=teacher_user.id, price=100, lesson_duration=40, is_approved=True
+        user_id=teacher_user.id,
+        price=100,
+        lesson_duration=40,
+        is_approved=True,
+        crn=999999999,
+        invoice_api_key=DEMO_API_KEY,
     )
     student_user = User.create(
         email="student@test.com", password="test", name="student", area="test"

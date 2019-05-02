@@ -20,7 +20,7 @@ def test_teachers(auth, teacher, requester):
         email="a@a.c", password="huh", name="absolutely", area="nope"
     )
     new_teacher = Teacher.create(
-        user=new_user, is_approved=True, price=100, lesson_duration=40
+        user=new_user, is_approved=True, price=100, lesson_duration=40, crn=1
     )
     auth.login()
     resp = requester.get("/teacher/")
@@ -268,6 +268,24 @@ def test_approve(auth, admin, requester, teacher):
     assert resp.json["data"]["is_approved"]
 
 
+@pytest.mark.skip
+def test_ezcount_create_user(auth, requester, teacher):
+    auth.login(email=teacher.user.email)
+    resp = requester.get("/teacher/ezcount_user")
+    assert "already has" in resp.json["message"]
+    auth.logout()
+
+    new_user = User.create(
+        email="a@a.c", password="huh", name="absolutely", area="nope"
+    )
+    new_teacher = Teacher.create(
+        user=new_user, is_approved=True, price=100, lesson_duration=40, crn=999999999
+    )
+    auth.login(email=new_teacher.user.email, password="huh")
+    resp = requester.get("/teacher/ezcount_user")
+    assert "successfully" in resp.json["message"]
+
+
 def test_add_receipt(auth, requester, teacher, student):
     auth.login(email=teacher.user.email)
     payment = Payment.create(
@@ -279,22 +297,48 @@ def test_add_receipt(auth, requester, teacher, student):
         crn=1101,
     )
     assert not payment.pdf_link
-    requester.get(
-        f"/teacher/payments/{payment.id}/receipt",
-        json={
-            "amount": teacher.price,
-            "student_id": student.id,
-            "crn": "1101",
-            "payment_type": "cash",
-            "details": "test",
-        },
-    )
+    requester.get(f"/teacher/payments/{payment.id}/receipt")
     assert payment.pdf_link
 
 
+def test_invalid_add_receipt(auth, requester, student, teacher):
+    auth.login(email=teacher.user.email)
+    resp = requester.get("/teacher/payments/1000/receipt")
+    assert resp.status_code == 404
+    auth.logout()
+    new_user = User.create(
+        email="a@a.c", password="huh", name="absolutely", area="nope"
+    )
+    new_teacher = Teacher.create(
+        user=new_user, is_approved=True, price=100, lesson_duration=40, crn=999999999
+    )
+    auth.login(email=new_user.email, password="huh")
+    payment = Payment.create(
+        teacher=new_teacher,
+        amount=new_teacher.price,
+        student=student,
+        payment_type=PaymentType.cash,
+        details="test",
+        crn=1101,
+    )
+    resp = requester.get(f"/teacher/payments/{payment.id}/receipt")
+    assert "does not have an invoice account" in resp.json["message"]
+
+
 def test_login_to_ezcount(auth, requester, teacher):
-    teacher.user.update(email="rr@rr.com")
     auth.login(email=teacher.user.email)
     resp = requester.get("/teacher/ezcount?redirect=backoffice/expenses")
     assert resp.json["url"]
+
+
+def test_invalid_login_to_ezcount(auth, requester):
+    new_user = User.create(
+        email="a@a.c", password="huh", name="absolutely", area="nope"
+    )
+    new_teacher = Teacher.create(
+        user=new_user, is_approved=True, price=100, lesson_duration=40, crn=999999999
+    )
+    auth.login(email=new_user.email, password="huh")
+    resp = requester.get("/teacher/ezcount?redirect=backoffice/expenses")
+    assert "does not have an invoice account" in resp.json["message"]
 
