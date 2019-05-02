@@ -133,7 +133,7 @@ def test_filter_and_sort(user, teacher, student, meetup, dropoff):
             email=f"{x}@test.com", password="test", name="teacher", area="test"
         )
         teacher = Teacher.create(
-            user=user, price=100, lesson_duration=40, is_approved=True
+            user=user, price=100, lesson_duration=40, is_approved=True, crn=9
         )
         Lesson.create(
             teacher=teacher,

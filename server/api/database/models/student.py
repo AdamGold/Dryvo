@@ -119,21 +119,14 @@ class Student(SurrogatePK, LessonCreator):
             .first()
         )
 
-    @staticmethod
-    def _custom_balance_filter(*args):
-        return and_(
-            Lesson.date < datetime.utcnow(),
-            Lesson.is_approved == True,
-            Lesson.deleted == False,
-            *args,
-        )
-
     @hybrid_property
     def new_lesson_number(self) -> int:
         """return the number of a new lesson:
         num of latest lesson+1"""
         latest_lesson = (
-            self.lessons.filter(self._custom_balance_filter())
+            self.lessons.filter(
+                Lesson.approved_lessons_filter(Lesson.date < datetime.utcnow())
+            )
             .order_by(Lesson.date.desc())
             .limit(1)
             .one_or_none()
@@ -147,7 +140,11 @@ class Student(SurrogatePK, LessonCreator):
     def new_lesson_number(cls):
         q = (
             select([func.count(Lesson.student_id) + 1])
-            .where(cls._custom_balance_filter(Lesson.student_id == cls.id))
+            .where(
+                Lesson.approved_lessons_filter(
+                    Lesson.date < datetime.utcnow(), Lesson.student_id == cls.id
+                )
+            )
             .label("new_lesson_number")
         )
         return q + cls.number_of_old_lessons
@@ -167,7 +164,9 @@ class Student(SurrogatePK, LessonCreator):
         return (
             sum(
                 lesson.price
-                for lesson in self.lessons.filter(self._custom_balance_filter()).all()
+                for lesson in self.lessons.filter(
+                    Lesson.approved_lessons_filter(Lesson.date < datetime.utcnow())
+                ).all()
             )
             + self.price * self.number_of_old_lessons
         )
@@ -176,7 +175,11 @@ class Student(SurrogatePK, LessonCreator):
     def total_lessons_price(cls):
         q = (
             select([coalesce(func.sum(Lesson.price), 0)])
-            .where(cls._custom_balance_filter(Lesson.student_id == cls.id))
+            .where(
+                Lesson.approved_lessons_filter(
+                    Lesson.date < datetime.utcnow(), Lesson.student_id == cls.id
+                )
+            )
             .label("total_lessons_price")
         )
         return q + cls.number_of_old_lessons * cls.price

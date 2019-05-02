@@ -66,17 +66,18 @@ class Lesson(SurrogatePK, Model):
         args = {k: v for k, v in kwargs.items() if v or isinstance(v, bool)}
         self.update(**args)
 
+    @staticmethod
+    def approved_lessons_filter(*args):
+        return and_(Lesson.is_approved == True, Lesson.deleted == False, *args)
+
     @hybrid_property
     def lesson_number(self):
         return (
             db.session.query(func.count(Lesson.id))
             .select_from(Lesson)
             .filter(
-                and_(
-                    Lesson.date < self.date,
-                    Lesson.student == self.student,
-                    Lesson.deleted == False,
-                    Lesson.is_approved == True,
+                self.approved_lessons_filter(
+                    Lesson.date < self.date, Lesson.student == self.student
                 )
             )
             .scalar()
