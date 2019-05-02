@@ -7,7 +7,7 @@ from server.api.database.models import Teacher
 
 def test_make_teacher(user, auth, requester):
     auth.login()
-    resp = requester.post("/user/make_teacher", json={"price": 100})
+    resp = requester.post("/user/make_teacher", json={"price": 100, "crn": 9999})
     assert resp.json["data"]["user"]["id"] == user.id
     teacher = Teacher.query.filter_by(user=user).first()
     assert teacher
@@ -15,11 +15,16 @@ def test_make_teacher(user, auth, requester):
 
 
 @pytest.mark.parametrize(
-    ("price", "message"), ((None, "Empty fields."), (-20, "Price must be above 0."))
+    ("price", "crn", "message"),
+    (
+        (None, 100, "Empty fields."),
+        (100, None, "Empty fields."),
+        (-20, 100, "Price must be above 0."),
+    ),
 )
-def test_invalid_make_teacher(user, auth, requester, price, message):
+def test_invalid_make_teacher(user, auth, crn, requester, price, message):
     auth.login()
-    resp = requester.post("/user/make_teacher", json={"price": price})
+    resp = requester.post("/user/make_teacher", json={"price": price, "crn": crn})
     assert resp.status_code == 400
     assert resp.json.get("message") == message
 

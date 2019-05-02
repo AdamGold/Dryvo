@@ -9,4 +9,4 @@ LOG_RETENTION = "7 days"
 PROFILE_SIZE = 200
 STAGING_RECEIPT_URL = "https://demo.ezcount.co.il/"
 PRODUCTION_RECEIPT_URL = "https://ezcount.co.il/"
-RECEIPTS_DEVELOPER_EMAIL = "ronalister@gmail.com"
+RECEIPTS_DEVELOPER_EMAIL = "roivanunu222@gmail.com"  # EZCount login mail
