@@ -130,9 +130,9 @@ def test_available_hours_route(teacher, student, meetup, dropoff, auth, requeste
 
     # now let's add a lesson
     lesson = Lesson.create(
-        teacher_id=teacher.id,
-        student_id=student.id,
-        creator_id=teacher.user.id,
+        teacher=teacher,
+        student=student,
+        creator=teacher.user,
         duration=40,
         date=datetime.strptime(time_and_date, DATE_FORMAT),
         meetup_place=meetup,
@@ -171,9 +171,9 @@ def test_teacher_available_hours(teacher, student, requester, meetup, dropoff):
 
     # we create a non approved lesson - available hours should still contain its date
     lesson = Lesson.create(
-        teacher_id=teacher.id,
-        student_id=student.id,
-        creator_id=teacher.user.id,
+        teacher=teacher,
+        student=student,
+        creator=teacher.user,
         duration=teacher.lesson_duration,
         date=tomorrow,
         meetup_place=meetup,

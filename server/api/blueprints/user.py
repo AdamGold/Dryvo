@@ -58,8 +58,12 @@ def make_student():
     if not teacher:
         raise RouteError("Teacher was not found.")
 
+    try:
+        price = int(data.get("price", ""))
+    except ValueError:
+        price = None
     student = Student.create(
-        user_id=user.id, teacher_id=teacher.id, creator=current_user
+        user=user, teacher=teacher, creator=current_user, price=price
     )
     # send notification
     user_to_send_to = student.user

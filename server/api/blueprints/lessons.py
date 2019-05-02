@@ -75,6 +75,10 @@ def get_lesson_data(data: dict, user: User, lesson: Optional[Lesson] = None) -> 
     meetup, dropoff = handle_places(
         data.get("meetup_place"), data.get("dropoff_place"), student
     )
+    try:
+        price = int(data.get("price", ""))
+    except ValueError:
+        price = None
     return {
         "date": date,
         "meetup_place": meetup,
@@ -82,6 +86,7 @@ def get_lesson_data(data: dict, user: User, lesson: Optional[Lesson] = None) -> 
         "student": student,
         "teacher": teacher,
         "duration": duration,
+        "price": price,
         "comments": data.get("comments"),
         "is_approved": True if user.teacher else False,
     }

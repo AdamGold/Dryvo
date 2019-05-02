@@ -33,6 +33,14 @@ def test_make_student(user, auth, requester):
     auth.login()
     resp = requester.get(f"/user/make_student?teacher_id=1")
     assert resp.json["data"]["my_teacher"]["teacher_id"] == 1
+    teacher = Teacher.get_by_id(1)
+    assert resp.json["data"]["price"] == teacher.price
+
+
+def test_make_student_with_price(user, auth, requester):
+    auth.login()
+    resp = requester.get(f"/user/make_student?teacher_id=1&price=1000")
+    assert resp.json["data"]["price"] == 1000
 
 
 def test_teacher_make_student(user, teacher, auth, requester):
