@@ -244,6 +244,48 @@ def test_total_lessons_price(teacher, student, meetup, dropoff):
     st = Student.query.filter(Student.total_lessons_price == teacher.price).first()
     assert st == student
 
+    student.update(price=1000)
+    # this is still true because lessons have a fixed price once scheduled
+    assert student.total_lessons_price == teacher.price
+
+    Lesson.create(
+        teacher=teacher,
+        student=student,
+        creator=teacher.user,
+        duration=40,
+        date=datetime.utcnow() - timedelta(hours=2),
+        meetup_place=meetup,
+        dropoff_place=dropoff,
+        is_approved=True,
+    )
+    assert student.total_lessons_price == teacher.price + student.price
+
+
+def test_total_lessons_price_with_different_prices(teacher, student, meetup, dropoff):
+    st = Student.query.filter(
+        Student.total_lessons_price == 0
+    ).first()  # no lesson has been done yet
+    assert st == student
+    price = 100
+    prices = price
+    for x in range(3):
+        Lesson.create(
+            teacher=teacher,
+            student=student,
+            creator=teacher.user,
+            duration=40,
+            date=datetime.utcnow() - timedelta(hours=x),
+            meetup_place=meetup,
+            dropoff_place=dropoff,
+            is_approved=True,
+            price=price * x,
+        )
+        prices += price * x
+
+    assert student.total_lessons_price == prices
+    st = Student.query.filter(Student.total_lessons_price == prices).first()
+    assert st == student
+
 
 def test_approve(auth, requester, student, teacher):
     auth.login(email=teacher.user.email)
@@ -278,10 +320,16 @@ def test_edit_student(auth, requester, teacher, student):
     auth.login(email=teacher.user.email)
     resp = requester.post(
         f"/student/{student.id}",
-        data={"theory": "true", "number_of_old_lessons": 10, "doctor_check": "true"},
+        data={
+            "theory": "true",
+            "price": "1000",
+            "number_of_old_lessons": 10,
+            "doctor_check": "true",
+        },
     )
     assert not resp.json["data"]["eyes_check"]
     assert resp.json["data"]["theory"]
+    assert resp.json["data"]["price"] == 1000
     auth.login(email=student.user.email)
     resp = requester.post(
         f"/student/{student.id}", data={"theory": "false", "eyes_check": "true"}

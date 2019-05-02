@@ -99,6 +99,19 @@ def test_student_new_lesson(auth, teacher, student, requester, topic):
         json={"date": date, "meetup_place": "test", "dropoff_place": "test"},
     )
     assert not resp.json["data"]["is_approved"]
+    assert resp.json["data"]["price"] == student.price
+
+    new_date = (tomorrow.replace(hour=20, minute=40)).strftime(DATE_FORMAT)
+    resp = requester.post(
+        "/lessons/",
+        json={
+            "date": new_date,
+            "meetup_place": "test",
+            "dropoff_place": "test",
+            "price": 1000,
+        },
+    )
+    assert resp.json["data"]["price"] == 1000
 
 
 def test_update_topics(auth, teacher, student, requester, topic):
@@ -205,13 +218,16 @@ def test_teacher_new_lesson_with_student(auth, teacher, student, requester):
         },
     )
     assert resp.json["data"]["is_approved"]
+    assert resp.json["data"]["price"] == student.price
 
 
 def test_delete_lesson(auth, teacher, student, meetup, dropoff, requester):
     lesson = create_lesson(teacher, student, meetup, dropoff, datetime.utcnow())
     auth.login(email=student.user.email)
+    old_lesson_number = student.new_lesson_number
     resp = requester.delete(f"/lessons/{lesson.id}")
     assert "successfully" in resp.json["message"]
+    assert student.new_lesson_number == old_lesson_number - 1
 
 
 def test_approve_lesson(auth, teacher, student, meetup, dropoff, requester):
