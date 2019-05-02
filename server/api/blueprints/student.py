@@ -115,9 +115,14 @@ def edit_student(student_id):
         if (
             current_user.teacher
         ):  # only teacher is allowed to edit num of lessons and theory
+            try:
+                price = int(data.get("price", ""))
+            except ValueError:
+                price = None
             extra_data = dict(
                 theory=data.get("theory", False) == "true",
                 number_of_old_lessons=int(data.get("number_of_old_lessons", 0)),
+                price=price,
             )
         if image:
             extra_data["green_form"] = upload(image)["public_id"]

@@ -97,6 +97,7 @@ class Lesson(SurrogatePK, Model):
             "lesson_number": self.lesson_number,
             "created_at": self.created_at,
             "duration": self.duration,
+            "price": self.price,
         }
 
     def __repr__(self):
