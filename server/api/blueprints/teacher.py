@@ -268,6 +268,7 @@ def approve(teacher_id):
 @login_required
 @teacher_required
 def add_receipt(payment_id):
+    # https://docs.google.com/document/d/1_kSH5xViiZi5Y1tZtWpNrkKiq4Htym7V23TuhL7KlSU/edit#
     payment = Payment.get_by_id(payment_id)
     if not payment or payment.teacher != current_user.teacher:
         raise RouteError("Payment not found.", 404)
@@ -317,6 +318,7 @@ def add_receipt(payment_id):
 @login_required
 @teacher_required
 def login_to_ezcount():
+    # https://docs.google.com/document/d/1me6u9CpJtydTIEdMkY3OH1dresZkrPRCK0_xw5Rn0Do/edit#
     email = current_user.email
     api_key = flask.current_app.config.get("RECEIPTS_API_KEY")
     url = STAGING_RECEIPT_URL
