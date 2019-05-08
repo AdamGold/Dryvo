@@ -1,6 +1,7 @@
-from cloudinary.uploader import upload
 import flask
+from cloudinary.uploader import upload
 from flask import Blueprint
+from flask_babel import gettext
 from flask_login import current_user, login_required
 from loguru import logger
 from sqlalchemy import and_
@@ -67,14 +68,20 @@ def make_student():
     )
     # send notification
     user_to_send_to = student.user
+    body_text = gettext(
+        "%(teacher)s added you as a student!", teacher=teacher.user.name
+    )
     if student.creator == user_to_send_to:
         user_to_send_to = teacher.user
+        body_text = gettext(
+            "%(student)s added you as a teacher!", student=student.user.name
+        )
     if user_to_send_to.firebase_token:
         logger.debug(f"sending fcm to {user_to_send_to}")
         FCM.notify(
             token=user_to_send_to.firebase_token,
-            title="Join Request",
-            body=f"{user_to_send_to.name} wants you to join!",
+            title=gettext("Join Request"),
+            body=body_text,
         )
     return {"data": student.to_dict()}, 201
 

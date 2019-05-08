@@ -1,0 +1,94 @@
+# Translations template for PROJECT.
+# Copyright (C) 2019 ORGANIZATION
+# This file is distributed under the same license as the PROJECT project.
+# FIRST AUTHOR <EMAIL@ADDRESS>, 2019.
+#
+#, fuzzy
+msgid ""
+msgstr ""
+"Project-Id-Version: PROJECT VERSION\n"
+"Report-Msgid-Bugs-To: EMAIL@ADDRESS\n"
+"POT-Creation-Date: 2019-05-08 12:26+0300\n"
+"PO-Revision-Date: YEAR-MO-DA HO:MI+ZONE\n"
+"Last-Translator: FULL NAME <EMAIL@ADDRESS>\n"
+"Language-Team: LANGUAGE <LL@li.org>\n"
+"MIME-Version: 1.0\n"
+"Content-Type: text/plain; charset=utf-8\n"
+"Content-Transfer-Encoding: 8bit\n"
+"Generated-By: Babel 2.6.0\n"
+
+#: server/api/blueprints/lessons.py:136
+#, python-format
+msgid ""
+"%(student)s wants to schedule a new lesson at %(date)s. Click here to "
+"check it out."
+msgstr ""
+
+#: server/api/blueprints/lessons.py:143
+#, python-format
+msgid ""
+"%(teacher)s scheduled a new lesson at %(value)s. Click here to check it "
+"out."
+msgstr ""
+
+#: server/api/blueprints/lessons.py:152
+msgid "New Lesson!"
+msgstr ""
+
+#: server/api/blueprints/lessons.py:213
+msgid "Lesson Deleted"
+msgstr ""
+
+#: server/api/blueprints/lessons.py:214
+#, python-format
+msgid "The lesson at %(value)s has been deleted."
+msgstr ""
+
+#: server/api/blueprints/lessons.py:239
+#, python-format
+msgid ""
+"%(student)s wants to edit the lesson at %(date)s. Click here to check it "
+"out."
+msgstr ""
+
+#: server/api/blueprints/lessons.py:246
+#, python-format
+msgid "%(teacher)s edited the lesson at %(value)s. Click here to check it out."
+msgstr ""
+
+#: server/api/blueprints/lessons.py:254
+msgid "Lesson Updated"
+msgstr ""
+
+#: server/api/blueprints/lessons.py:285
+msgid "Lesson Approved"
+msgstr ""
+
+#: server/api/blueprints/lessons.py:286
+#, python-format
+msgid "Lesson at %(date)s has been approved!"
+msgstr ""
+
+#: server/api/blueprints/teacher.py:215
+msgid "New Payment"
+msgstr ""
+
+#: server/api/blueprints/teacher.py:216
+#, python-format
+msgid "%(user)s charged you for %(amount)s"
+msgstr ""
+
+#: server/api/blueprints/user.py:71
+#, python-format
+msgid "%(teacher)s added you as a student!"
+msgstr ""
+
+#: server/api/blueprints/user.py:76
+#, python-format
+msgid "%(student)s added you as a teacher!"
+msgstr ""
+
+#: server/api/blueprints/user.py:83
+msgid "Join Request"
+msgstr ""
+
