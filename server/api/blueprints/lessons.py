@@ -4,6 +4,7 @@ from typing import Optional, Tuple
 
 import flask
 from flask import Blueprint
+from flask_babel import gettext
 from flask_login import current_user, login_required, logout_user
 from loguru import logger
 from sqlalchemy import and_
@@ -132,14 +133,24 @@ def new_lesson():
 
     # send fcm to the user who wasn't the one creating the lesson
     user_to_send_to = lesson.teacher.user
+    body_text = gettext(
+        "%(student)s wants to schedule a new lesson at %(date)s. Click here to check it out.",
+        student=lesson.student.user.name,
+        date=lesson.date,
+    )
     if lesson.creator == lesson.teacher.user and lesson.student:
         user_to_send_to = lesson.student.user
+        body_text = gettext(
+            "%(teacher)s scheduled a new lesson at %(value)s. Click here to check it out.",
+            teacher=lesson.teacher.user.name,
+            value=lesson.date,
+        )
     if user_to_send_to.firebase_token:
         logger.debug(f"sending fcm to {user_to_send_to}")
         FCM.notify(
             token=user_to_send_to.firebase_token,
-            title="New Lesson",
-            body=f"New lesson at {lesson.date}",
+            title=gettext("New Lesson!"),
+            body=body_text,
         )
     return {"data": lesson.to_dict()}, 201
 
@@ -199,8 +210,10 @@ def delete_lesson(lesson_id):
     if user_to_send_to.firebase_token:
         FCM.notify(
             token=user_to_send_to.firebase_token,
-            title="Lesson Deleted",
-            body=f"The lesson at {lesson.date} has been deleted.",
+            title=gettext("Lesson Deleted"),
+            body=gettext(
+                "The lesson at %(value)s has been deleted.", value=lesson.date
+            ),
         )
 
     return {"message": "Lesson deleted successfully."}
@@ -223,13 +236,23 @@ def update_lesson(lesson_id):
     )
 
     user_to_send_to = lesson.teacher.user
+    body_text = gettext(
+        "%(student)s wants to edit the lesson at %(date)s. Click here to check it out.",
+        student=lesson.student.user.name,
+        date=lesson.date,
+    )
     if current_user == lesson.teacher.user:
         user_to_send_to = lesson.student.user
+        body_text = gettext(
+            "%(teacher)s edited the lesson at %(value)s. Click here to check it out.",
+            teacher=lesson.teacher.user.name,
+            value=lesson.date,
+        )
     if user_to_send_to.firebase_token:
         FCM.notify(
             token=user_to_send_to.firebase_token,
-            title="Lesson Updated",
-            body=f"Lesson with {lesson.student.user.name} updated to {lesson.date}",
+            title=gettext("Lesson Updated"),
+            body=body_text,
         )
 
     return {"message": "Lesson updated successfully.", "data": lesson.to_dict()}
@@ -259,8 +282,8 @@ def approve_lesson(lesson_id):
     if lesson.student.user.firebase_token:
         FCM.notify(
             token=lesson.student.user.firebase_token,
-            title="Lesson Approved",
-            body=f"Lesson at {lesson.date} has been approved!",
+            title=gettext("Lesson Approved"),
+            body=gettext("Lesson at %(date)s has been approved!", date=lesson.date),
         )
 
     return {"message": "Lesson approved."}

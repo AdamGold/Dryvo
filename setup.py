@@ -35,6 +35,7 @@ setup(
         "psycopg2==2.7.5",
         "firebase-admin==2.14.0",
         "cloudinary==1.15.0",
+        "Flask-Babel==0.12.2",
     ],
     tests_require=test_req,
     setup_requires=["pytest-runner==4.2"],

@@ -4,25 +4,26 @@ from functools import wraps
 import flask
 import requests
 from flask import Blueprint
+from flask_babel import gettext
 from flask_login import current_user, login_required, logout_user
 from loguru import logger
 
 from server.api.database.models import (
     Day,
     Payment,
+    PaymentType,
     Student,
     Teacher,
     User,
     WorkDay,
-    PaymentType,
 )
 from server.api.push_notifications import FCM
 from server.api.utils import jsonify_response, paginate
 from server.consts import (
-    WORKDAY_DATE_FORMAT,
-    STAGING_RECEIPT_URL,
     PRODUCTION_RECEIPT_URL,
     RECEIPTS_DEVELOPER_EMAIL,
+    STAGING_RECEIPT_URL,
+    WORKDAY_DATE_FORMAT,
 )
 from server.error_handling import RouteError
 
@@ -211,8 +212,12 @@ def add_payment():
         logger.debug(f"sending fcm to {student.user}")
         FCM.notify(
             token=student.user.firebase_token,
-            title="New Payment",
-            body=f"{current_user.name} charged you for {amount}",
+            title=gettext("New Payment"),
+            body=gettext(
+                "%(user)s charged you for %(amount)s",
+                user=current_user.name,
+                amount=amount,
+            ),
         )
     return {"data": payment.to_dict()}, 201
 
