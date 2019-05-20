@@ -390,7 +390,9 @@ def export_report(teacher_id, report_name):
     REPORTS = {
         "students": {
             "dates": False,
-            "data": lambda _: teacher.students.filter_by(is_active=True),
+            "data": lambda _: teacher.students.filter_by(is_active=True)
+            .join(User, Student.user)
+            .order_by(User.name.asc()),
         },
         "lessons": {
             "dates": True,
@@ -421,3 +423,4 @@ def export_report(teacher_id, report_name):
         **extra_data,
     )
     return render_pdf(HTML(string=html))
+    # return html
