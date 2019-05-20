@@ -382,24 +382,31 @@ def get_receipt_url():
     return url
 
 
-@teacher_routes.route("/reports/create_report", methods=["POST"])
-@teacher_required
+@teacher_routes.route("/reports", methods=["POST"])
 @jsonify_response
+@login_required
+@teacher_required
 def create_report():
     post_data = flask.request.get_json()
 
     try:
-        report_type = ReportType[post_data.get("report_type", "students")].value
+        report_type = ReportType[post_data.get("report_type")]
     except KeyError:
         raise RouteError("Report type was not found.")
 
-    since = post_data.get("since")
-    until = post_data.get("until")
-    if report_type in Report.DATES_REQUIRED and (not since or not until):
-        raise RouteError("Dates are required.")
-
+    dates = dict()
+    if report_type.name in Report.DATES_REQUIRED:
+        dates["since"] = post_data.get("since")
+        dates["until"] = post_data.get("until")
+        if not dates["since"] or not dates["until"]:
+            raise RouteError("Dates are required.")
+        try:
+            dates["since"] = datetime.strptime(dates["since"], WORKDAY_DATE_FORMAT)
+            dates["until"] = datetime.strptime(dates["until"], WORKDAY_DATE_FORMAT)
+        except ValueError:
+            raise RouteError("Dates are not valid.")
     report = Report.create(
-        report_type=report_type, since=since, until=until, teacher=current_user.teacher
+        report_type=report_type.value, teacher=current_user.teacher, **dates
     )
 
     return {"data": report.to_dict()}

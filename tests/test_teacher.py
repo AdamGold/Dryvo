@@ -11,6 +11,7 @@ from server.api.database.models import (
     Payment,
     Teacher,
     PaymentType,
+    Report,
 )
 from server.consts import DATE_FORMAT, WORKDAY_DATE_FORMAT
 
@@ -342,3 +343,36 @@ def test_invalid_login_to_ezcount(auth, requester):
     resp = requester.get("/teacher/ezcount?redirect=backoffice/expenses")
     assert "does not have an invoice account" in resp.json["message"]
 
+
+@pytest.mark.parametrize(
+    ("report_type", "since", "until"),
+    (("lessons", "2019-05-01", "2019-05-30"), ("students", None, None)),
+)
+def test_create_report(auth, requester, teacher, report_type, since, until):
+    auth.login(email=teacher.user.email)
+    resp = requester.post(
+        "/teacher/reports",
+        json={"report_type": report_type, "since": since, "until": until},
+    )
+    assert resp.json["data"]["uuid"]
+    saved_report = Report.query.filter_by(uuid=resp.json["data"]["uuid"]).first()
+    assert saved_report.report_type.name == report_type
+
+
+@pytest.mark.parametrize(
+    ("report_type", "since", "until", "error"),
+    (
+        ("lessons", None, None, "Dates are required"),
+        ("asds", None, None, "type was not found"),
+        ("lessons", "2019-051", "2019-05-30", "Dates are not valid."),
+    ),
+)
+def test_invalid_create_report(
+    auth, requester, teacher, report_type, since, until, error
+):
+    auth.login(email=teacher.user.email)
+    resp = requester.post(
+        "/teacher/reports",
+        json={"report_type": report_type, "since": since, "until": until},
+    )
+    assert error in resp.json["message"]

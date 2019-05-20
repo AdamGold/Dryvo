@@ -37,12 +37,12 @@ class Report(SurrogatePK, Model):
 
     def __init__(self, **kwargs):
         """Create instance."""
-        self.uuid = uuid.uuid4()
+        self.uuid = str(uuid.uuid4())
         db.Model.__init__(self, **kwargs)
 
     def to_dict(self) -> dict:
         return {
             "uuid": self.uuid,
-            "report_type": self.report_type,
+            "report_type": self.report_type.name,
             "created_at": self.created_at,
         }
