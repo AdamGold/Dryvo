@@ -19,6 +19,8 @@ from server.api.database.models import (
     User,
     WorkDay,
     Lesson,
+    Report,
+    ReportType,
 )
 from server.api.push_notifications import FCM
 from server.api.utils import jsonify_response, paginate
@@ -380,47 +382,52 @@ def get_receipt_url():
     return url
 
 
-@teacher_routes.route("/export/<int:teacher_id>/<report_name>", methods=["GET"])
-def export_report(teacher_id, report_name):
-    # TODO teacher = current_user, send email instead of rendering the pdf
-    args = flask.request.args
-    teacher = Teacher.get_by_id(teacher_id)
-    if not teacher:
-        raise RouteError("Teacher was not found.")
+@teacher_routes.route("/reports/create_report", methods=["POST"])
+@teacher_required
+@jsonify_response
+def create_report():
+    post_data = flask.request.get_json()
+
+    try:
+        report_type = ReportType[post_data.get("report_type", "students")].value
+    except KeyError:
+        raise RouteError("Report type was not found.")
+
+    since = post_data.get("since")
+    until = post_data.get("until")
+    if report_type in Report.DATES_REQUIRED and (not since or not until):
+        raise RouteError("Dates are required.")
+
+    report = Report.create(
+        report_type=report_type, since=since, until=until, teacher=current_user.teacher
+    )
+
+    return {"data": report.to_dict()}
+
+
+@teacher_routes.route("/reports/<uuid>", methods=["GET"])
+def export_report(uuid):
     REPORTS = {
-        "students": {
-            "dates": False,
-            "data": lambda _: teacher.students.filter_by(is_active=True)
-            .join(User, Student.user)
-            .order_by(User.name.asc()),
-        },
-        "lessons": {
-            "dates": True,
-            "data": lambda args: teacher.lessons.filter(
-                and_(
-                    Lesson.is_approved == True,
-                    Lesson.date < args["until"],
-                    Lesson.date > args["since"],
-                )
-            ),
-        },
+        "students": lambda report: report.teacher.students.filter_by(is_active=True)
+        .join(User, Student.user)
+        .order_by(User.name.asc()),
+        "lessons": lambda report: report.teacher.lessons.filter(
+            and_(
+                Lesson.is_approved == True,
+                Lesson.date < report.until,
+                Lesson.date > report.since,
+            )
+        ),
     }
-    report_name = report_name if report_name in REPORTS else "students"
-    report = REPORTS.get(report_name)
-    extra_data = {}
-    if report["dates"]:
-        since = args.get("since")
-        until = args.get("until")
-        if not since or not until:
-            raise RouteError("Dates must be given.")
-        extra_data["since"] = datetime.strptime(since, WORKDAY_DATE_FORMAT)
-        extra_data["until"] = datetime.strptime(until, WORKDAY_DATE_FORMAT)
+    report = Report.query.filter_by(uuid=uuid).first()
+    if not report:
+        raise RouteError("Report was not found.")
+    report_data = REPORTS.get(report.report_type.name)
     html = flask.render_template(
-        f"reports/{report_name}.html",
-        data=report["data"](extra_data).all(),
-        teacher=teacher,
-        date=datetime.now(),
-        **extra_data,
+        f"reports/{report.report_type.name}.html",
+        data=report_data(report).all(),
+        teacher=report.teacher,
+        report=report,
     )
     return render_pdf(HTML(string=html))
     # return html

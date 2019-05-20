@@ -26,14 +26,14 @@
 
 	<body>
 		<h5 class="rtl float-left">
-			תאריך: {{ date.strftime("%d/%m/%Y %H:%M") }}
+			תאריך: {{ report.created_at.strftime("%d/%m/%Y %H:%M") }}
 		</h5>
 		<h5 id="-name-" class="rtl">שם העוסק: {{ teacher.user.name }}</h5>
 		<h5 id="-crn-" class="rtl">ח.פ: {{ teacher.crn }}</h5>
 
 		<h2 class="rtl center" id="-">
-			יומן לתאריך {{ since.strftime("%d/%m/%Y") }} -
-			{{ until.strftime("%d/%m/%Y") }}
+			יומן לתאריך {{ report.since.strftime("%d/%m/%Y") }} -
+			{{ report.until.strftime("%d/%m/%Y") }}
 		</h2>
 		<table class="rtl table table-striped">
 			<thead>

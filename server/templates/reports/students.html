@@ -25,7 +25,7 @@
 	</head>
 	<body>
 		<h5 class="rtl float-left">
-			תאריך: {{ date.strftime("%d/%m/%Y %H:%M") }}
+			תאריך: {{ report.created_at.strftime("%d/%m/%Y %H:%M") }}
 		</h5>
 		<h5 id="-name-" class="rtl">שם העוסק: {{ teacher.user.name }}</h5>
 		<h5 id="-crn-" class="rtl">ח.פ: {{ teacher.crn }}</h5>

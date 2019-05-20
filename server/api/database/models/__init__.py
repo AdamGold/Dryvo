@@ -12,3 +12,4 @@ from .review import Review
 from .teacher import Teacher
 from .student import Student
 from .test import Test
+from .report import Report, ReportType
