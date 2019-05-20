@@ -6,7 +6,9 @@ import requests
 from flask import Blueprint
 from flask_babel import gettext
 from flask_login import current_user, login_required, logout_user
+from flask_weasyprint import HTML, render_pdf
 from loguru import logger
+from sqlalchemy import and_
 
 from server.api.database.models import (
     Day,
@@ -16,6 +18,9 @@ from server.api.database.models import (
     Teacher,
     User,
     WorkDay,
+    Lesson,
+    Report,
+    ReportType,
 )
 from server.api.push_notifications import FCM
 from server.api.utils import jsonify_response, paginate
@@ -175,7 +180,7 @@ def available_hours(teacher_id):
     return {
         "data": list(
             teacher.available_hours(
-                datetime.strptime(data.get("date"), "%Y-%m-%d"),
+                datetime.strptime(data.get("date"), WORKDAY_DATE_FORMAT),
                 duration,
                 only_approved=only_approved,
             )
@@ -375,3 +380,61 @@ def get_receipt_url():
         return PRODUCTION_RECEIPT_URL
 
     return url
+
+
+@teacher_routes.route("/reports", methods=["POST"])
+@jsonify_response
+@login_required
+@teacher_required
+def create_report():
+    post_data = flask.request.get_json()
+
+    try:
+        report_type = ReportType[post_data.get("report_type")]
+    except KeyError:
+        raise RouteError("Report type was not found.")
+
+    dates = dict()
+    if report_type.name in Report.DATES_REQUIRED:
+        dates["since"] = post_data.get("since")
+        dates["until"] = post_data.get("until")
+        if not dates["since"] or not dates["until"]:
+            raise RouteError("Dates are required.")
+        try:
+            dates["since"] = datetime.strptime(dates["since"], WORKDAY_DATE_FORMAT)
+            dates["until"] = datetime.strptime(dates["until"], WORKDAY_DATE_FORMAT)
+        except ValueError:
+            raise RouteError("Dates are not valid.")
+    report = Report.create(
+        report_type=report_type.value, teacher=current_user.teacher, **dates
+    )
+
+    return {"data": report.to_dict()}
+
+
+@teacher_routes.route("/reports/<uuid>", methods=["GET"])
+def export_report(uuid):
+    REPORTS = {
+        "students": lambda report: report.teacher.students.filter_by(is_active=True)
+        .join(User, Student.user)
+        .order_by(User.name.asc()),
+        "lessons": lambda report: report.teacher.lessons.filter(
+            and_(
+                Lesson.is_approved == True,
+                Lesson.date < report.until,
+                Lesson.date > report.since,
+            )
+        ),
+    }
+    report = Report.query.filter_by(uuid=uuid).first()
+    if not report:
+        raise RouteError("Report was not found.")
+    report_data = REPORTS.get(report.report_type.name)
+    html = flask.render_template(
+        f"reports/{report.report_type.name}.html",
+        data=report_data(report).all(),
+        teacher=report.teacher,
+        report=report,
+    )
+    return render_pdf(HTML(string=html))
+    # return html

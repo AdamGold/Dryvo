@@ -1,0 +1,19 @@
+html,
+body {
+	font-family: Arial, Helvetica, sans-serif !important;
+}
+.rtl {
+	direction: rtl;
+	text-align: right;
+}
+.center {
+	text-align: center;
+}
+@page {
+	@bottom-center {
+		content: "הופק באמצעות Dryvo";
+	}
+	@bottom-right {
+		content: "דף " counter(page) " מתוך " counter(pages);
+	}
+}
