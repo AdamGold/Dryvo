@@ -131,6 +131,6 @@ def edit_student(student_id):
             eyes_check=data.get("eyes_check", False) == "true",
             **extra_data
         )
-        return {"data": student.to_dict()}
+        return {"data": student.user.to_dict()}
 
     raise RouteError("Not authorized.", 401)
