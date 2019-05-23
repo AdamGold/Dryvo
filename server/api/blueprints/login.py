@@ -158,6 +158,7 @@ def exchange_token():
         raise TokenError("INVALID_EXCHANGE_TOKEN")
     user = User.from_payload(payload)
     logger.debug(f"{user} exchanged auth token")
+    BlacklistToken.create(token=args["exchange_token"])  # blacklist exchange token
     tokens = user.generate_tokens()
     return dict(**tokens, **{"user": user.to_dict()})
 
