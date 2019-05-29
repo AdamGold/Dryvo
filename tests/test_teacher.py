@@ -41,6 +41,7 @@ def test_teachers(auth, teacher, requester):
 
 
 def test_work_days(teacher, auth, requester):
+    auth.login(email=teacher.user.email)
     date = datetime.utcnow() + timedelta(hours=10)
     first_kwargs_hour = 13
     kwargs = {
@@ -56,12 +57,14 @@ def test_work_days(teacher, auth, requester):
     kwargs.pop("on_date")
     kwargs["from_hour"] = 15
     day2 = WorkDay.create(**kwargs)
-    auth.login(email=teacher.user.email)
     resp = requester.get("/teacher/work_days").json
     assert resp["data"][0]["from_hour"] == kwargs["from_hour"]
     day = date.date()
     resp = requester.get(f"/teacher/work_days?on_date=eq:{day}").json
     assert resp["data"][0]["from_hour"] == first_kwargs_hour
+
+    resp = requester.get(f"/teacher/work_days?day=1").json
+    assert resp["data"][0]["from_hour"] == kwargs["from_hour"]
 
 
 def test_update_work_days(teacher, auth, requester):

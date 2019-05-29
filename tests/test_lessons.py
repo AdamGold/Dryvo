@@ -59,7 +59,6 @@ def test_lessons(auth, teacher, student, meetup, dropoff, requester):
     resp = requester.get("/lessons/?deleted=true")
     assert len(resp.json["data"]) == 2
 
-
 def test_deleted_lessons(auth, teacher, student, meetup, dropoff, requester):
     date = datetime(year=2018, month=11, day=27, hour=13, minute=00)
     create_lesson(teacher, student, meetup, dropoff, date, duration=80, deleted=True)

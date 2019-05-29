@@ -53,10 +53,10 @@ class Model(CRUDMixin, db.Model):
 
     @staticmethod
     def _handle_special_cases(
-        column: str, value: str, custom_date: callable = None
+        column: str, value: str, custom_date: callable = None, column_type: str = None
     ) -> str:
         """handle special filter cases such bool value or date value"""
-        if column == "created_at" or "date" in column and value != None:
+        if "date" in column_type and value != None:
             if custom_date:
                 value = custom_date(value)
             else:
@@ -66,6 +66,9 @@ class Model(CRUDMixin, db.Model):
             value = True
         elif value == "false":
             value = False
+
+        if "int" in column_type:
+            value = int(value)
 
         return value
 
@@ -109,12 +112,14 @@ class Model(CRUDMixin, db.Model):
         if fields[0] not in operators.keys():
             method = "eq"
 
+        column_attr = getattr(cls, column)
+        column_type = str(column_attr.property.columns[0].type)
         value_to_compare = cls._handle_special_cases(
-            column, value_to_compare, custom_date
+            column, value_to_compare, custom_date, column_type.lower()
         )
 
         try:
-            return operators[method](getattr(cls, column), value_to_compare)
+            return operators[method](column_attr, value_to_compare)
         except AttributeError:
             return None
 
