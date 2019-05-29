@@ -23,7 +23,7 @@ from server.api.database.models import (
 from server.api.push_notifications import FCM
 from server.api.utils import jsonify_response, paginate
 from server.consts import DATE_FORMAT, DEBUG_MODE
-from server.error_handling import RouteError
+from server.error_handling import RouteError, NotificationError
 
 lessons_routes = Blueprint("lessons", __name__, url_prefix="/lessons")
 
@@ -147,11 +147,14 @@ def new_lesson():
         )
     if user_to_send_to.firebase_token:
         logger.debug(f"sending fcm to {user_to_send_to}")
-        FCM.notify(
-            token=user_to_send_to.firebase_token,
-            title=gettext("New Lesson!"),
-            body=body_text,
-        )
+        try:
+            FCM.notify(
+                token=user_to_send_to.firebase_token,
+                title=gettext("New Lesson!"),
+                body=body_text,
+            )
+        except NotificationError:
+            pass
     return {"data": lesson.to_dict()}, 201
 
 
@@ -208,13 +211,16 @@ def delete_lesson(lesson_id):
     if current_user == lesson.teacher.user:
         user_to_send_to = lesson.student.user
     if user_to_send_to.firebase_token:
-        FCM.notify(
-            token=user_to_send_to.firebase_token,
-            title=gettext("Lesson Deleted"),
-            body=gettext(
-                "The lesson at %(value)s has been deleted.", value=lesson.date
-            ),
-        )
+        try:
+            FCM.notify(
+                token=user_to_send_to.firebase_token,
+                title=gettext("Lesson Deleted"),
+                body=gettext(
+                    "The lesson at %(value)s has been deleted.", value=lesson.date
+                ),
+            )
+        except NotificationError:
+            pass
 
     return {"message": "Lesson deleted successfully."}
 
@@ -249,11 +255,14 @@ def update_lesson(lesson_id):
             value=lesson.date,
         )
     if user_to_send_to.firebase_token:
-        FCM.notify(
-            token=user_to_send_to.firebase_token,
-            title=gettext("Lesson Updated"),
-            body=body_text,
-        )
+        try:
+            FCM.notify(
+                token=user_to_send_to.firebase_token,
+                title=gettext("Lesson Updated"),
+                body=body_text,
+            )
+        except NotificationError:
+            pass
 
     return {"message": "Lesson updated successfully.", "data": lesson.to_dict()}
 
@@ -280,11 +289,14 @@ def approve_lesson(lesson_id):
     lesson.update(is_approved=True)
 
     if lesson.student.user.firebase_token:
-        FCM.notify(
-            token=lesson.student.user.firebase_token,
-            title=gettext("Lesson Approved"),
-            body=gettext("Lesson at %(date)s has been approved!", date=lesson.date),
-        )
+        try:
+            FCM.notify(
+                token=lesson.student.user.firebase_token,
+                title=gettext("Lesson Approved"),
+                body=gettext("Lesson at %(date)s has been approved!", date=lesson.date),
+            )
+        except NotificationError:
+            pass
 
     return {"message": "Lesson approved."}
 

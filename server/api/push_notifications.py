@@ -3,7 +3,7 @@ from pathlib import Path
 
 import firebase_admin
 from firebase_admin import credentials, messaging
-from firebase_admin.project_management import ApiCallError
+from firebase_admin.messaging import ApiCallError
 from loguru import logger
 
 from server.error_handling import NotificationError

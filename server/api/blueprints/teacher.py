@@ -30,7 +30,7 @@ from server.consts import (
     STAGING_RECEIPT_URL,
     WORKDAY_DATE_FORMAT,
 )
-from server.error_handling import RouteError
+from server.error_handling import RouteError, NotificationError
 
 teacher_routes = Blueprint("teacher", __name__, url_prefix="/teacher")
 
@@ -215,15 +215,18 @@ def add_payment():
     # send notification to student
     if student.user.firebase_token:
         logger.debug(f"sending fcm to {student.user}")
-        FCM.notify(
-            token=student.user.firebase_token,
-            title=gettext("New Payment"),
-            body=gettext(
-                "%(user)s charged you for %(amount)s",
-                user=current_user.name,
-                amount=amount,
-            ),
-        )
+        try:
+            FCM.notify(
+                token=student.user.firebase_token,
+                title=gettext("New Payment"),
+                body=gettext(
+                    "%(user)s charged you for %(amount)s",
+                    user=current_user.name,
+                    amount=amount,
+                ),
+            )
+        except NotificationError:
+            pass
     return {"data": payment.to_dict()}, 201
 
 
@@ -398,12 +401,10 @@ def create_report():
     if report_type.name in Report.DATES_REQUIRED:
         dates["since"] = post_data.get("since")
         dates["until"] = post_data.get("until")
-        if not dates["since"] or not dates["until"]:
-            raise RouteError("Dates are required.")
         try:
             dates["since"] = datetime.strptime(dates["since"], WORKDAY_DATE_FORMAT)
             dates["until"] = datetime.strptime(dates["until"], WORKDAY_DATE_FORMAT)
-        except ValueError:
+        except (ValueError, TypeError):
             raise RouteError("Dates are not valid.")
     report = Report.create(
         report_type=report_type.value, teacher=current_user.teacher, **dates

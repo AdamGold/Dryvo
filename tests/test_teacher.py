@@ -362,7 +362,7 @@ def test_create_report(auth, requester, teacher, report_type, since, until):
 @pytest.mark.parametrize(
     ("report_type", "since", "until", "error"),
     (
-        ("lessons", None, None, "Dates are required"),
+        ("lessons", None, None, "Dates are not valid."),
         ("asds", None, None, "type was not found"),
         ("lessons", "2019-051", "2019-05-30", "Dates are not valid."),
     ),

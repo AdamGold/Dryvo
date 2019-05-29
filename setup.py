@@ -33,7 +33,7 @@ setup(
         "requests==2.19.1",
         "requests-oauthlib==1.0.0",
         "psycopg2==2.7.5",
-        "firebase-admin==2.14.0",
+        "firebase-admin==2.17.0",
         "cloudinary==1.15.0",
         "Flask-Babel==0.12.2",
         "Flask-WeasyPrint==0.6",
