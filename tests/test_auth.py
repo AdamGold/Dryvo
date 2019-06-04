@@ -172,7 +172,10 @@ def test_validate_inputs():
     with pytest.raises(RouteError):
         validate_inputs({"name": "test", "area": "test", "email": "test"})
         validate_inputs({"name": "test"})
-    assert validate_inputs({"name": "test", "area": "test"}, all_required=False)
+        validate_inputs({"name": "test"}, required=["phone"])
+    assert validate_inputs({"name": "test"}, required=["name"])
+    assert validate_inputs({"name": "test", "area": "test"}, required=["name", "area"])
+    assert validate_inputs({"name": "test", "area": "test"}, required=[])
 
 
 def test_edit_data(app, user, requester, auth: AuthActions):

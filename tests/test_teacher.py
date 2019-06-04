@@ -379,3 +379,23 @@ def test_invalid_create_report(
         json={"report_type": report_type, "since": since, "until": until},
     )
     assert error in resp.json["message"]
+
+
+def test_create_bot_student(auth, requester, teacher):
+    auth.login(email=teacher.user.email)
+    student = {"name": "test", "email": "tt@ta.com", "phone": "05444444", "price": 120}
+    resp = requester.post(f"/teacher/create_student", json=student)
+    assert resp.json["data"]["my_teacher"]["teacher_id"] == teacher.id
+    assert resp.json["data"]["price"] == 120
+
+
+@pytest.mark.parametrize(
+    ("name", "email", "phone"),
+    (("", "t@ttt.com", "0511111"), ("test", "", "0511111"), ("test", "t@ttt.com", "")),
+)
+def test_invalid_create_bot_student(auth, requester, teacher, name, email, phone):
+    auth.login(email=teacher.user.email)
+    student = {"name": name, "email": email, "phone": phone, "price": 100}
+    resp = requester.post(f"/teacher/create_student", json=student)
+    assert "is required" in resp.json["message"]
+
