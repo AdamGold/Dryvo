@@ -10,17 +10,18 @@ from flask_weasyprint import HTML, render_pdf
 from loguru import logger
 from sqlalchemy import and_
 
+from server.api.blueprints.login import create_user_from_data
 from server.api.database.models import (
     Day,
+    Lesson,
     Payment,
     PaymentType,
+    Report,
+    ReportType,
     Student,
     Teacher,
     User,
     WorkDay,
-    Lesson,
-    Report,
-    ReportType,
 )
 from server.api.push_notifications import FCM
 from server.api.utils import jsonify_response, paginate
@@ -30,7 +31,7 @@ from server.consts import (
     STAGING_RECEIPT_URL,
     WORKDAY_DATE_FORMAT,
 )
-from server.error_handling import RouteError, NotificationError
+from server.error_handling import NotificationError, RouteError
 
 teacher_routes = Blueprint("teacher", __name__, url_prefix="/teacher")
 
@@ -414,7 +415,7 @@ def create_report():
 
 
 @teacher_routes.route("/reports/<uuid>", methods=["GET"])
-def export_report(uuid):
+def show_report(uuid):
     REPORTS = {
         "students": lambda report: report.teacher.students.filter_by(is_active=True)
         .join(User, Student.user)
@@ -439,3 +440,22 @@ def export_report(uuid):
     )
     return render_pdf(HTML(string=html))
     # return html
+
+
+@teacher_routes.route("/create_student", methods=["POST"])
+@jsonify_response
+@login_required
+@teacher_required
+def create_bot_student():
+    teacher = current_user.teacher
+    data = flask.request.get_json()
+    user = create_user_from_data(data, required=["email", "name", "phone"])
+    try:
+        price = int(data.get("price", ""))
+    except ValueError:
+        price = None
+    student = Student.create(
+        user=user, teacher=teacher, creator=current_user, price=price, is_approved=True
+    )
+
+    return {"data": student.to_dict()}, 201
