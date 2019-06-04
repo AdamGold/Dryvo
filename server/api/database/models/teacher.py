@@ -33,7 +33,7 @@ class Teacher(SurrogatePK, LessonCreator):
     is_approved = Column(db.Boolean, default=False, nullable=False)  # admin approved
     invoice_api_key = Column(db.String(240), nullable=True)
     invoice_api_uid = Column(db.String(240), nullable=True)
-    crn = Column(db.Integer, nullable=False)
+    crn = Column(db.Integer, nullable=True)
     created_at = Column(db.DateTime, nullable=False, default=datetime.utcnow)
 
     ALLOWED_FILTERS = ["price", "is_approved"]

@@ -284,6 +284,8 @@ def approve(teacher_id):
 def create_ezcount_user():
     # https://docs.google.com/document/d/1me6u9CpJtydTIEdMkY3OH1dresZkrPRCK0_xw5Rn0Do/edit#
     teacher = current_user.teacher
+    if not teacher.crn:
+        return
     if teacher.invoice_api_key:
         raise RouteError("Teacher already has an invoice account.")
 

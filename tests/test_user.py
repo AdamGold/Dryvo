@@ -16,11 +16,7 @@ def test_make_teacher(user, auth, requester):
 
 @pytest.mark.parametrize(
     ("price", "crn", "message"),
-    (
-        (None, 100, "Empty fields."),
-        (100, None, "Empty fields."),
-        (-20, 100, "Price must be above 0."),
-    ),
+    ((None, 100, "Empty fields."), (-20, 100, "Price must be above 0.")),
 )
 def test_invalid_make_teacher(user, auth, crn, requester, price, message):
     auth.login()
