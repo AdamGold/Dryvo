@@ -41,7 +41,7 @@ msgstr "השיעור בוטל"
 #: server/api/blueprints/lessons.py:214
 #, python-format
 msgid "The lesson at %(value)s has been deleted."
-msgstr "השיעור בתאריך %(value)s בטאל."
+msgstr "השיעור בתאריך %(value)s בוטל."
 
 #: server/api/blueprints/lessons.py:239
 #, python-format
