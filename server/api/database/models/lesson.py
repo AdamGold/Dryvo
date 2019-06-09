@@ -88,8 +88,10 @@ class Lesson(SurrogatePK, Model):
             "id": self.id,
             "student": self.student.to_dict() if self.student else None,
             "date": self.date,
-            "meetup_place": self.meetup_place.to_dict() if self.meetup_place else None,
-            "dropoff_place": self.dropoff_place.to_dict()
+            "meetup_place": self.meetup_place.description
+            if self.meetup_place
+            else None,
+            "dropoff_place": self.dropoff_place.description
             if self.dropoff_place
             else None,
             "is_approved": self.is_approved,
