@@ -450,7 +450,7 @@ def show_report(uuid):
 @teacher_required
 def create_bot_student():
     teacher = current_user.teacher
-    data = flask.request.get_json()
+    data = flask.request.values
     user = create_user_from_data(data, required=["email", "name", "phone"])
     try:
         price = int(data.get("price", ""))

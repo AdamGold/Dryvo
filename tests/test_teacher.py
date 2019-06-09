@@ -384,7 +384,7 @@ def test_invalid_create_report(
 def test_create_bot_student(auth, requester, teacher):
     auth.login(email=teacher.user.email)
     student = {"name": "test", "email": "tt@ta.com", "phone": "05444444", "price": 120}
-    resp = requester.post(f"/teacher/create_student", json=student)
+    resp = requester.post(f"/teacher/create_student", data=student)
     assert resp.json["data"]["my_teacher"]["teacher_id"] == teacher.id
     assert resp.json["data"]["price"] == 120
 
