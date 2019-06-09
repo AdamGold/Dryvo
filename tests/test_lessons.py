@@ -59,6 +59,7 @@ def test_lessons(auth, teacher, student, meetup, dropoff, requester):
     resp = requester.get("/lessons/?deleted=true")
     assert len(resp.json["data"]) == 2
 
+
 def test_deleted_lessons(auth, teacher, student, meetup, dropoff, requester):
     date = datetime(year=2018, month=11, day=27, hour=13, minute=00)
     create_lesson(teacher, student, meetup, dropoff, date, duration=80, deleted=True)
@@ -95,7 +96,11 @@ def test_student_new_lesson(auth, teacher, student, requester, topic):
     logger.debug(f"added work day for {teacher}")
     resp = requester.post(
         "/lessons/",
-        json={"date": date, "meetup_place": "test", "dropoff_place": "test"},
+        json={
+            "date": date,
+            "meetup_place": {"description": "test"},
+            "dropoff_place": {"description": "test"},
+        },
     )
     assert not resp.json["data"]["is_approved"]
     assert resp.json["data"]["price"] == student.price
@@ -105,8 +110,8 @@ def test_student_new_lesson(auth, teacher, student, requester, topic):
         "/lessons/",
         json={
             "date": new_date,
-            "meetup_place": "test",
-            "dropoff_place": "test",
+            "meetup_place": {"description": "test"},
+            "dropoff_place": {"description": "test"},
             "price": 1000,
         },
     )
@@ -121,8 +126,8 @@ def test_update_topics(auth, teacher, student, requester, topic):
         json={
             "date": date,
             "student_id": student.id,
-            "meetup_place": "test",
-            "dropoff_place": "test",
+            "meetup_place": {"description": "test"},
+            "dropoff_place": {"description": "test"},
         },
     )
     lesson_id = resp.json["data"]["id"]
@@ -192,7 +197,11 @@ def test_hour_not_available(auth, teacher, student, requester):
     logger.debug(f"added work day for {teacher}")
     resp = requester.post(
         "/lessons/",
-        json={"date": date, "meetup_place": "test", "dropoff_place": "test"},
+        json={
+            "date": date,
+            "meetup_place": {"description": "test"},
+            "dropoff_place": {"description": "test"},
+        },
     )
     assert "not available" in resp.json["message"]
 
@@ -212,8 +221,8 @@ def test_teacher_new_lesson_with_student(auth, teacher, student, requester):
         json={
             "date": date,
             "student_id": student.id,
-            "meetup_place": "test",
-            "dropoff_place": "test",
+            "meetup_place": {"description": "test"},
+            "dropoff_place": {"description": "test"},
         },
     )
     assert resp.json["data"]["is_approved"]
@@ -254,10 +263,13 @@ def test_user_edit_lesson(app, auth, student, teacher, meetup, dropoff, requeste
     auth.login(email=student.user.email)
     resp = requester.post(
         f"/lessons/{lesson.id}",
-        json={"date": date.strftime(DATE_FORMAT), "meetup_place": "no"},
+        json={
+            "date": date.strftime(DATE_FORMAT),
+            "meetup_place": {"description": "no"},
+        },
     )
     assert "successfully" in resp.json["message"]
-    assert "no" == resp.json["data"]["meetup_place"]["name"]
+    assert "no" == resp.json["data"]["meetup_place"]
     assert not resp.json["data"]["is_approved"]
     auth.logout()
     auth.login(email=teacher.user.email)
@@ -265,20 +277,30 @@ def test_user_edit_lesson(app, auth, student, teacher, meetup, dropoff, requeste
         f"/lessons/{lesson.id}",
         json={
             "date": date.strftime(DATE_FORMAT),
-            "meetup_place": "yes",
+            "meetup_place": {"description": "yes"},
             "student_id": student.id,
         },
     )
-    assert "yes" == resp.json["data"]["meetup_place"]["name"]
+    assert "yes" == resp.json["data"]["meetup_place"]
     assert resp.json["data"]["is_approved"]
 
 
 def test_handle_places(student: Student, meetup: Place):
-    assert handle_places("t", "tst", None) == (None, None)
-    assert handle_places(meetup.name, "", student) == (meetup, None)
-    new_meetup, new_dropoff = handle_places("aa", "bb", student)
-    assert new_meetup.name == "aa"
+    assert handle_places(
+        dict(description="test", google_id="ID1"),
+        dict(description="test2", google_id="ID2"),
+        None,
+    ) == (None, None)
+    assert handle_places(dict(description=meetup.description), None, student) == (
+        meetup,
+        None,
+    )
+    new_meetup, new_dropoff = handle_places(
+        dict(description="aa", google_id="ID1"), dict(description="bb"), student
+    )
+    assert new_meetup.description == "aa"
     assert new_meetup.times_used == 1
+    assert new_meetup.google_id == "ID1"
     assert new_dropoff.times_used == 1
 
 
@@ -322,7 +344,11 @@ def test_valid_get_lesson_data(student):
     date = ((tomorrow + timedelta(days=1)).replace(hour=00, minute=00)).strftime(
         DATE_FORMAT
     )
-    data_dict = {"date": date, "meetup_place": "test", "dropoff_place": "test"}
+    data_dict = {
+        "date": date,
+        "meetup_place": {"description": "test"},
+        "dropoff_place": {"description": "test"},
+    }
     get_lesson_data(data_dict, student.user)
 
 

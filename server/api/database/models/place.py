@@ -1,8 +1,9 @@
 import enum
 from datetime import datetime
+from typing import Dict, Optional, Tuple
 
-from sqlalchemy.ext.hybrid import hybrid_method, hybrid_property
 from sqlalchemy import and_
+from sqlalchemy.ext.hybrid import hybrid_method, hybrid_property
 from sqlalchemy.orm import backref
 from sqlalchemy.orm.exc import NoResultFound
 from sqlalchemy_utils import ChoiceType
@@ -29,27 +30,37 @@ class Place(SurrogatePK, Model):
     __tablename__ = "places"
     student_id = reference_col("students", nullable=False)
     student = relationship("Student", backref=backref("places", lazy="dynamic"))
-    name = Column(db.String, nullable=False)
+    description = Column(db.String, nullable=False)
+    google_id = Column(db.String, nullable=True)
     used_as = Column(
         ChoiceType(PlaceType, impl=db.Integer()), default=1, nullable=False
     )
     times_used = Column(db.Integer, default=1)
 
     @staticmethod
-    def create_or_find(name: str, used_as: PlaceType, student: "Student") -> "Place":
-        if not name:
-            return
+    def create_or_find(
+        place_dict: Optional[Dict], used_as: PlaceType, student: "Student"
+    ) -> "Place":
+        try:
+            description = place_dict["description"]
+        except (KeyError, TypeError):
+            return None
         try:
             ret = Place.query.filter(
                 and_(
-                    Place.name == name,
+                    Place.description == description,
                     Place.used_as == used_as.value,
                     Place.student == student,
                 )
             ).one()
             ret.update(times_used=ret.times_used + 1)
         except NoResultFound:
-            ret = Place.create(student=student, name=name, used_as=used_as.value)
+            ret = Place.create(
+                student=student,
+                description=description,
+                google_id=place_dict.get("google_id"),
+                used_as=used_as.value,
+            )
 
         return ret
 
@@ -59,7 +70,8 @@ class Place(SurrogatePK, Model):
 
     def to_dict(self):
         return {
-            "name": self.name,
+            "description": self.description,
+            "google_id": self.google_id,
             "used_as": self.used_as.name,
             "times_used": self.times_used,
         }

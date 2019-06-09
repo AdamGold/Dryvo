@@ -1,6 +1,6 @@
 import itertools
 from datetime import datetime
-from typing import Optional, Tuple
+from typing import Optional, Tuple, Dict
 
 import flask
 from flask import Blueprint
@@ -33,7 +33,7 @@ def init_app(app):
 
 
 def handle_places(
-    meetup_place: str, dropoff_place: str, student: Student
+    meetup_place: Optional[Dict], dropoff_place: Optional[Dict], student: Student
 ) -> Tuple[Place, Place]:
     if not student:
         return None, None

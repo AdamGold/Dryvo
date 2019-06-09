@@ -82,9 +82,11 @@ def setup_db(app):
     student = Student.create(
         user=student_user, teacher=teacher, creator=teacher.user, is_approved=True
     )
-    meetup = Place.create(name="test", used_as=PlaceType.meetup.value, student=student)
+    meetup = Place.create(
+        description="test", used_as=PlaceType.meetup.value, student=student
+    )
     dropoff = Place.create(
-        name="test", used_as=PlaceType.dropoff.value, student=student
+        description="test", used_as=PlaceType.dropoff.value, student=student
     )
     WorkDay.create(
         teacher=teacher,

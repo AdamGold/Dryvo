@@ -49,10 +49,10 @@ def test_commons(teacher, student, meetup, dropoff):
         )
 
     second_meetup = Place.create(
-        name="other", used_as=PlaceType.meetup.value, student=student
+        description="other", used_as=PlaceType.meetup.value, student=student
     )
     second_dropoff = Place.create(
-        name="other", used_as=PlaceType.dropoff.value, student=student
+        description="other", used_as=PlaceType.dropoff.value, student=student
     )
 
     Lesson.create(
