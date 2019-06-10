@@ -37,25 +37,25 @@ class Place(SurrogatePK, Model):
     )
     times_used = Column(db.Integer, default=1)
 
-    @staticmethod
+    @classmethod
     def create_or_find(
-        place_dict: Optional[Dict], used_as: PlaceType, student: "Student"
+        cls, place_dict: Optional[Dict], used_as: PlaceType, student: "Student"
     ) -> "Place":
         try:
             description = place_dict["description"]
         except (KeyError, TypeError):
             return None
         try:
-            ret = Place.query.filter(
+            ret = cls.query.filter(
                 and_(
-                    Place.description == description,
-                    Place.used_as == used_as.value,
-                    Place.student == student,
+                    cls.description == description,
+                    cls.used_as == used_as.value,
+                    cls.student == student,
                 )
             ).one()
             ret.update(times_used=ret.times_used + 1)
         except NoResultFound:
-            ret = Place.create(
+            ret = cls.create(
                 student=student,
                 description=description,
                 google_id=place_dict.get("google_id"),

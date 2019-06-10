@@ -73,9 +73,15 @@ def get_lesson_data(data: dict, user: User, lesson: Optional[Lesson] = None) -> 
         if not student:
             raise RouteError("Student does not exist.")
 
-    meetup, dropoff = handle_places(
-        data.get("meetup_place"), data.get("dropoff_place"), student
-    )
+    meetup_input = data.get("meetup_place", {})
+    dropoff_input = data.get("dropoff_place", {})
+    if lesson:
+        # don't update same places
+        if meetup_input.get("description") == lesson.meetup_place.description:
+            meetup_input = None
+        if dropoff_input.get("description") == lesson.dropoff_place.description:
+            dropoff_input = None
+    meetup, dropoff = handle_places(meetup_input, dropoff_input, student)
     try:
         price = int(data.get("price", ""))
     except ValueError:
