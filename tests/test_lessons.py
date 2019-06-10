@@ -260,17 +260,31 @@ def test_user_edit_lesson(app, auth, student, teacher, meetup, dropoff, requeste
     """ test that is_approved turns false when user edits lesson"""
     date = datetime.utcnow()
     lesson = create_lesson(teacher, student, meetup, dropoff, date)
+    assert lesson.meetup_place.google_id == "ID1"
+    times_used = lesson.meetup_place.times_used
     auth.login(email=student.user.email)
     resp = requester.post(
         f"/lessons/{lesson.id}",
         json={
             "date": date.strftime(DATE_FORMAT),
-            "meetup_place": {"description": "no"},
+            "meetup_place": {"description": lesson.meetup_place.description},
         },
     )
+    lesson = Lesson.query.filter_by(id=lesson.id).first()
+    assert lesson.meetup_place.google_id == "ID1"
+    assert lesson.meetup_place.times_used == times_used
     assert "successfully" in resp.json["message"]
-    assert "no" == resp.json["data"]["meetup_place"]
+    assert "test" == resp.json["data"]["meetup_place"]
     assert not resp.json["data"]["is_approved"]
+    resp = requester.post(
+        f"/lessons/{lesson.id}",
+        json={
+            "date": date.strftime(DATE_FORMAT),
+            "meetup_place": {"description": "no"},
+            "dropoff_place": {"description": None}
+        },
+    )
+    assert "no" == resp.json["data"]["meetup_place"]
     auth.logout()
     auth.login(email=teacher.user.email)
     resp = requester.post(

@@ -83,10 +83,16 @@ def setup_db(app):
         user=student_user, teacher=teacher, creator=teacher.user, is_approved=True
     )
     meetup = Place.create(
-        description="test", used_as=PlaceType.meetup.value, student=student
+        description="test",
+        used_as=PlaceType.meetup.value,
+        student=student,
+        google_id="ID1",
     )
     dropoff = Place.create(
-        description="test", used_as=PlaceType.dropoff.value, student=student
+        description="test",
+        used_as=PlaceType.dropoff.value,
+        student=student,
+        google_id="ID2",
     )
     WorkDay.create(
         teacher=teacher,

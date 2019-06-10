@@ -40,10 +40,12 @@ class Place(SurrogatePK, Model):
     @classmethod
     def create_or_find(
         cls, place_dict: Optional[Dict], used_as: PlaceType, student: "Student"
-    ) -> "Place":
+    ) -> Optional["Place"]:
         try:
             description = place_dict["description"]
         except (KeyError, TypeError):
+            return None
+        if not description:
             return None
         try:
             ret = cls.query.filter(
