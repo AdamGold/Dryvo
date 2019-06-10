@@ -77,9 +77,15 @@ def get_lesson_data(data: dict, user: User, lesson: Optional[Lesson] = None) -> 
     dropoff_input = data.get("dropoff_place", {})
     if lesson:
         # don't update same places
-        if meetup_input.get("description") == lesson.meetup_place.description:
+        if (
+            lesson.meetup_place
+            and meetup_input.get("description") == lesson.meetup_place.description
+        ):
             meetup_input = None
-        if dropoff_input.get("description") == lesson.dropoff_place.description:
+        if (
+            lesson.dropoff_place
+            and dropoff_input.get("description") == lesson.dropoff_place.description
+        ):
             dropoff_input = None
     meetup, dropoff = handle_places(meetup_input, dropoff_input, student)
     try:
