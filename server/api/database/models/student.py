@@ -134,7 +134,7 @@ class Student(SurrogatePK, LessonCreator):
         starting_count = self.number_of_old_lessons
         if not latest_lesson:
             return starting_count
-        return starting_count + latest_lesson.lesson_number
+        return latest_lesson.lesson_number
 
     @lessons_done.expression
     def lessons_done(cls):
