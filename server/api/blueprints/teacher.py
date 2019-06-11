@@ -460,4 +460,4 @@ def create_bot_student():
         user=user, teacher=teacher, creator=current_user, price=price, is_approved=True
     )
 
-    return {"data": student.to_dict()}, 201
+    return {"data": student.user.to_dict()}, 201

@@ -49,7 +49,7 @@ class Payment(SurrogatePK, Model):
     def to_dict(self) -> dict:
         return {
             "id": self.id,
-            "student": self.student.to_dict(),  # student contains teacher
+            "student": self.student.user.to_dict(),  # student contains teacher
             "amount": self.amount,
             "pdf_link": self.pdf_link,
             "crn": self.crn,
