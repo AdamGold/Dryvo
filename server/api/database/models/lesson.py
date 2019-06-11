@@ -73,15 +73,19 @@ class Lesson(SurrogatePK, Model):
     @hybrid_property
     def lesson_number(self):
         return (
-            db.session.query(func.count(Lesson.id))
-            .select_from(Lesson)
-            .filter(
-                self.approved_lessons_filter(
-                    Lesson.date < self.date, Lesson.student == self.student
+            (
+                db.session.query(func.count(Lesson.id))
+                .select_from(Lesson)
+                .filter(
+                    self.approved_lessons_filter(
+                        Lesson.date < self.date, Lesson.student == self.student
+                    )
                 )
+                .scalar()
             )
-            .scalar()
-        ) + 1
+            + self.student.number_of_old_lessons
+            + 1
+        )
 
     def to_dict(self):
         return {

@@ -84,10 +84,10 @@ def test_topics(auth, requester, teacher, student, topic):
     assert topic.title == resp.json["data"]["in_progress"][0]["title"]
 
 
-def test_new_lesson_number(teacher, student, meetup, dropoff):
+def test_lessons_done(teacher, student, meetup, dropoff):
     """create new lesson for student,
-    check new_lesson_number updates"""
-    old_lesson_number = student.new_lesson_number
+    check lessons_done updates"""
+    old_lesson_number = student.lessons_done
     lesson = Lesson.create(
         teacher=teacher,
         student=student,
@@ -97,9 +97,9 @@ def test_new_lesson_number(teacher, student, meetup, dropoff):
         meetup_place=meetup,
         dropoff_place=dropoff,
     )
-    assert student.new_lesson_number == old_lesson_number + 1
-    assert student.new_lesson_number == lesson.lesson_number + 1
-    old_lesson_number = student.new_lesson_number
+    assert student.lessons_done == old_lesson_number + 1
+    assert student.lessons_done == lesson.lesson_number
+    old_lesson_number = student.lessons_done
     Lesson.create(
         teacher=teacher,
         student=student,
@@ -110,11 +110,11 @@ def test_new_lesson_number(teacher, student, meetup, dropoff):
         dropoff_place=dropoff,
     )
     assert (
-        student.new_lesson_number == old_lesson_number
+        student.lessons_done == old_lesson_number
     )  # because it's later than now, it hasn't changed
 
     # now test expression
-    st = Student.query.filter(Student.new_lesson_number == old_lesson_number).first()
+    st = Student.query.filter(Student.lessons_done == old_lesson_number).first()
     assert st.id == student.id
 
 
@@ -363,8 +363,8 @@ def test_upload_green_form(teacher, auth, requester, student):
 
 
 def test_number_of_old_lessons(auth, requester, student, teacher):
-    old_lesson_number = student.new_lesson_number
+    old_lesson_number = student.lessons_done
     old_balance = student.balance
     student.update(number_of_old_lessons=40)
-    assert student.new_lesson_number == old_lesson_number + 40
+    assert student.lessons_done == old_lesson_number + 40
     assert student.balance == old_balance - 40 * teacher.price

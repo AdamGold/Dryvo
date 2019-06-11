@@ -341,7 +341,7 @@ def topics(lesson_id: int):
     lesson = None
     if lesson_id == 0 and student:
         # lesson hasn't been created yet, let's treat this like a new lesson
-        lesson_number = student.new_lesson_number
+        lesson_number = student.lessons_done + 1
     else:
         lesson = Lesson.query.filter_by(id=lesson_id).first()
         if not lesson or not lesson.student:

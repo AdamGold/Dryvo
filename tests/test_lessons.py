@@ -232,10 +232,10 @@ def test_teacher_new_lesson_with_student(auth, teacher, student, requester):
 def test_delete_lesson(auth, teacher, student, meetup, dropoff, requester):
     lesson = create_lesson(teacher, student, meetup, dropoff, datetime.utcnow())
     auth.login(email=student.user.email)
-    old_lesson_number = student.new_lesson_number
+    old_lesson_number = student.lessons_done
     resp = requester.delete(f"/lessons/{lesson.id}")
     assert "successfully" in resp.json["message"]
-    assert student.new_lesson_number == old_lesson_number - 1
+    assert student.lessons_done == old_lesson_number - 1
 
 
 def test_approve_lesson(auth, teacher, student, meetup, dropoff, requester):

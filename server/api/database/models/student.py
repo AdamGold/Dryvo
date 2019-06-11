@@ -120,7 +120,7 @@ class Student(SurrogatePK, LessonCreator):
         )
 
     @hybrid_property
-    def new_lesson_number(self) -> int:
+    def lessons_done(self) -> int:
         """return the number of a new lesson:
         num of latest lesson+1"""
         latest_lesson = (
@@ -131,21 +131,21 @@ class Student(SurrogatePK, LessonCreator):
             .limit(1)
             .one_or_none()
         )
-        starting_count = self.number_of_old_lessons + 1
+        starting_count = self.number_of_old_lessons
         if not latest_lesson:
             return starting_count
         return starting_count + latest_lesson.lesson_number
 
-    @new_lesson_number.expression
-    def new_lesson_number(cls):
+    @lessons_done.expression
+    def lessons_done(cls):
         q = (
-            select([func.count(Lesson.student_id) + 1])
+            select([func.count(Lesson.student_id)])
             .where(
                 Lesson.approved_lessons_filter(
                     Lesson.date < datetime.utcnow(), Lesson.student_id == cls.id
                 )
             )
-            .label("new_lesson_number")
+            .label("lessons_done")
         )
         return q + cls.number_of_old_lessons
 
@@ -208,7 +208,7 @@ class Student(SurrogatePK, LessonCreator):
             "student_id": self.id,
             "my_teacher": self.teacher.to_dict(),
             "balance": self.balance,
-            "new_lesson_number": self.new_lesson_number,
+            "lessons_done": self.lessons_done,
             "user": self.user.to_dict() if with_user else None,
             "is_approved": self.is_approved,
             "is_active": self.is_active,
@@ -224,6 +224,6 @@ class Student(SurrogatePK, LessonCreator):
         return (
             f"<Student id={self.id}, balance={self.balance}"
             f", total_lessons_price={self.total_lessons_price}"
-            f", new_lesson_number={self.new_lesson_number}, teacher={self.teacher}"
+            f", lessons_done={self.lessons_done}, teacher={self.teacher}"
             f", total_paid={self.total_paid}>"
         )
