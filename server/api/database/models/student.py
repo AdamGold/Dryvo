@@ -204,12 +204,14 @@ class Student(SurrogatePK, LessonCreator):
                 green_form = cloudinary_url(self.green_form)[0]
             except Exception:
                 pass
+
+        if with_user:
+            return self.user.to_dict()  # returns user dict with student info
         return {
             "student_id": self.id,
             "my_teacher": self.teacher.to_dict(),
             "balance": self.balance,
             "lessons_done": self.lessons_done,
-            "user": self.user.to_dict() if with_user else None,
             "is_approved": self.is_approved,
             "is_active": self.is_active,
             "theory": self.theory,
