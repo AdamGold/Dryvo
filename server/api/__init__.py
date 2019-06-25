@@ -1,1 +1,1 @@
-from . import blueprints, database, push_notifications, social, babel
+from . import blueprints, database, push_notifications, social, babel, rules

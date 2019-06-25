@@ -74,6 +74,7 @@ def get_slots(
     hours: (datetime, datetime),
     appointments: [tuple],
     duration: timedelta,
+    blacklist: Dict[str, list],
     force_future: bool = False,
 ):
     """get a tuple with an hour range and a list of lessons, return empty slots
@@ -84,11 +85,24 @@ def get_slots(
     slots = [
         max(min(v, maximum), minimum)
         for v in sorted([minimum] + appointments + [maximum])
-    ]
+    ]  # limit to maximum and mimimum hours
+    free_ranges = ((slots[i][1], slots[i + 1][0]) for i in range(len(slots) - 1))
+    """ take actual hour to hour ranges from SLOTS. Ex: if the slots are:
+    SLOTS [(datetime.datetime(2019, 6, 26, 13, 0), datetime.datetime(2019, 6, 26, 13, 0)),
+           (datetime.datetime(2019, 6, 26, 13, 30, 20, 123123), datetime.datetime(2019, 6, 26, 14, 10, 20, 123123)),
+           (datetime.datetime(2019, 6, 26, 17, 0), datetime.datetime(2019, 6, 26, 17, 0))]
+    Then the free ranges will be:
+    FREE RANGES [(datetime.datetime(2019, 6, 26, 13, 0), datetime.datetime(2019, 6, 26, 13, 30, 20, 123123)),
+                 (datetime.datetime(2019, 6, 26, 14, 10, 20, 123123), datetime.datetime(2019, 6, 26, 17, 0))]
+    """
 
-    for start, end in ((slots[i][1], slots[i + 1][0]) for i in range(len(slots) - 1)):
+    for start, end in free_ranges:
         while start + duration <= end:
-            if not force_future or (start >= datetime.utcnow()):
+            if (
+                (not force_future or (start >= datetime.utcnow()))
+                and start.hour not in blacklist["start_hour"]
+                and (start + duration).hour not in blacklist["end_hour"]
+            ):
                 available_lessons.append((start, start + duration))
             start += duration
 

@@ -176,13 +176,17 @@ def available_hours(teacher_id):
     if data.get("duration"):
         duration = int(data.get("duration"))
     only_approved = False
+    student = None
     if current_user.teacher:
         only_approved = True
+    else:
+        student = current_user.student
     return {
         "data": list(
             teacher.available_hours(
                 datetime.strptime(data.get("date"), WORKDAY_DATE_FORMAT),
-                duration,
+                student=student,
+                duration=duration,
                 only_approved=only_approved,
             )
         )

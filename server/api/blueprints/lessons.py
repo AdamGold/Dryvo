@@ -57,9 +57,9 @@ def get_lesson_data(data: dict, user: User, lesson: Optional[Lesson] = None) -> 
         duration = user.student.teacher.lesson_duration
         student = user.student
         available_hours = itertools.dropwhile(
-            lambda hour_with_date: hour_with_date[0] != date,
-            user.student.teacher.available_hours(date),
-        )
+            lambda hours_range: hours_range[0] != date,
+            user.student.teacher.available_hours(requested_date=date, student=student),
+        )  # check if requested date in available hours
         try:
             next(available_hours)
         except StopIteration:

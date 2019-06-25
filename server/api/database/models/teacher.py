@@ -1,6 +1,6 @@
 import functools
 from datetime import datetime, timedelta
-from typing import Iterable, Tuple
+from typing import Dict, Iterable, List, Tuple
 
 import werkzeug
 from loguru import logger
@@ -17,6 +17,7 @@ from server.api.database.mixins import (
     relationship,
 )
 from server.api.database.models import Lesson, LessonCreator, WorkDay
+from server.api.rules import LessonRule, rules_registry
 from server.api.utils import get_slots
 from server.consts import WORKDAY_DATE_FORMAT
 
@@ -54,9 +55,21 @@ class Teacher(SurrogatePK, LessonCreator):
         logger.debug(f"found these work days on the specific date: {work_hours}")
         return work_hours
 
+    def taken_lessons_for_date(self, existing_lessons, only_approved: bool):
+        and_partial = functools.partial(and_, Lesson.student_id != None)
+        and_func = and_partial()
+        if only_approved:
+            and_func = and_partial(Lesson.is_approved == True)
+        taken_lessons = existing_lessons.filter(and_func).all()
+        return [
+            (lesson.date, lesson.date + timedelta(minutes=lesson.duration))
+            for lesson in taken_lessons
+        ]
+
     def available_hours(
         self,
         requested_date: datetime,
+        student: "Student" = None,
         duration: int = None,
         only_approved: bool = False,
     ) -> Iterable[Tuple[datetime, datetime]]:
@@ -69,31 +82,35 @@ class Teacher(SurrogatePK, LessonCreator):
         if not requested_date:
             return available
 
-        work_hours = self.work_hours_for_date(requested_date)
         existing_lessons = self.lessons.filter(
             func.extract("day", Lesson.date) == requested_date.day
         ).filter(func.extract("month", Lesson.date) == requested_date.month)
+        work_hours = self.work_hours_for_date(requested_date)
+        taken_lessons = self.taken_lessons_for_date(existing_lessons, only_approved)
+        blacklist_hours = LessonRule.default_dict
+        if student:
+            for rule_class in rules_registry:
+                for key in blacklist_hours.keys():
+                    instance = rule_class(requested_date, student)
+                    blacklist_hours[key].extend(instance.rule()[key])
 
-        and_partial = functools.partial(and_, Lesson.student_id != None)
-        and_func = and_partial()
-        if only_approved:
-            and_func = and_partial(Lesson.is_approved == True)
-        taken_lessons = existing_lessons.filter(and_func).all()
-        taken_lessons = [
-            (lesson.date, lesson.date + timedelta(minutes=lesson.duration))
-            for lesson in taken_lessons
-        ]
         work_hours.sort(key=lambda x: x.from_hour)  # sort from early to late
-        for day in work_hours:
+        for slot in work_hours:
+            # TODO add rules
+            # score hours (cold-hot)
+            # 1. if a student has already scheduled 3 lessons this week, return cold hours
+            # 2. if a place is >20km than the last / next lesson, eliminate that hour
+            # 3. new student (<5 lessons) won't be before lesson that is >15km
             hours = (
-                requested_date.replace(hour=day.from_hour, minute=day.from_minutes),
-                requested_date.replace(hour=day.to_hour, minute=day.to_minutes),
+                requested_date.replace(hour=slot.from_hour, minute=slot.from_minutes),
+                requested_date.replace(hour=slot.to_hour, minute=slot.to_minutes),
             )
             yield from get_slots(
                 hours,
                 taken_lessons,
                 timedelta(minutes=duration or self.lesson_duration),
                 force_future=True,
+                blacklist=blacklist_hours,
             )
 
         for lesson in existing_lessons.filter_by(student_id=None).all():
