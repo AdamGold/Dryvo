@@ -1,5 +1,5 @@
 from datetime import timedelta
-from typing import Dict, List
+from typing import Dict, Set
 
 from sqlalchemy import and_
 
@@ -9,7 +9,7 @@ from server.api.database.models import Lesson
 
 
 @register_rule
-class ColdIfMoreThan3Lessons(LessonRule):
+class MoreThan3LessonsWeek(LessonRule):
     """if a student has already scheduled 2 lessons this week, return hours >5 score (blacklisted)"""
 
     def filter_(self):
@@ -21,9 +21,7 @@ class ColdIfMoreThan3Lessons(LessonRule):
             and_(Lesson.date >= start_of_week, Lesson.date <= end_of_week)
         ).count()
 
-    def blacklisted(self) -> Dict[str, List[int]]:
+    def start_hour_rule(self) -> Set[int]:
         if self.filter_() >= 2:
-            self.default_dict.update(
-                dict(start_hour=[hour.value for hour in self.hours if hour.score > 5])
-            )
-        return self.default_dict
+            return {hour.value for hour in self.hours if hour.score > 4}
+        return set()

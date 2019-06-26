@@ -88,19 +88,22 @@ class Teacher(SurrogatePK, LessonCreator):
         taken_lessons = self.taken_lessons_for_date(
             existing_lessons_query, only_approved
         )
-        blacklist_hours = LessonRule.default_dict
-        if student:
+        blacklist_hours = {"start_hour": set(), "end_hour": set()}
+        if student and work_hours:
+            hours = LessonRule.init_hours(
+                requested_date,
+                student,
+                work_hours[0].from_hour,
+                work_hours[-1].to_hour,
+                taken_lessons,
+            )
             for rule_class in rules_registry:
+                rule_instance: LessonRule = rule_class(requested_date, student, hours)
+                blacklisted = rule_instance.blacklisted()
+                print(type(rule_instance))
+                print(blacklisted)
                 for key in blacklist_hours.keys():
-                    rule_instance: LessonRule = rule_class(
-                        requested_date,
-                        student,
-                        work_hours[0].from_hour,
-                        work_hours[-1].to_hour,
-                        taken_lessons,
-                    )
-                    blacklist_hours[key].extend(rule_instance.blacklisted()[key])
-
+                    blacklist_hours[key].update(blacklisted[key])
         work_hours.sort(key=lambda x: x.from_hour)  # sort from early to late
         for slot in work_hours:
             hours = (

@@ -19,3 +19,6 @@ class Hour:
     def __init__(self, value, score):
         self.value = value
         self.score = score
+
+    def __repr__(self):
+        return f"<Hour value={self.value}, score={self.score}>"

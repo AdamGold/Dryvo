@@ -82,13 +82,13 @@ def test_single_lesson(auth, teacher, student, meetup, dropoff, requester):
 
 def test_student_new_lesson(auth, teacher, student, requester, topic):
     auth.login(email=student.user.email)
-    date = (tomorrow.replace(hour=22, minute=40)).strftime(DATE_FORMAT)
+    date = (tomorrow.replace(hour=16, minute=20)).strftime(DATE_FORMAT)
     kwargs = {
         "teacher_id": teacher.id,
         "day": 1,
-        "from_hour": 00,
+        "from_hour": 7,
         "from_minutes": 0,
-        "to_hour": 23,
+        "to_hour": 21,
         "to_minutes": 59,
         "on_date": tomorrow.date(),
     }
@@ -105,7 +105,8 @@ def test_student_new_lesson(auth, teacher, student, requester, topic):
     assert not resp.json["data"]["is_approved"]
     assert resp.json["data"]["price"] == student.price
 
-    new_date = (tomorrow.replace(hour=20, minute=40)).strftime(DATE_FORMAT)
+    new_date = (tomorrow.replace(hour=13, minute=40)).strftime(DATE_FORMAT)
+    print("FROM HERE")
     resp = requester.post(
         "/lessons/",
         json={

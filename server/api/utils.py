@@ -99,7 +99,6 @@ def get_slots(
 ):
     """get a tuple with an hour range and a list of lessons, return empty slots
     in that hour range"""
-
     available_lessons = []
     free_ranges = get_free_ranges_of_hours(hours, appointments)
     for start, end in free_ranges:
