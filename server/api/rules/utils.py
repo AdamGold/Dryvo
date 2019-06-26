@@ -11,3 +11,11 @@ def register_rule(func):
         return func(*args, **kwargs)
 
     return func_wrapper
+
+
+class Hour:
+    __slots__ = ["value", "score"]
+
+    def __init__(self, value, score):
+        self.value = value
+        self.score = score

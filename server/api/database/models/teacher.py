@@ -78,29 +78,31 @@ class Teacher(SurrogatePK, LessonCreator):
         2. calculate lesson hours from available hours by default lesson duration
         MUST BE 24-hour format. 09:00, not 9:00
         """
-        available = []
         if not requested_date:
-            return available
+            return []
 
-        existing_lessons = self.lessons.filter(
+        existing_lessons_query = self.lessons.filter(
             func.extract("day", Lesson.date) == requested_date.day
         ).filter(func.extract("month", Lesson.date) == requested_date.month)
         work_hours = self.work_hours_for_date(requested_date)
-        taken_lessons = self.taken_lessons_for_date(existing_lessons, only_approved)
+        taken_lessons = self.taken_lessons_for_date(
+            existing_lessons_query, only_approved
+        )
         blacklist_hours = LessonRule.default_dict
         if student:
             for rule_class in rules_registry:
                 for key in blacklist_hours.keys():
-                    instance = rule_class(requested_date, student)
-                    blacklist_hours[key].extend(instance.rule()[key])
+                    rule_instance: LessonRule = rule_class(
+                        requested_date,
+                        student,
+                        work_hours[0].from_hour,
+                        work_hours[-1].to_hour,
+                        taken_lessons,
+                    )
+                    blacklist_hours[key].extend(rule_instance.blacklisted()[key])
 
         work_hours.sort(key=lambda x: x.from_hour)  # sort from early to late
         for slot in work_hours:
-            # TODO add rules
-            # score hours (cold-hot)
-            # 1. if a student has already scheduled 3 lessons this week, return cold hours
-            # 2. if a place is >20km than the last / next lesson, eliminate that hour
-            # 3. new student (<5 lessons) won't be before lesson that is >15km
             hours = (
                 requested_date.replace(hour=slot.from_hour, minute=slot.from_minutes),
                 requested_date.replace(hour=slot.to_hour, minute=slot.to_minutes),
@@ -113,7 +115,7 @@ class Teacher(SurrogatePK, LessonCreator):
                 blacklist=blacklist_hours,
             )
 
-        for lesson in existing_lessons.filter_by(student_id=None).all():
+        for lesson in existing_lessons_query.filter_by(student_id=None).all():
             if datetime.utcnow() > lesson.date:
                 continue
             yield (lesson.date, lesson.date + timedelta(minutes=lesson.duration))
