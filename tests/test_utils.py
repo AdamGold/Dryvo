@@ -28,7 +28,12 @@ def test_get_slots():
     to_hour = from_hour + timedelta(hours=1)
     duration = timedelta(minutes=30)
     taken = [(from_hour, from_hour + duration)]
-    slots = get_slots((from_hour, to_hour), taken, duration)
+    slots = get_slots(
+        hours=(from_hour, to_hour),
+        appointments=taken,
+        duration=duration,
+        blacklist={"start_hour": [], "end_hour": []},
+    )
     assert slots == [(from_hour + timedelta(minutes=30), to_hour)]
 
 

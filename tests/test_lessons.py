@@ -105,8 +105,7 @@ def test_student_new_lesson(auth, teacher, student, requester, topic):
     assert not resp.json["data"]["is_approved"]
     assert resp.json["data"]["price"] == student.price
 
-    new_date = (tomorrow.replace(hour=13, minute=40)).strftime(DATE_FORMAT)
-    print("FROM HERE")
+    new_date = (tomorrow.replace(hour=8, minute=20)).strftime(DATE_FORMAT)
     resp = requester.post(
         "/lessons/",
         json={

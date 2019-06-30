@@ -38,7 +38,6 @@ class LessonRule(ABC):
     def init_hours(cls, date, student, start_hour, finish_hour, taken_lessons):
         """calculate new scores for hours, based on existing lessons"""
         hours = copy.deepcopy(cls.hours)
-        print(hours)
         if not taken_lessons:
             # if no lessons have been scheduled, keep default hours score list
             return hours

@@ -104,6 +104,7 @@ class Teacher(SurrogatePK, LessonCreator):
                 print(blacklisted)
                 for key in blacklist_hours.keys():
                     blacklist_hours[key].update(blacklisted[key])
+
         work_hours.sort(key=lambda x: x.from_hour)  # sort from early to late
         for slot in work_hours:
             hours = (

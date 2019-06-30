@@ -9,7 +9,7 @@ from server.api.database.models import Lesson
 
 
 @register_rule
-class MoreThan3LessonsWeek(LessonRule):
+class MoreThanLessonsWeek(LessonRule):
     """if a student has already scheduled 2 lessons this week, return hours >5 score (blacklisted)"""
 
     def filter_(self):

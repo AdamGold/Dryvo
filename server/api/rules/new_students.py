@@ -3,9 +3,10 @@ from typing import Dict, Set
 
 from sqlalchemy import and_
 
-from server.api.rules.utils import register_rule
-from server.api.rules.lesson_rule import LessonRule
 from server.api.database.models import Lesson
+from server.api.rules.lesson_rule import LessonRule
+from server.api.rules.more_than_lessons_week import MoreThanLessonsWeek
+from server.api.rules.utils import register_rule
 
 
 @register_rule
@@ -16,7 +17,8 @@ class NewStudents(LessonRule):
         return self.student.lessons_done
 
     def start_hour_rule(self) -> Set[int]:
-        if self.filter_() <= 5:
+        more_than_rule = MoreThanLessonsWeek(self.date, self.student, self.hours)
+        if self.filter_() <= 5 and not more_than_rule.filter_():
             return {hour.value for hour in self.hours if hour.score <= 3}
 
         return set()

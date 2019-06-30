@@ -151,12 +151,13 @@ def test_available_hours_route(teacher, student, meetup, dropoff, auth, requeste
         f"/teacher/{teacher.id}/available_hours", json={"date": date, "duration": "100"}
     )
     assert len(resp.json["data"]) == 1
-
+    auth.logout()
     # if we login as student, we shouldn't see any lesson dates (even non-approved)
+    # this student already has a couple of lessons this week, no more for him
     auth.login(email=student.user.email)
     lesson.update(is_approved=False)
     resp = requester.post(f"/teacher/{teacher.id}/available_hours", json={"date": date})
-    assert len(resp.json["data"]) == 4
+    assert len(resp.json["data"]) == 0
 
 
 def test_teacher_available_hours(teacher, student, requester, meetup, dropoff):
@@ -399,44 +400,3 @@ def test_invalid_create_bot_student(auth, requester, teacher, name, email, phone
     resp = requester.post(f"/teacher/create_student", json=student)
     assert "is required" in resp.json["message"]
 
-
-def test_available_hours_with_rules(teacher, student, meetup, dropoff, auth, requester):
-    auth.login(email=teacher.user.email)
-    tomorrow = datetime.utcnow() + timedelta(days=1)
-    date = tomorrow.strftime(WORKDAY_DATE_FORMAT)
-    time_and_date = date + "T13:30:20.123123Z"
-    data = {
-        "teacher_id": teacher.id,
-        "from_hour": 13,
-        "from_minutes": 0,
-        "to_hour": 17,
-        "to_minutes": 0,
-        "on_date": tomorrow,
-    }
-    WorkDay.create(**data)
-
-    # now let's add a lesson
-    lesson = Lesson.create(
-        teacher=teacher,
-        student=student,
-        creator=teacher.user,
-        duration=40,
-        date=datetime.strptime(time_and_date, DATE_FORMAT),
-        meetup_place=meetup,
-        dropoff_place=dropoff,
-        is_approved=False,
-    )
-    resp = requester.post(f"/teacher/{teacher.id}/available_hours", json={"date": date})
-
-    assert len(resp.json["data"]) == 6
-    lesson.update(is_approved=True)
-    resp = requester.post(
-        f"/teacher/{teacher.id}/available_hours", json={"date": date, "duration": "100"}
-    )
-    assert len(resp.json["data"]) == 1
-
-    # if we login as student, we shouldn't see any lesson dates (even non-approved)
-    auth.login(email=student.user.email)
-    lesson.update(is_approved=False)
-    resp = requester.post(f"/teacher/{teacher.id}/available_hours", json={"date": date})
-    assert len(resp.json["data"]) == 4
