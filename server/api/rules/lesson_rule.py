@@ -58,18 +58,18 @@ class LessonRule(ABC):
                 delta_from_end = get_delta(range_[1], current_time)
                 addition = delta_from_start + delta_from_end
                 score_decrease = 0
-                if addition:
+                if delta_from_start:
                     score_decrease = min(
-                        9, round(((delta_from_start * delta_from_end)) / addition)
-                    )
-                hour = next(
-                    (x for x in hours if x.value == current_time.hour), None
-                )  # find the object in self.hours
-                if hour:
+                        9, round(addition / delta_from_start)
+                    )  # extra emphasis on delta from start (we want to fill the first ones first)
+                try:
+                    hour = hours[current_time.hour + 7]  # every index is hour + 7
                     logger.debug(
                         f"we want to decrease {score_decrease} from hour {hour.value} = {hour.score - score_decrease}"
                     )
                     hour.score -= score_decrease
+                except IndexError:
+                    pass
                 current_time += timedelta(hours=1)
 
         return hours

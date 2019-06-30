@@ -55,12 +55,13 @@ class Teacher(SurrogatePK, LessonCreator):
         logger.debug(f"found these work days on the specific date: {work_hours}")
         return work_hours
 
-    def taken_lessons_for_date(self, existing_lessons, only_approved: bool):
+    def taken_lessons_for_date(self, existing_lessons_query, only_approved: bool):
+        """returns list with tuples of start and end hours of taken lessons"""
         and_partial = functools.partial(and_, Lesson.student_id != None)
         and_func = and_partial()
         if only_approved:
             and_func = and_partial(Lesson.is_approved == True)
-        taken_lessons = existing_lessons.filter(and_func).all()
+        taken_lessons = existing_lessons_query.filter(and_func).all()
         return [
             (lesson.date, lesson.date + timedelta(minutes=lesson.duration))
             for lesson in taken_lessons
@@ -90,18 +91,19 @@ class Teacher(SurrogatePK, LessonCreator):
         )
         blacklist_hours = {"start_hour": set(), "end_hour": set()}
         if student and work_hours:
+            approved_taken_lessons = self.taken_lessons_for_date(
+                existing_lessons_query, only_approved=True
+            )
             hours = LessonRule.init_hours(
                 requested_date,
                 student,
                 work_hours[0].from_hour,
                 work_hours[-1].to_hour,
-                taken_lessons,
+                approved_taken_lessons,
             )
             for rule_class in rules_registry:
                 rule_instance: LessonRule = rule_class(requested_date, student, hours)
                 blacklisted = rule_instance.blacklisted()
-                print(type(rule_instance))
-                print(blacklisted)
                 for key in blacklist_hours.keys():
                     blacklist_hours[key].update(blacklisted[key])
 
