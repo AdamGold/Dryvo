@@ -10,12 +10,12 @@ from server.api.database.models import Lesson
 
 @register_rule
 class RegularStudents(LessonRule):
-    """students with 10-20 lessons - blacklist hours > 8 score"""
+    """students with 10-20 lessons - blacklist hours >= 8 score"""
 
     def filter_(self):
         return self.student.lessons_done
 
     def start_hour_rule(self) -> Set[int]:
         if self.filter_() >= 10 and self.filter_() <= 20:
-            return {hour.value for hour in self.hours if hour.score > 8}
+            return {hour.value for hour in self.hours if hour.score >= 8}
         return set()

@@ -1,4 +1,3 @@
-import functools
 from . import more_than_lessons_week, regular_students, new_students
 from .lesson_rule import LessonRule
 from .utils import rules_registry, register_rule

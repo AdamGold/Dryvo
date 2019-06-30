@@ -95,11 +95,7 @@ class Teacher(SurrogatePK, LessonCreator):
                 existing_lessons_query, only_approved=True
             )
             hours = LessonRule.init_hours(
-                requested_date,
-                student,
-                work_hours[0].from_hour,
-                work_hours[-1].to_hour,
-                approved_taken_lessons,
+                requested_date, student, work_hours, approved_taken_lessons
             )
             for rule_class in rules_registry:
                 rule_instance: LessonRule = rule_class(requested_date, student, hours)

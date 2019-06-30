@@ -434,7 +434,6 @@ def test_teacher_available_hours_with_rules(
         "on_date": tomorrow,
     }
     WorkDay.create(**kwargs)
-    assert next(teacher.available_hours(tomorrow, student=student))[0] == tomorrow
 
     for _ in range(3):
         Lesson.create(

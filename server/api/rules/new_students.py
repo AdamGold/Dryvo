@@ -17,8 +17,10 @@ class NewStudents(LessonRule):
         return self.student.lessons_done
 
     def start_hour_rule(self) -> Set[int]:
-        more_than_rule = MoreThanLessonsWeek(self.date, self.student, self.hours)
-        if self.filter_() <= 5 and not more_than_rule.filter_():
+        more_than_rule = MoreThanLessonsWeek(
+            self.date, self.student, self.hours
+        ).blacklisted()
+        if self.filter_() <= 5 and not more_than_rule["start_hour"]:
             return {hour.value for hour in self.hours if hour.score <= 3}
 
         return set()

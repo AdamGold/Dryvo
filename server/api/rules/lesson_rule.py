@@ -35,16 +35,17 @@ class LessonRule(ABC):
         self.hours = hours
 
     @classmethod
-    def init_hours(cls, date, student, start_hour, finish_hour, taken_lessons):
+    def init_hours(cls, date, student, work_hours, taken_lessons):
         """calculate new scores for hours, based on existing lessons"""
         hours = copy.deepcopy(cls.hours)
-        if not taken_lessons:
-            # if no lessons have been scheduled, keep default hours score list
+        if not taken_lessons or not work_hours:
+            # if no lessons have been scheduled / no work hours, keep default hours score list
             return hours
-        free_ranges = get_free_ranges_of_hours(
-            (date.replace(hour=start_hour), date.replace(hour=finish_hour)),
-            taken_lessons,
+        hours_range = (
+            date.replace(hour=work_hours[0].from_hour),
+            date.replace(hour=work_hours[-1].to_hour),
         )
+        free_ranges = get_free_ranges_of_hours(hours_range, taken_lessons)
 
         get_delta = lambda time1, time2: int(
             (time1 - time2).total_seconds() / 60 / student.teacher.lesson_duration
@@ -63,7 +64,7 @@ class LessonRule(ABC):
                         9, round(addition / delta_from_start)
                     )  # extra emphasis on delta from start (we want to fill the first ones first)
                 try:
-                    hour = hours[current_time.hour + 7]  # every index is hour + 7
+                    hour = hours[current_time.hour - 7]  # every index is hour - 7
                     logger.debug(
                         f"we want to decrease {score_decrease} from hour {hour.value} = {hour.score - score_decrease}"
                     )
@@ -73,6 +74,10 @@ class LessonRule(ABC):
                 current_time += timedelta(hours=1)
 
         return hours
+
+    @abstractmethod
+    def filter_(self):
+        """return the filtering result of the rule"""
 
     def start_hour_rule(self) -> Set[int]:
         """returns the blacklisted start hours"""
