@@ -50,8 +50,15 @@ class LessonRule(ABC):
         get_delta = lambda time1, time2: int(
             (time1 - time2).total_seconds() / 60 / student.teacher.lesson_duration
         )  # how many lessons can fit between time1 and time2
+        current_time = None
         for range_ in free_ranges:
-            current_time = range_[0]
+            if range_[0].hour <= getattr(
+                current_time, "hour", -1
+            ):  # in 2nd iteration, we've already done this hour
+                current_time = range_[0] + timedelta(hours=1)
+            else:
+                current_time = range_[0]
+
             while current_time <= range_[1]:
                 # how many lessons can fit until the end of the range
                 delta_from_start = get_delta(current_time, range_[0])
@@ -65,12 +72,15 @@ class LessonRule(ABC):
                     )  # extra emphasis on delta from start (we want to fill the first ones first)
                 try:
                     hour = hours[current_time.hour - 7]  # every index is hour - 7
-                    logger.debug(
-                        f"we want to decrease {score_decrease} from hour {hour.value} = {hour.score - score_decrease}"
-                    )
-                    hour.score -= score_decrease
+                    if hour.value == current_time.hour:
+                        logger.debug(
+                            f"we want to decrease {score_decrease} from hour {hour.value} = {hour.score - score_decrease}"
+                        )
+                        hour.score -= score_decrease
                 except IndexError:
-                    pass
+                    logger.debug(
+                        f"Trying to get {current_time.hour} hour but it doesn't exist."
+                    )
                 current_time += timedelta(hours=1)
 
         return hours

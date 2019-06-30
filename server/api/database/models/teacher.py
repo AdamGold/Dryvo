@@ -55,7 +55,7 @@ class Teacher(SurrogatePK, LessonCreator):
         logger.debug(f"found these work days on the specific date: {work_hours}")
         return work_hours
 
-    def taken_lessons_for_date(self, existing_lessons_query, only_approved: bool):
+    def taken_lessons_tuples(self, existing_lessons_query, only_approved: bool):
         """returns list with tuples of start and end hours of taken lessons"""
         and_partial = functools.partial(and_, Lesson.student_id != None)
         and_func = and_partial()
@@ -86,12 +86,10 @@ class Teacher(SurrogatePK, LessonCreator):
             func.extract("day", Lesson.date) == requested_date.day
         ).filter(func.extract("month", Lesson.date) == requested_date.month)
         work_hours = self.work_hours_for_date(requested_date)
-        taken_lessons = self.taken_lessons_for_date(
-            existing_lessons_query, only_approved
-        )
+        taken_lessons = self.taken_lessons_tuples(existing_lessons_query, only_approved)
         blacklist_hours = {"start_hour": set(), "end_hour": set()}
         if student and work_hours:
-            approved_taken_lessons = self.taken_lessons_for_date(
+            approved_taken_lessons = self.taken_lessons_tuples(
                 existing_lessons_query, only_approved=True
             )
             hours = LessonRule.init_hours(

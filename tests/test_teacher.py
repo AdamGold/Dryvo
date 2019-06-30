@@ -401,8 +401,8 @@ def test_invalid_create_bot_student(auth, requester, teacher, name, email, phone
     assert "is required" in resp.json["message"]
 
 
-def test_taken_lessons_for_date(teacher, student, meetup, dropoff, lesson):
-    taken_lessons = teacher.taken_lessons_for_date(Lesson.query, only_approved=False)
+def test_taken_lessons_tuples(teacher, student, meetup, dropoff, lesson):
+    taken_lessons = teacher.taken_lessons_tuples(Lesson.query, only_approved=False)
     assert len(taken_lessons) == 1
     assert isinstance(taken_lessons[0], tuple)
     Lesson.create(
@@ -416,7 +416,7 @@ def test_taken_lessons_for_date(teacher, student, meetup, dropoff, lesson):
         dropoff_place=dropoff,
         is_approved=False,
     )
-    taken_lessons = teacher.taken_lessons_for_date(Lesson.query, only_approved=True)
+    taken_lessons = teacher.taken_lessons_tuples(Lesson.query, only_approved=True)
     assert len(taken_lessons) == 1
 
 
