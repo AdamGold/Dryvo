@@ -97,7 +97,7 @@ def setup_db(app):
     WorkDay.create(
         teacher=teacher,
         day=1,
-        from_hour=00,
+        from_hour=0,
         to_hour=23,
         to_minutes=59,
         on_date=(datetime.utcnow() + timedelta(days=2)).date(),

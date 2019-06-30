@@ -6,7 +6,12 @@ import pytest
 from werkzeug import MultiDict
 
 from server.api.database.models import Lesson, Student, User, Teacher
-from server.api.utils import get_slots, jsonify_response, must_redirect
+from server.api.utils import (
+    get_slots,
+    jsonify_response,
+    must_redirect,
+    get_free_ranges_of_hours,
+)
 from server.consts import DATE_FORMAT, WORKDAY_DATE_FORMAT
 
 
@@ -28,8 +33,37 @@ def test_get_slots():
     to_hour = from_hour + timedelta(hours=1)
     duration = timedelta(minutes=30)
     taken = [(from_hour, from_hour + duration)]
-    slots = get_slots((from_hour, to_hour), taken, duration)
+    slots = get_slots(
+        hours=(from_hour, to_hour),
+        appointments=taken,
+        duration=duration,
+        blacklist={"start_hour": [], "end_hour": []},
+    )
     assert slots == [(from_hour + timedelta(minutes=30), to_hour)]
+
+
+def test_get_slots_with_blacklist():
+    from_hour = datetime.utcnow()
+    to_hour = from_hour + timedelta(hours=1)
+    duration = timedelta(minutes=30)
+    taken = [(from_hour, from_hour + duration)]
+    slots = get_slots(
+        hours=(from_hour, to_hour),
+        appointments=taken,
+        duration=duration,
+        blacklist={"start_hour": [from_hour.hour], "end_hour": [to_hour.hour]},
+    )
+    assert not slots
+
+
+def test_get_free_ranges_of_hours():
+    from_hour = datetime.utcnow()
+    to_hour = from_hour + timedelta(hours=2)
+    duration = timedelta(minutes=30)
+    taken = [(from_hour + duration, from_hour + duration + duration)]
+    free_ranges = get_free_ranges_of_hours((from_hour, to_hour), taken)
+    assert next(free_ranges)[0] == from_hour
+    assert next(free_ranges)[0] == from_hour + duration + duration
 
 
 def test_sort_data(teacher, student, meetup, dropoff):

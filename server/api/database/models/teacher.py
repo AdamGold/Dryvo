@@ -1,6 +1,6 @@
 import functools
 from datetime import datetime, timedelta
-from typing import Iterable, Tuple
+from typing import Dict, Iterable, List, Tuple
 
 import werkzeug
 from loguru import logger
@@ -17,6 +17,7 @@ from server.api.database.mixins import (
     relationship,
 )
 from server.api.database.models import Lesson, LessonCreator, WorkDay
+from server.api.rules import LessonRule, rules_registry
 from server.api.utils import get_slots
 from server.consts import WORKDAY_DATE_FORMAT
 
@@ -54,9 +55,22 @@ class Teacher(SurrogatePK, LessonCreator):
         logger.debug(f"found these work days on the specific date: {work_hours}")
         return work_hours
 
+    def taken_lessons_tuples(self, existing_lessons_query, only_approved: bool):
+        """returns list with tuples of start and end hours of taken lessons"""
+        and_partial = functools.partial(and_, Lesson.student_id != None)
+        and_func = and_partial()
+        if only_approved:
+            and_func = and_partial(Lesson.is_approved == True)
+        taken_lessons = existing_lessons_query.filter(and_func).all()
+        return [
+            (lesson.date, lesson.date + timedelta(minutes=lesson.duration))
+            for lesson in taken_lessons
+        ]
+
     def available_hours(
         self,
         requested_date: datetime,
+        student: "Student" = None,
         duration: int = None,
         only_approved: bool = False,
     ) -> Iterable[Tuple[datetime, datetime]]:
@@ -65,38 +79,43 @@ class Teacher(SurrogatePK, LessonCreator):
         2. calculate lesson hours from available hours by default lesson duration
         MUST BE 24-hour format. 09:00, not 9:00
         """
-        available = []
         if not requested_date:
-            return available
+            return []
 
-        work_hours = self.work_hours_for_date(requested_date)
-        existing_lessons = self.lessons.filter(
+        existing_lessons_query = self.lessons.filter(
             func.extract("day", Lesson.date) == requested_date.day
         ).filter(func.extract("month", Lesson.date) == requested_date.month)
+        work_hours = self.work_hours_for_date(requested_date)
+        taken_lessons = self.taken_lessons_tuples(existing_lessons_query, only_approved)
+        blacklist_hours = {"start_hour": set(), "end_hour": set()}
+        if student and work_hours:
+            approved_taken_lessons = self.taken_lessons_tuples(
+                existing_lessons_query, only_approved=True
+            )
+            hours = LessonRule.init_hours(
+                requested_date, student, work_hours, approved_taken_lessons
+            )
+            for rule_class in rules_registry:
+                rule_instance: LessonRule = rule_class(requested_date, student, hours)
+                blacklisted = rule_instance.blacklisted()
+                for key in blacklist_hours.keys():
+                    blacklist_hours[key].update(blacklisted[key])
 
-        and_partial = functools.partial(and_, Lesson.student_id != None)
-        and_func = and_partial()
-        if only_approved:
-            and_func = and_partial(Lesson.is_approved == True)
-        taken_lessons = existing_lessons.filter(and_func).all()
-        taken_lessons = [
-            (lesson.date, lesson.date + timedelta(minutes=lesson.duration))
-            for lesson in taken_lessons
-        ]
         work_hours.sort(key=lambda x: x.from_hour)  # sort from early to late
-        for day in work_hours:
+        for slot in work_hours:
             hours = (
-                requested_date.replace(hour=day.from_hour, minute=day.from_minutes),
-                requested_date.replace(hour=day.to_hour, minute=day.to_minutes),
+                requested_date.replace(hour=slot.from_hour, minute=slot.from_minutes),
+                requested_date.replace(hour=slot.to_hour, minute=slot.to_minutes),
             )
             yield from get_slots(
                 hours,
                 taken_lessons,
                 timedelta(minutes=duration or self.lesson_duration),
                 force_future=True,
+                blacklist=blacklist_hours,
             )
 
-        for lesson in existing_lessons.filter_by(student_id=None).all():
+        for lesson in existing_lessons_query.filter_by(student_id=None).all():
             if datetime.utcnow() > lesson.date:
                 continue
             yield (lesson.date, lesson.date + timedelta(minutes=lesson.duration))

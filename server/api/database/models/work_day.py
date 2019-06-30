@@ -60,6 +60,6 @@ class WorkDay(SurrogatePK, Model):
         return (
             f"<WorkDay day={self.day}"
             f"from={self.from_hour}:{self.from_minutes}"
-            f"-{self.to_hour}-{self.to_minutes}"
+            f", to={self.to_hour}:{self.to_minutes}"
             f", on_date={self.on_date}>"
         )

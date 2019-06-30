@@ -151,16 +151,17 @@ def test_available_hours_route(teacher, student, meetup, dropoff, auth, requeste
         f"/teacher/{teacher.id}/available_hours", json={"date": date, "duration": "100"}
     )
     assert len(resp.json["data"]) == 1
-
+    auth.logout()
     # if we login as student, we shouldn't see any lesson dates (even non-approved)
+    # this student already has a couple of lessons this week, no more for him
     auth.login(email=student.user.email)
     lesson.update(is_approved=False)
     resp = requester.post(f"/teacher/{teacher.id}/available_hours", json={"date": date})
-    assert len(resp.json["data"]) == 4
+    assert len(resp.json["data"]) == 0
 
 
 def test_teacher_available_hours(teacher, student, requester, meetup, dropoff):
-    tomorrow = datetime.utcnow() + timedelta(days=1)
+    tomorrow = datetime.utcnow().replace(hour=7, minute=0) + timedelta(days=1)
     kwargs = {
         "teacher_id": teacher.id,
         "day": 1,
@@ -398,4 +399,55 @@ def test_invalid_create_bot_student(auth, requester, teacher, name, email, phone
     student = {"name": name, "email": email, "phone": phone, "price": 100}
     resp = requester.post(f"/teacher/create_student", json=student)
     assert "is required" in resp.json["message"]
+
+
+def test_taken_lessons_tuples(teacher, student, meetup, dropoff, lesson):
+    taken_lessons = teacher.taken_lessons_tuples(Lesson.query, only_approved=False)
+    assert len(taken_lessons) == 1
+    assert isinstance(taken_lessons[0], tuple)
+    Lesson.create(
+        teacher=teacher,
+        student=student,
+        # schedule to 5 days from now to it won't bother with no test
+        creator=teacher.user,
+        duration=40,
+        date=(datetime.utcnow() + timedelta(days=5)),
+        meetup_place=meetup,
+        dropoff_place=dropoff,
+        is_approved=False,
+    )
+    taken_lessons = teacher.taken_lessons_tuples(Lesson.query, only_approved=True)
+    assert len(taken_lessons) == 1
+
+
+def test_teacher_available_hours_with_rules(
+    teacher, student, requester, meetup, dropoff
+):
+    tomorrow = datetime.utcnow().replace(hour=7, minute=0) + timedelta(days=1)
+    kwargs = {
+        "teacher_id": teacher.id,
+        "day": 1,
+        "from_hour": tomorrow.hour,
+        "from_minutes": tomorrow.minute,
+        "to_hour": 23,
+        "to_minutes": 59,
+        "on_date": tomorrow,
+    }
+    WorkDay.create(**kwargs)
+
+    for _ in range(3):
+        Lesson.create(
+            teacher=teacher,
+            student=student,
+            creator=teacher.user,
+            duration=teacher.lesson_duration,
+            date=tomorrow,
+            meetup_place=meetup,
+            dropoff_place=dropoff,
+            is_approved=True,
+        )
+
+    hours_with_rules = list(teacher.available_hours(tomorrow, student=student))
+    hours_without_rules = list(teacher.available_hours(tomorrow))
+    assert hours_with_rules != hours_without_rules
 

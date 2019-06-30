@@ -2,7 +2,7 @@ import os
 import traceback
 from datetime import datetime, timedelta
 from functools import wraps
-from typing import Dict
+from typing import Dict, Tuple, List
 
 import flask
 from flask.json import jsonify
@@ -70,25 +70,44 @@ def build_pagination_url(func: callable, page, *args, **kwargs) -> str:
     )
 
 
+def get_free_ranges_of_hours(
+    hours: Tuple[datetime, datetime], appointments: List[Tuple[datetime, datetime]]
+):
+    """ take actual hour to hour ranges from SLOTS. Ex: if the slots are:
+    SLOTS [(datetime.datetime(2019, 6, 26, 13, 0), datetime.datetime(2019, 6, 26, 13, 0)),
+           (datetime.datetime(2019, 6, 26, 13, 30, 20, 123123), datetime.datetime(2019, 6, 26, 14, 10, 20, 123123)),
+           (datetime.datetime(2019, 6, 26, 17, 0), datetime.datetime(2019, 6, 26, 17, 0))]
+    Then the free ranges will be:
+    RETURN [(datetime.datetime(2019, 6, 26, 13, 0), datetime.datetime(2019, 6, 26, 13, 30, 20, 123123)),
+                 (datetime.datetime(2019, 6, 26, 14, 10, 20, 123123), datetime.datetime(2019, 6, 26, 17, 0))]
+    """
+    minimum = (hours[0], hours[0])
+    maximum = (hours[1], hours[1])
+    slots = [
+        max(min(v, maximum), minimum)
+        for v in sorted([minimum] + appointments + [maximum])
+    ]  # limit to maximum and mimimum hours
+    return ((slots[i][1], slots[i + 1][0]) for i in range(len(slots) - 1))
+
+
 def get_slots(
-    hours: (datetime, datetime),
-    appointments: [tuple],
+    hours: Tuple[datetime, datetime],
+    appointments: List[Tuple[datetime, datetime]],
     duration: timedelta,
+    blacklist: Dict[str, list],
     force_future: bool = False,
 ):
     """get a tuple with an hour range and a list of lessons, return empty slots
     in that hour range"""
-    minimum = (hours[0], hours[0])
-    maximum = (hours[1], hours[1])
     available_lessons = []
-    slots = [
-        max(min(v, maximum), minimum)
-        for v in sorted([minimum] + appointments + [maximum])
-    ]
-
-    for start, end in ((slots[i][1], slots[i + 1][0]) for i in range(len(slots) - 1)):
+    free_ranges = get_free_ranges_of_hours(hours, appointments)
+    for start, end in free_ranges:
         while start + duration <= end:
-            if not force_future or (start >= datetime.utcnow()):
+            if (
+                (not force_future or (start >= datetime.utcnow()))
+                and start.hour not in blacklist["start_hour"]
+                and (start + duration).hour not in blacklist["end_hour"]
+            ):
                 available_lessons.append((start, start + duration))
             start += duration
 
