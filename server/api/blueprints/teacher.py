@@ -172,15 +172,17 @@ def delete_work_day(day_id):
 def available_hours(teacher_id):
     data = flask.request.get_json()
     teacher = Teacher.get_by_id(teacher_id)
-    duration = None
-    if data.get("duration"):
-        duration = int(data.get("duration"))
+    duration = data.get("duration", None)
+    if duration:
+        duration = int(duration)
     only_approved = False
     student = None
     if current_user.teacher:
         only_approved = True
     else:
         student = current_user.student
+
+    places = (data.get("meetup_place_id", None), data.get("dropoff_place_id", None))
     return {
         "data": list(
             teacher.available_hours(
@@ -188,6 +190,7 @@ def available_hours(teacher_id):
                 student=student,
                 duration=duration,
                 only_approved=only_approved,
+                places=places,
             )
         )
     }

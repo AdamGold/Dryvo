@@ -1,5 +1,5 @@
 from datetime import timedelta
-from typing import Dict, Set
+from typing import Dict, Set, List
 
 from sqlalchemy import and_, func
 
@@ -9,11 +9,17 @@ from server.api.rules.utils import register_rule
 from server.api import gmaps
 
 
+MAXIMUM_DISTANCE = 15000
+MAXIMUM_DURATION = 600
+
+
 @register_rule
-class PlaceDistance(LessonRule):
+class PlaceDistances(LessonRule):
     """if a place is >15km than the last / next lesson, eliminate that hour if that hour is >5 score"""
 
-    def filter_(self, type_=PlaceType.meetup):
+    def filter_(self, type_: PlaceType = PlaceType.meetup) -> List[Lesson]:
+        if not self.dropoff_place_id or not self.meetup_place_id:
+            return []
         # loop through today's lessons
         today_lessons = self.student.teacher.lessons.filter(
             Lesson.approved_lessons_filter(
@@ -36,7 +42,10 @@ class PlaceDistance(LessonRule):
                 mode="driving",
             )
             row = distance["rows"][0]["elements"]
-            if row["distance"]["value"] >= 15000 or row["duration"]["value"] >= 600:
+            if (
+                row["distance"]["value"] >= MAXIMUM_DISTANCE
+                or row["duration"]["value"] >= MAXIMUM_DURATION
+            ):
                 relevant_lessons.append(lesson)
 
         # return list of lessons where their {type_} place (meetup/dropoff) >15km than current place

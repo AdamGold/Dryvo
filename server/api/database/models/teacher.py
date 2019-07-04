@@ -1,6 +1,6 @@
 import functools
 from datetime import datetime, timedelta
-from typing import Dict, Iterable, List, Tuple
+from typing import Dict, Iterable, List, Tuple, Optional
 
 import werkzeug
 from loguru import logger
@@ -73,6 +73,7 @@ class Teacher(SurrogatePK, LessonCreator):
         student: "Student" = None,
         duration: int = None,
         only_approved: bool = False,
+        places: Tuple[Optional[str]] = (None, None),
     ) -> Iterable[Tuple[datetime, datetime]]:
         """
         1. calculate available hours - decrease existing lessons times from work hours
@@ -96,7 +97,9 @@ class Teacher(SurrogatePK, LessonCreator):
                 requested_date, student, work_hours, approved_taken_lessons
             )
             for rule_class in rules_registry:
-                rule_instance: LessonRule = rule_class(requested_date, student, hours)
+                rule_instance: LessonRule = rule_class(
+                    requested_date, student, hours, places
+                )
                 blacklisted = rule_instance.blacklisted()
                 for key in blacklist_hours.keys():
                     blacklist_hours[key].update(blacklisted[key])

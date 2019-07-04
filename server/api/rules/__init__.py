@@ -3,7 +3,6 @@ from .lesson_rule import LessonRule
 from .utils import rules_registry, register_rule
 
 
-# TODO add rules
 # score hours (cold-hot)
 # 1. if a student has already scheduled 2 lessons this week, return hours <4 score
 # 2. if a place is >20km than the last / next lesson, eliminate that hour if that hour is >5 score
