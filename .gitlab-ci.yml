@@ -44,7 +44,8 @@ staging:
             "FLASK_APP": "'"$FLASK_APP"'",
             "SECRET_JWT": "'"$SECRET_JWT"'",
             "FIREBASE_JSON": "'"$FIREBASE_JSON"'",
-            "RECEIPTS_API_KEY": "'"$RECEIPTS_API_KEY"'"
+            "RECEIPTS_API_KEY": "'"$RECEIPTS_API_KEY"'",
+            "GOOGLE_MAPS_API_KEY": "'"$GOOGLE_MAPS_API_KEY"'"
             }'
             -H "Content-Type: application/json"
             -H "Accept: application/vnd.heroku+json; version=3"
@@ -80,7 +81,8 @@ deploy:
             "FLASK_APP": "'"$FLASK_APP"'",
             "SECRET_JWT": "'"$SECRET_JWT"'",
             "FIREBASE_JSON": "'"$FIREBASE_JSON"'",
-            "RECEIPTS_API_KEY": "'"$RECEIPTS_API_KEY"'"
+            "RECEIPTS_API_KEY": "'"$RECEIPTS_API_KEY"'",
+            "GOOGLE_MAPS_API_KEY": "'"$GOOGLE_MAPS_API_KEY"'"
             }'
             -H "Content-Type: application/json"
             -H "Accept: application/vnd.heroku+json; version=3"

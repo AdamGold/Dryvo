@@ -9,6 +9,7 @@ from server.api.rules import (
     more_than_lessons_week,
     new_students,
     regular_students,
+    place_distance,
 )
 
 
@@ -142,7 +143,10 @@ def test_new_students(student, teacher, hours, meetup, dropoff):
 
 def test_place_distances(student, teacher, hours, meetup, dropoff):
     date = datetime.utcnow() - timedelta(days=2)
-    rule = regular_students.RegularStudents(date, student, hours)
+    place1 = "Eh1HcnVlbmJhdW0gU3QgMywgSGFpZmEsIElzcmFlbCIwEi4KFAoSCQlQpVAoux0VEcwhENHJsIW_EAMqFAoSCRmvWM4uux0VEeDhl71JhI1c"  # gruenbaum 3
+    place_far = "ChIJJZV9LlGhHRURUyiKM6eBGjQ"  # atlit
+    place_close = "EhtIYU5hc3NpIEJsdmQsIEhhaWZhLCBJc3JhZWwiLiosChQKEgkhtxt5pbsdFRF-XX-CNVdC7xIUChIJRegNdUy6HRURmlKBKpgjXcM"  # HaNassi Boulevard
+    rule = place_distance.PlaceDistances(date, student, hours, (place1, place_close))
     assert not rule.blacklisted()["start_hour"]
     for i in range(10):
         Lesson.create(
