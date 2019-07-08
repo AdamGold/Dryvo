@@ -214,7 +214,6 @@ def test_balance(teacher, student, meetup, dropoff):
     assert student.balance == 0
 
     st = Student.query.filter(Student.balance == 0).first()
-    print(Student.query.order_by(Student.balance).all())
     assert st == student
     Payment.create(amount=teacher.price, teacher=teacher, student=student)
     assert student.balance == teacher.price

@@ -2,8 +2,9 @@ from datetime import datetime, timedelta
 
 import pytest
 from sqlalchemy import func
+import json
 
-from server.api.database.models import Lesson
+from server.api.database.models import Lesson, PlaceType, Place
 from server.api.rules import (
     LessonRule,
     more_than_lessons_week,
@@ -141,22 +142,67 @@ def test_new_students(student, teacher, hours, meetup, dropoff):
     ]  # more than lessons in a week rule is stronger, and we now have 3-4 lessons
 
 
-def test_place_distances(student, teacher, hours, meetup, dropoff):
-    date = datetime.utcnow() - timedelta(days=2)
-    place1 = "Eh1HcnVlbmJhdW0gU3QgMywgSGFpZmEsIElzcmFlbCIwEi4KFAoSCQlQpVAoux0VEcwhENHJsIW_EAMqFAoSCRmvWM4uux0VEeDhl71JhI1c"  # gruenbaum 3
-    place_far = "ChIJJZV9LlGhHRURUyiKM6eBGjQ"  # atlit
-    place_close = "EhtIYU5hc3NpIEJsdmQsIEhhaWZhLCBJc3JhZWwiLiosChQKEgkhtxt5pbsdFRF-XX-CNVdC7xIUChIJRegNdUy6HRURmlKBKpgjXcM"  # HaNassi Boulevard
-    rule = place_distance.PlaceDistances(date, student, hours, (place1, place_close))
+def test_place_distances(student, teacher, meetup, dropoff, hours, responses):
+    date = datetime.utcnow().replace(hour=16, minute=0)
+    Lesson.create(
+        teacher=teacher,
+        student=student,
+        creator=teacher.user,
+        duration=teacher.lesson_duration,
+        date=date,
+        meetup_place=meetup,
+        dropoff_place=dropoff,
+        is_approved=True,
+    )
+    ret = {
+        "destination_addresses": ["HaNassi Blvd, Haifa, Israel"],
+        "origin_addresses": ["Gruenbaum St 3, Haifa, Israel"],
+        "rows": [
+            {
+                "elements": [
+                    {
+                        "distance": {"text": "4.8 mi", "value": 7742},
+                        "duration": {"text": "17 mins", "value": 1037},
+                        "status": "OK",
+                    }
+                ]
+            }
+        ],
+        "status": "OK",
+    }
+    responses.add(
+        responses.GET,
+        "https://maps.googleapis.com/maps/api/distancematrix/json",
+        body=json.dumps(ret),
+        status=200,
+        content_type="application/json",
+    )
+    rule = place_distance.PlaceDistances(date, student, hours, ("test1", "test2"))
     assert not rule.blacklisted()["start_hour"]
-    for i in range(10):
-        Lesson.create(
-            teacher=teacher,
-            student=student,
-            creator=teacher.user,
-            duration=teacher.lesson_duration,
-            date=date + timedelta(minutes=i * teacher.lesson_duration),
-            meetup_place=meetup,
-            dropoff_place=dropoff,
-            is_approved=True,
-        )
-    assert rule.blacklisted()["start_hour"]
+    ret = {
+        "destination_addresses": ["Arlozorov St, Tel Aviv-Yafo, Israel"],
+        "origin_addresses": ["Gruenbaum St 3, Haifa, Israel"],
+        "rows": [
+            {
+                "elements": [
+                    {
+                        "distance": {"text": "59.4 mi", "value": 95649},
+                        "duration": {"text": "1 hour 16 mins", "value": 4539},
+                        "status": "OK",
+                    }
+                ]
+            }
+        ],
+        "status": "OK",
+    }
+    responses.replace(
+        responses.GET,
+        "https://maps.googleapis.com/maps/api/distancematrix/json",
+        body=json.dumps(ret),
+        status=200,
+        content_type="application/json",
+    )
+    rule = place_distance.PlaceDistances(date, student, hours, ("test2", "test3"))
+    blacklist = rule.blacklisted()
+    assert blacklist["start_hour"]
+    assert blacklist["end_hour"]

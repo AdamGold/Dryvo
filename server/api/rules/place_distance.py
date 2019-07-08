@@ -10,7 +10,7 @@ from server.api import gmaps
 
 
 MAXIMUM_DISTANCE = 15000
-MAXIMUM_DURATION = 600
+MAXIMUM_DURATION = 1200  # 20 min
 
 
 @register_rule
@@ -21,19 +21,19 @@ class PlaceDistances(LessonRule):
         super().__init__(date, student, hours)
         self.meetup_place_id = places[0]
         self.dropoff_place_id = places[1]
-
-    def filter_(self, type_: PlaceType = PlaceType.meetup) -> List[Lesson]:
-        if not self.dropoff_place_id or not self.meetup_place_id:
-            return []
-        # loop through today's lessons
-        today_lessons = self.student.teacher.lessons.filter(
+        self.today_lessons = self.student.teacher.lessons.filter(
             Lesson.approved_lessons_filter(
                 func.extract("day", Lesson.date) == self.date.day,
                 func.extract("month", Lesson.date) == self.date.month,
             )
         ).all()
+
+    def filter_(self, type_: PlaceType = PlaceType.meetup) -> List[Lesson]:
+        if not self.dropoff_place_id or not self.meetup_place_id:
+            return []
+        # loop through today's lessons
         relevant_lessons = []
-        for lesson in today_lessons:
+        for lesson in self.today_lessons:
             if type_ == PlaceType.meetup:
                 origin = lesson.meetup_place.google_id
                 destination = self.dropoff_place_id
@@ -46,7 +46,7 @@ class PlaceDistances(LessonRule):
                 units="metric",
                 mode="driving",
             )
-            row = distance["rows"][0]["elements"]
+            row = distance["rows"][0]["elements"][0]
             if (
                 row["distance"]["value"] >= MAXIMUM_DISTANCE
                 or row["duration"]["value"] >= MAXIMUM_DURATION
@@ -59,7 +59,7 @@ class PlaceDistances(LessonRule):
     def check_hour(self, hour, blacklist):
         try:
             hour = self.hours[hour - 7]
-            if hour.score >= 6:
+            if hour.score >= 5:
                 blacklist.add(hour)
         except IndexError:
             return None

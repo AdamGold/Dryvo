@@ -1,6 +1,7 @@
 from datetime import datetime, timedelta, date
 
 import pytest
+import json
 
 from server.api.blueprints import user
 from server.api.database.models import (
@@ -12,6 +13,8 @@ from server.api.database.models import (
     Teacher,
     PaymentType,
     Report,
+    Place,
+    PlaceType,
 )
 from server.consts import DATE_FORMAT, WORKDAY_DATE_FORMAT
 
@@ -158,6 +161,66 @@ def test_available_hours_route(teacher, student, meetup, dropoff, auth, requeste
     lesson.update(is_approved=False)
     resp = requester.post(f"/teacher/{teacher.id}/available_hours", json={"date": date})
     assert lesson_date not in [hour[0] for hour in resp.json["data"]]
+
+
+def test_available_hours_route_with_places(
+    teacher, student, meetup, dropoff, auth, requester, responses
+):
+    auth.login(email=student.user.email)
+    tomorrow = datetime.utcnow() + timedelta(days=1)
+    data = {
+        "teacher_id": teacher.id,
+        "from_hour": 13,
+        "from_minutes": 0,
+        "to_hour": 17,
+        "to_minutes": 0,
+        "on_date": tomorrow,
+    }
+    WorkDay.create(**data)
+
+    date = tomorrow.replace(hour=16, minute=0)
+    Lesson.create(
+        teacher=teacher,
+        student=student,
+        creator=teacher.user,
+        duration=40,
+        date=date,
+        meetup_place=meetup,
+        dropoff_place=dropoff,
+        is_approved=True,  # only check places for approved lessons
+    )
+    ret = {
+        "destination_addresses": ["HaNassi Blvd, Haifa, Israel"],
+        "origin_addresses": ["Gruenbaum St 3, Haifa, Israel"],
+        "rows": [
+            {
+                "elements": [
+                    {
+                        "distance": {"text": "4.8 mi", "value": 7742},
+                        "duration": {"text": "17 mins", "value": 1037},
+                        "status": "OK",
+                    }
+                ]
+            }
+        ],
+        "status": "OK",
+    }
+    responses.add(
+        responses.GET,
+        "https://maps.googleapis.com/maps/api/distancematrix/json",
+        body=json.dumps(ret),
+        status=200,
+        content_type="application/json",
+    )
+    resp = requester.post(
+        f"/teacher/{teacher.id}/available_hours",
+        json={
+            "date": date.strftime(WORKDAY_DATE_FORMAT),
+            "meetup_place_id": "test1",
+            "dropoff_place_id": "test2",
+        },
+    )
+    assert resp.json["data"]
 
 
 def test_teacher_available_hours(teacher, student, requester, meetup, dropoff):
@@ -450,6 +513,4 @@ def test_teacher_available_hours_with_rules(
     hours_with_rules = list(teacher.available_hours(tomorrow, student=student))
     hours_without_rules = list(teacher.available_hours(tomorrow))
     assert hours_with_rules != hours_without_rules
-
-    # test with places
 
