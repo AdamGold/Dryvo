@@ -105,18 +105,6 @@ def test_student_new_lesson(auth, teacher, student, requester, topic):
     assert not resp.json["data"]["is_approved"]
     assert resp.json["data"]["price"] == student.price
 
-    new_date = (tomorrow.replace(hour=8, minute=20)).strftime(DATE_FORMAT)
-    resp = requester.post(
-        "/lessons/",
-        json={
-            "date": new_date,
-            "meetup_place": {"description": "test"},
-            "dropoff_place": {"description": "test"},
-            "price": 1000,
-        },
-    )
-    assert resp.json["data"]["price"] == 1000
-
 
 def test_update_topics(auth, teacher, student, requester, topic):
     auth.login(email=teacher.user.email)
@@ -281,7 +269,7 @@ def test_user_edit_lesson(app, auth, student, teacher, meetup, dropoff, requeste
         json={
             "date": date.strftime(DATE_FORMAT),
             "meetup_place": {"description": "no"},
-            "dropoff_place": {"description": None}
+            "dropoff_place": {"description": None},
         },
     )
     assert "no" == resp.json["data"]["meetup_place"]

@@ -2,13 +2,15 @@ from datetime import datetime, timedelta
 
 import pytest
 from sqlalchemy import func
+import json
 
-from server.api.database.models import Lesson
+from server.api.database.models import Lesson, PlaceType, Place
 from server.api.rules import (
     LessonRule,
     more_than_lessons_week,
     new_students,
     regular_students,
+    place_distance,
 )
 
 
@@ -121,7 +123,27 @@ def test_regular_students(student, teacher, hours, meetup, dropoff):
 def test_new_students(student, teacher, hours, meetup, dropoff):
     date = datetime.utcnow() + timedelta(days=2)
     rule = new_students.NewStudents(date, student, hours)
-    assert rule.blacklisted()["start_hour"]  # we have 1 lesson
+    assert rule.blacklisted()[
+        "start_hour"
+    ]  # we don't have more than 2 lessons this week
+    for n in range(3):
+        Lesson.create(
+            teacher=teacher,
+            student=student,
+            creator=teacher.user,
+            duration=teacher.lesson_duration,
+            date=date + timedelta(minutes=n),
+            meetup_place=meetup,
+            dropoff_place=dropoff,
+            is_approved=True,
+        )
+    assert not rule.blacklisted()[
+        "start_hour"
+    ]  # more than lessons in a week rule is stronger, and we now have 3-4 lessons
+
+
+def test_place_distances(student, teacher, meetup, dropoff, hours, responses):
+    date = datetime.utcnow().replace(hour=16, minute=0)
     Lesson.create(
         teacher=teacher,
         student=student,
@@ -132,6 +154,55 @@ def test_new_students(student, teacher, hours, meetup, dropoff):
         dropoff_place=dropoff,
         is_approved=True,
     )
-    assert not rule.blacklisted()[
-        "start_hour"
-    ]  # more than lessons in a week rule is stronger, and we now have 2 lessons
+    ret = {
+        "destination_addresses": ["HaNassi Blvd, Haifa, Israel"],
+        "origin_addresses": ["Gruenbaum St 3, Haifa, Israel"],
+        "rows": [
+            {
+                "elements": [
+                    {
+                        "distance": {"text": "4.8 mi", "value": 7742},
+                        "duration": {"text": "17 mins", "value": 1037},
+                        "status": "OK",
+                    }
+                ]
+            }
+        ],
+        "status": "OK",
+    }
+    responses.add(
+        responses.GET,
+        "https://maps.googleapis.com/maps/api/distancematrix/json",
+        body=json.dumps(ret),
+        status=200,
+        content_type="application/json",
+    )
+    rule = place_distance.PlaceDistances(date, student, hours, ("test1", "test2"))
+    assert not rule.blacklisted()["start_hour"]
+    ret = {
+        "destination_addresses": ["Arlozorov St, Tel Aviv-Yafo, Israel"],
+        "origin_addresses": ["Gruenbaum St 3, Haifa, Israel"],
+        "rows": [
+            {
+                "elements": [
+                    {
+                        "distance": {"text": "59.4 mi", "value": 95649},
+                        "duration": {"text": "1 hour 16 mins", "value": 4539},
+                        "status": "OK",
+                    }
+                ]
+            }
+        ],
+        "status": "OK",
+    }
+    responses.replace(
+        responses.GET,
+        "https://maps.googleapis.com/maps/api/distancematrix/json",
+        body=json.dumps(ret),
+        status=200,
+        content_type="application/json",
+    )
+    rule = place_distance.PlaceDistances(date, student, hours, ("test2", "test3"))
+    blacklist = rule.blacklisted()
+    assert blacklist["start_hour"]
+    assert blacklist["end_hour"]
