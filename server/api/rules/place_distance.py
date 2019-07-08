@@ -17,6 +17,11 @@ MAXIMUM_DURATION = 600
 class PlaceDistances(LessonRule):
     """if a place is >15km than the last / next lesson, eliminate that hour if that hour is >5 score"""
 
+    def __init__(self, date, student, hours, places):
+        super().__init__(date, student, hours)
+        self.meetup_place_id = places[0]
+        self.dropoff_place_id = places[1]
+
     def filter_(self, type_: PlaceType = PlaceType.meetup) -> List[Lesson]:
         if not self.dropoff_place_id or not self.meetup_place_id:
             return []

@@ -29,12 +29,10 @@ class LessonRule(ABC):
         Hour(value=22, score=1),
     ]
 
-    def __init__(self, date, student, hours, places):
+    def __init__(self, date, student, hours, **kwargs):
         self.date = date
         self.student = student
         self.hours = hours
-        self.meetup_place_id = places[0]
-        self.dropoff_place_id = places[1]
 
     @classmethod
     def init_hours(cls, date, student, work_hours, taken_lessons):
