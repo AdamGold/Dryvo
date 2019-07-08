@@ -222,7 +222,7 @@ def add_payment():
     )
     # send notification to student
     if student.user.firebase_token:
-        logger.debug(f"sending fcm to {student.user}")
+        logger.debug(f"sending fcm to {student.user} for new payment")
         try:
             FCM.notify(
                 token=student.user.firebase_token,

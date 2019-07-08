@@ -158,7 +158,7 @@ def new_lesson():
             value=lesson.date,
         )
     if user_to_send_to.firebase_token:
-        logger.debug(f"sending fcm to {user_to_send_to}")
+        logger.debug(f"sending fcm to {user_to_send_to} for new lesson")
         try:
             FCM.notify(
                 token=user_to_send_to.firebase_token,
@@ -224,6 +224,7 @@ def delete_lesson(lesson_id):
         user_to_send_to = lesson.student.user
     if user_to_send_to.firebase_token:
         try:
+            logger.debug(f"sending fcm to {user_to_send_to} for deleting lesson")
             FCM.notify(
                 token=user_to_send_to.firebase_token,
                 title=gettext("Lesson Deleted"),
@@ -268,6 +269,7 @@ def update_lesson(lesson_id):
         )
     if user_to_send_to.firebase_token:
         try:
+            logger.debug(f"sending fcm to {user_to_send_to} for lesson edit")
             FCM.notify(
                 token=user_to_send_to.firebase_token,
                 title=gettext("Lesson Updated"),
@@ -301,6 +303,7 @@ def approve_lesson(lesson_id):
     lesson.update(is_approved=True)
 
     if lesson.student.user.firebase_token:
+        logger.debug(f"sending fcm to {user_to_send_to} for lesson approval")
         try:
             FCM.notify(
                 token=lesson.student.user.firebase_token,
