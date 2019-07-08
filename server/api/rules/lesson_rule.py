@@ -29,7 +29,7 @@ class LessonRule(ABC):
         Hour(value=22, score=1),
     ]
 
-    def __init__(self, date, student, hours, **kwargs):
+    def __init__(self, date, student, hours, *args):
         self.date = date
         self.student = student
         self.hours = hours

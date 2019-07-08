@@ -121,17 +121,38 @@ def test_regular_students(student, teacher, hours, meetup, dropoff):
 def test_new_students(student, teacher, hours, meetup, dropoff):
     date = datetime.utcnow() + timedelta(days=2)
     rule = new_students.NewStudents(date, student, hours)
-    assert rule.blacklisted()["start_hour"]  # we have 1 lesson
-    Lesson.create(
-        teacher=teacher,
-        student=student,
-        creator=teacher.user,
-        duration=teacher.lesson_duration,
-        date=date,
-        meetup_place=meetup,
-        dropoff_place=dropoff,
-        is_approved=True,
-    )
+    assert rule.blacklisted()[
+        "start_hour"
+    ]  # we don't have more than 2 lessons this week
+    for n in range(3):
+        Lesson.create(
+            teacher=teacher,
+            student=student,
+            creator=teacher.user,
+            duration=teacher.lesson_duration,
+            date=date + timedelta(minutes=n),
+            meetup_place=meetup,
+            dropoff_place=dropoff,
+            is_approved=True,
+        )
     assert not rule.blacklisted()[
         "start_hour"
-    ]  # more than lessons in a week rule is stronger, and we now have 2 lessons
+    ]  # more than lessons in a week rule is stronger, and we now have 3-4 lessons
+
+
+def test_place_distances(student, teacher, hours, meetup, dropoff):
+    date = datetime.utcnow() - timedelta(days=2)
+    rule = regular_students.RegularStudents(date, student, hours)
+    assert not rule.blacklisted()["start_hour"]
+    for i in range(10):
+        Lesson.create(
+            teacher=teacher,
+            student=student,
+            creator=teacher.user,
+            duration=teacher.lesson_duration,
+            date=date + timedelta(minutes=i * teacher.lesson_duration),
+            meetup_place=meetup,
+            dropoff_place=dropoff,
+            is_approved=True,
+        )
+    assert rule.blacklisted()["start_hour"]

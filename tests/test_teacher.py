@@ -133,12 +133,13 @@ def test_available_hours_route(teacher, student, meetup, dropoff, auth, requeste
     WorkDay.create(**data)
 
     # now let's add a lesson
+    lesson_date = datetime.strptime(time_and_date, DATE_FORMAT)
     lesson = Lesson.create(
         teacher=teacher,
         student=student,
         creator=teacher.user,
         duration=40,
-        date=datetime.strptime(time_and_date, DATE_FORMAT),
+        date=lesson_date,
         meetup_place=meetup,
         dropoff_place=dropoff,
         is_approved=False,
@@ -152,12 +153,11 @@ def test_available_hours_route(teacher, student, meetup, dropoff, auth, requeste
     )
     assert len(resp.json["data"]) == 1
     auth.logout()
-    # if we login as student, we shouldn't see any lesson dates (even non-approved)
-    # this student already has a couple of lessons this week, no more for him
+    # if we login as student, we shouldn't this non approved lesson date
     auth.login(email=student.user.email)
     lesson.update(is_approved=False)
     resp = requester.post(f"/teacher/{teacher.id}/available_hours", json={"date": date})
-    assert len(resp.json["data"]) == 0
+    assert lesson_date not in [hour[0] for hour in resp.json["data"]]
 
 
 def test_teacher_available_hours(teacher, student, requester, meetup, dropoff):
@@ -450,4 +450,6 @@ def test_teacher_available_hours_with_rules(
     hours_with_rules = list(teacher.available_hours(tomorrow, student=student))
     hours_without_rules = list(teacher.available_hours(tomorrow))
     assert hours_with_rules != hours_without_rules
+
+    # test with places
 
