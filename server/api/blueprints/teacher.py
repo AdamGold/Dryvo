@@ -25,12 +25,7 @@ from server.api.database.models import (
 )
 from server.api.push_notifications import FCM
 from server.api.utils import jsonify_response, paginate
-from server.consts import (
-    PRODUCTION_RECEIPT_URL,
-    RECEIPTS_DEVELOPER_EMAIL,
-    STAGING_RECEIPT_URL,
-    WORKDAY_DATE_FORMAT,
-)
+from server.consts import RECEIPT_URL, RECEIPTS_DEVELOPER_EMAIL, WORKDAY_DATE_FORMAT
 from server.error_handling import NotificationError, RouteError
 
 teacher_routes = Blueprint("teacher", __name__, url_prefix="/teacher")
@@ -309,7 +304,7 @@ def create_ezcount_user():
         "company_type": 1,
     }
 
-    resp = requests.post(get_receipt_url() + "api/user/create", json=payload)
+    resp = requests.post(RECEIPT_URL + "api/user/create", json=payload)
     resp_json = resp.json()
     if resp_json["success"]:
         teacher.update(
@@ -357,7 +352,7 @@ def add_receipt(payment_id):
         "price_total": payment.amount,  # /*THIS IS A MUST ONLY IN INVOICE RECIEPT*/
     }
 
-    resp = requests.post(get_receipt_url() + "api/createDoc", json=payload)
+    resp = requests.post(RECEIPT_URL + "api/createDoc", json=payload)
     resp_json = resp.json()
     if resp_json["success"]:
         payment.update(pdf_link=resp_json["pdf_link"])
@@ -377,7 +372,7 @@ def login_to_ezcount():
         raise RouteError("Teacher does not have an invoice account.")
     redirect = flask.request.args.get("redirect", "")
     resp = requests.post(
-        get_receipt_url() + f"api/getClientSafeUrl/login?redirectTo={redirect}",
+        RECEIPT_URL + f"api/getClientSafeUrl/login?redirectTo={redirect}",
         json={
             "api_key": current_user.teacher.invoice_api_key,
             "api_email": current_user.email,
@@ -385,14 +380,6 @@ def login_to_ezcount():
         },
     )
     return {"url": resp.json()["url"]}
-
-
-def get_receipt_url():
-    url = STAGING_RECEIPT_URL
-    if flask.current_app.config.get("FLASK_ENV") == "production":
-        return PRODUCTION_RECEIPT_URL
-
-    return url
 
 
 @teacher_routes.route("/reports", methods=["POST"])
