@@ -167,9 +167,7 @@ def delete_work_day(day_id):
 def available_hours(teacher_id):
     data = flask.request.get_json()
     teacher = Teacher.get_by_id(teacher_id)
-    duration = data.get("duration", None)
-    if duration:
-        duration = int(duration)
+    duration_mul = int(data.get("duration_mul", 1))
     only_approved = False
     student = None
     if current_user.teacher:
@@ -183,7 +181,7 @@ def available_hours(teacher_id):
             teacher.available_hours(
                 datetime.strptime(data.get("date"), WORKDAY_DATE_FORMAT),
                 student=student,
-                duration=duration,
+                duration_mul=duration_mul,
                 only_approved=only_approved,
                 places=places,
             )

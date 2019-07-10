@@ -71,7 +71,7 @@ class Teacher(SurrogatePK, LessonCreator):
         self,
         requested_date: datetime,
         student: "Student" = None,
-        duration: int = None,
+        duration_mul: int = 1,
         only_approved: bool = False,
         places: Tuple[Optional[str]] = (None, None),
     ) -> Iterable[Tuple[datetime, datetime]]:
@@ -113,7 +113,7 @@ class Teacher(SurrogatePK, LessonCreator):
             yield from get_slots(
                 hours,
                 taken_lessons,
-                timedelta(minutes=duration or self.lesson_duration),
+                timedelta(minutes=duration_mul * self.lesson_duration),
                 force_future=True,
                 blacklist=blacklist_hours,
             )

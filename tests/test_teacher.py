@@ -152,7 +152,7 @@ def test_available_hours_route(teacher, student, meetup, dropoff, auth, requeste
     assert len(resp.json["data"]) == 6
     lesson.update(is_approved=True)
     resp = requester.post(
-        f"/teacher/{teacher.id}/available_hours", json={"date": date, "duration": "100"}
+        f"/teacher/{teacher.id}/available_hours", json={"date": date, "duration_mul": "3"}
     )
     assert len(resp.json["data"]) == 1
     auth.logout()
