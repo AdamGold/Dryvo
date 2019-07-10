@@ -82,7 +82,7 @@ def test_single_lesson(auth, teacher, student, meetup, dropoff, requester):
 
 def test_student_new_lesson(auth, teacher, student, requester, topic):
     auth.login(email=student.user.email)
-    date = (tomorrow.replace(hour=16, minute=20)).strftime(DATE_FORMAT)
+    date = (tomorrow.replace(hour=16, minute=00)).strftime(DATE_FORMAT)
     kwargs = {
         "teacher_id": teacher.id,
         "day": 1,
@@ -98,14 +98,14 @@ def test_student_new_lesson(auth, teacher, student, requester, topic):
         "/lessons/",
         json={
             "date": date,
-            "duration_mul": "2",
+            "duration_mul": "1.5",
             "meetup_place": {"description": "test"},
             "dropoff_place": {"description": "test"},
         },
     )
     assert not resp.json["data"]["is_approved"]
     assert resp.json["data"]["price"] == student.price
-    assert resp.json["data"]["duration"] == teacher.lesson_duration * 2
+    assert resp.json["data"]["duration"] == teacher.lesson_duration * 1.5
 
 
 def test_update_topics(auth, teacher, student, requester, topic):

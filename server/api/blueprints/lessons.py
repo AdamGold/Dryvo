@@ -54,7 +54,7 @@ def get_lesson_data(data: dict, user: User, lesson: Optional[Lesson] = None) -> 
         # trying to add a new lesson in the past??
         raise RouteError("Date is not valid.")
 
-    duration_mul = int(data.get("duration_mul", 1))
+    duration_mul = float(data.get("duration_mul", 1))
     if user.student:
         student = user.student
         teacher = user.student.teacher

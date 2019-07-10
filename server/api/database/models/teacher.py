@@ -71,7 +71,7 @@ class Teacher(SurrogatePK, LessonCreator):
         self,
         requested_date: datetime,
         student: "Student" = None,
-        duration_mul: int = 1,
+        duration_mul: float = 1,
         only_approved: bool = False,
         places: Tuple[Optional[str]] = (None, None),
     ) -> Iterable[Tuple[datetime, datetime]]:
