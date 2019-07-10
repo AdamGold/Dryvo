@@ -98,12 +98,14 @@ def test_student_new_lesson(auth, teacher, student, requester, topic):
         "/lessons/",
         json={
             "date": date,
+            "duration_mul": "2",
             "meetup_place": {"description": "test"},
             "dropoff_place": {"description": "test"},
         },
     )
     assert not resp.json["data"]["is_approved"]
     assert resp.json["data"]["price"] == student.price
+    assert resp.json["data"]["duration"] == teacher.lesson_duration * 2
 
 
 def test_update_topics(auth, teacher, student, requester, topic):
