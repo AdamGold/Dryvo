@@ -53,21 +53,23 @@ def get_lesson_data(data: dict, user: User, lesson: Optional[Lesson] = None) -> 
     if not lesson and date < datetime.utcnow():
         # trying to add a new lesson in the past??
         raise RouteError("Date is not valid.")
+
+    duration_mul = int(data.get("duration_mul", 1))
     if user.student:
-        duration = user.student.teacher.lesson_duration
         student = user.student
+        teacher = user.student.teacher
         available_hours = itertools.dropwhile(
             lambda hours_range: hours_range[0] != date,
-            user.student.teacher.available_hours(requested_date=date, student=student),
+            user.student.teacher.available_hours(
+                requested_date=date, student=student, duration_mul=duration_mul
+            ),
         )  # check if requested date in available hours
         try:
             next(available_hours)
         except StopIteration:
             if (lesson and date != lesson.date) or not lesson:
                 raise RouteError("This hour is not available.")
-        teacher = user.student.teacher
     elif user.teacher:
-        duration = data.get("duration", user.teacher.lesson_duration)
         teacher = user.teacher
         student = Student.get_by_id(data.get("student_id"))
         if not student:
@@ -98,7 +100,7 @@ def get_lesson_data(data: dict, user: User, lesson: Optional[Lesson] = None) -> 
         "dropoff_place": dropoff,
         "student": student,
         "teacher": teacher,
-        "duration": duration,
+        "duration": duration_mul * teacher.lesson_duration,
         "price": price,
         "comments": data.get("comments"),
         "is_approved": True if user.teacher else False,
