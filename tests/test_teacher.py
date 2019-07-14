@@ -171,7 +171,7 @@ def test_available_hours_route_with_places(
     tomorrow = datetime.utcnow() + timedelta(days=1)
     data = {
         "teacher_id": teacher.id,
-        "from_hour": 13,
+        "from_hour": 7,
         "from_minutes": 0,
         "to_hour": 17,
         "to_minutes": 0,
@@ -466,7 +466,9 @@ def test_invalid_create_bot_student(auth, requester, teacher, name, email, phone
 
 
 def test_taken_appointments_tuples(teacher, student, meetup, dropoff, lesson):
-    taken_lessons = teacher.taken_appointments_tuples(Appointment.query, only_approved=False)
+    taken_lessons = teacher.taken_appointments_tuples(
+        Appointment.query, only_approved=False
+    )
     assert len(taken_lessons) == 1
     assert isinstance(taken_lessons[0], tuple)
     Appointment.create(
@@ -480,7 +482,9 @@ def test_taken_appointments_tuples(teacher, student, meetup, dropoff, lesson):
         dropoff_place=dropoff,
         is_approved=False,
     )
-    taken_lessons = teacher.taken_appointments_tuples(Appointment.query, only_approved=True)
+    taken_lessons = teacher.taken_appointments_tuples(
+        Appointment.query, only_approved=True
+    )
     assert len(taken_lessons) == 1
 
 

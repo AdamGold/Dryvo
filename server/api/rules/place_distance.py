@@ -22,7 +22,7 @@ class PlaceDistances(LessonRule):
         self.meetup_place_id = places[0]
         self.dropoff_place_id = places[1]
         self.today_lessons = self.student.teacher.lessons.filter(
-            Appointment.approved_lessons_filter(
+            Appointment.approved_filter(
                 func.extract("day", Appointment.date) == self.date.day,
                 func.extract("month", Appointment.date) == self.date.month,
             )

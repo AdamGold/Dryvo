@@ -80,12 +80,15 @@ class Appointment(SurrogatePK, Model):
         self.update(**args)
 
     @staticmethod
-    def approved_lessons_filter(*args):
+    def approved_filter(*args):
         return and_(
-            Appointment.is_approved == True,
-            Appointment.deleted == False,
-            Appointment.type == AppointmentType.LESSON,
-            *args,
+            Appointment.is_approved == True, Appointment.deleted == False, *args
+        )
+
+    @staticmethod
+    def approved_lessons_filter(*args):
+        return Appointment.approved_filter(
+            Appointment.type == AppointmentType.LESSON, *args
         )
 
     @hybrid_property

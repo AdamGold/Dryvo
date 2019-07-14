@@ -3,7 +3,7 @@ from datetime import datetime, timedelta
 import pytest
 from loguru import logger
 
-from server.api.blueprints.lessons import get_data, handle_places
+from server.api.blueprints.appointments import get_data, handle_places
 from server.api.database.models import (
     Appointment,
     Payment,
