@@ -3,7 +3,6 @@ from typing import Dict, Set
 
 from sqlalchemy import and_
 
-from server.api.database.models import Lesson
 from server.api.rules.lesson_rule import LessonRule
 from server.api.rules.more_than_lessons_week import MoreThanLessonsWeek
 from server.api.rules.utils import register_rule

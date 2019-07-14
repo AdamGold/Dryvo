@@ -5,7 +5,7 @@ import flask
 import pytest
 from werkzeug import MultiDict
 
-from server.api.database.models import Lesson, Student, User, Teacher
+from server.api.database.models import Appointment, Student, User, Teacher
 from server.api.utils import (
     get_slots,
     jsonify_response,
@@ -70,7 +70,7 @@ def test_sort_data(teacher, student, meetup, dropoff):
     lessons = []
     for _ in range(3):
         lessons.append(
-            Lesson.create(
+            Appointment.create(
                 teacher=teacher,
                 student=student,
                 creator=student.user,
@@ -81,19 +81,19 @@ def test_sort_data(teacher, student, meetup, dropoff):
             )
         )
     args = {"order_by": "created_at desc"}
-    lessons_from_db = Lesson.query.order_by(Lesson._sort_data(args)).all()
+    lessons_from_db = Appointment.query.order_by(Appointment._sort_data(args)).all()
     assert lessons_from_db[0] == lessons[-1]
     args = {"order_by": "does_not_exist desc"}
-    lessons_from_db = Lesson.query.order_by(Lesson._sort_data(args)).all()
+    lessons_from_db = Appointment.query.order_by(Appointment._sort_data(args)).all()
     assert lessons_from_db
     args = {"order_by": "created_at huh"}
-    lessons_from_db = Lesson.query.order_by(Lesson._sort_data(args)).all()
+    lessons_from_db = Appointment.query.order_by(Appointment._sort_data(args)).all()
     assert lessons_from_db
 
 
 def test_filter_data(teacher, student, meetup, dropoff):
     date = datetime.utcnow() + timedelta(days=100)
-    lesson = Lesson.create(
+    lesson = Appointment.create(
         teacher=teacher,
         student=student,
         creator=student.user,
@@ -104,22 +104,24 @@ def test_filter_data(teacher, student, meetup, dropoff):
     )
     # date=ge:DATE
     date = datetime.strftime(date, DATE_FORMAT)
-    lessons_from_db = Lesson.query.filter(
-        Lesson._filter_data("date", f"ge:{date}")
+    lessons_from_db = Appointment.query.filter(
+        Appointment._filter_data("date", f"ge:{date}")
     ).all()
     assert lessons_from_db[0] == lesson
     # student_id=2
-    lessons_from_db = Lesson.query.filter(Lesson._filter_data("student_id", 2)).all()
+    lessons_from_db = Appointment.query.filter(
+        Appointment._filter_data("student_id", 2)
+    ).all()
     assert not lessons_from_db
     # date=gggg:DATE
-    lessons_from_db = Lesson.query.filter(
-        Lesson._filter_data("date", f"ggfggg:{date}")
+    lessons_from_db = Appointment.query.filter(
+        Appointment._filter_data("date", f"ggfggg:{date}")
     ).all()  # supposed to translate to equal
     assert lessons_from_db[0] == lesson
     # date=DATE
     with pytest.raises(ValueError):
-        lessons_from_db = Lesson.query.filter(
-            Lesson._filter_data("date", f"{date}")
+        lessons_from_db = Appointment.query.filter(
+            Appointment._filter_data("date", f"{date}")
         ).all()
 
 
@@ -130,7 +132,7 @@ def test_filter_multiple_params(teacher, student, meetup, dropoff):
         month=(month_start.month + 1), day=1, hour=0, minute=0, second=0, microsecond=0
     )
     duration = 1200
-    lesson = Lesson.create(
+    lesson = Appointment.create(
         teacher=teacher,
         student=student,
         creator=student.user,
@@ -139,7 +141,7 @@ def test_filter_multiple_params(teacher, student, meetup, dropoff):
         meetup_place=meetup,
         dropoff_place=dropoff,
     )
-    Lesson.create(
+    Appointment.create(
         teacher=teacher,
         student=student,
         creator=student.user,
@@ -151,8 +153,8 @@ def test_filter_multiple_params(teacher, student, meetup, dropoff):
     month_end = datetime.strftime(month_end, DATE_FORMAT)
     month_start = datetime.strftime(month_start, DATE_FORMAT)
     lessons_from_db = (
-        Lesson.query.filter(Lesson._filter_data("date", f"ge:{month_start}"))
-        .filter(Lesson._filter_data("date", f"le:{month_end}"))
+        Appointment.query.filter(Appointment._filter_data("date", f"ge:{month_start}"))
+        .filter(Appointment._filter_data("date", f"le:{month_end}"))
         .all()
     )
     assert len(lessons_from_db) == 1
@@ -169,7 +171,7 @@ def test_filter_and_sort(user, teacher, student, meetup, dropoff):
         teacher = Teacher.create(
             user=user, price=100, lesson_duration=40, is_approved=True, crn=9
         )
-        Lesson.create(
+        Appointment.create(
             teacher=teacher,
             student=student,
             creator=student.user,
@@ -181,22 +183,24 @@ def test_filter_and_sort(user, teacher, student, meetup, dropoff):
 
     args = MultiDict([("teacher_id", teacher.id)])  # not allowed
     query = None
-    lessons_from_db = Lesson.filter_and_sort(args, query=query)
+    lessons_from_db = Appointment.filter_and_sort(args, query=query)
     assert len(lessons_from_db) == 102
     args = MultiDict([("date", date.strftime(WORKDAY_DATE_FORMAT))])
-    lessons_from_db = Lesson.filter_and_sort(
+    lessons_from_db = Appointment.filter_and_sort(
         args,
         query=query,
         custom_date=lambda x: datetime.strptime(x, WORKDAY_DATE_FORMAT),
     )
     assert not lessons_from_db
-    query = Lesson.query.filter_by(teacher_id=3)
+    query = Appointment.query.filter_by(teacher_id=3)
     args = MultiDict()
-    lessons_from_db = Lesson.filter_and_sort(args, query=query)
+    lessons_from_db = Appointment.filter_and_sort(args, query=query)
     assert len(lessons_from_db) == 1
     query = None
     args = MultiDict([("limit", 100_000_000_000_000)])
-    lessons_from_db = Lesson.filter_and_sort(args, query=query, with_pagination=True)
+    lessons_from_db = Appointment.filter_and_sort(
+        args, query=query, with_pagination=True
+    )
     assert len(lessons_from_db.items) == 100
 
 

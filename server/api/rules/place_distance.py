@@ -3,7 +3,7 @@ from typing import Dict, Set, List
 
 from sqlalchemy import and_, func
 
-from server.api.database.models import Lesson, PlaceType
+from server.api.database.models import Appointment, PlaceType
 from server.api.rules.lesson_rule import LessonRule
 from server.api.rules.utils import register_rule
 from server.api import gmaps
@@ -22,13 +22,13 @@ class PlaceDistances(LessonRule):
         self.meetup_place_id = places[0]
         self.dropoff_place_id = places[1]
         self.today_lessons = self.student.teacher.lessons.filter(
-            Lesson.approved_lessons_filter(
-                func.extract("day", Lesson.date) == self.date.day,
-                func.extract("month", Lesson.date) == self.date.month,
+            Appointment.approved_lessons_filter(
+                func.extract("day", Appointment.date) == self.date.day,
+                func.extract("month", Appointment.date) == self.date.month,
             )
         ).all()
 
-    def filter_(self, type_: PlaceType = PlaceType.meetup) -> List[Lesson]:
+    def filter_(self, type_: PlaceType = PlaceType.meetup) -> List[Appointment]:
         if not self.dropoff_place_id or not self.meetup_place_id:
             return []
         # loop through today's lessons

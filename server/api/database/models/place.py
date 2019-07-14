@@ -16,7 +16,6 @@ from server.api.database.mixins import (
     reference_col,
     relationship,
 )
-from server.api.database.models import Lesson
 
 
 class PlaceType(enum.Enum):

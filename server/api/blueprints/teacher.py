@@ -13,7 +13,7 @@ from sqlalchemy import and_
 from server.api.blueprints.login import create_user_from_data
 from server.api.database.models import (
     Day,
-    Lesson,
+    Appointment,
     Payment,
     PaymentType,
     Report,
@@ -416,9 +416,9 @@ def show_report(uuid):
         .order_by(User.name.asc()),
         "lessons": lambda report: report.teacher.lessons.filter(
             and_(
-                Lesson.is_approved == True,
-                Lesson.date < report.until,
-                Lesson.date > report.since,
+                Appointment.is_approved == True,
+                Appointment.date < report.until,
+                Appointment.date > report.since,
             )
         ),
     }

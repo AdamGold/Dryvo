@@ -19,7 +19,7 @@ from server.api.database.mixins import (
     relationship,
 )
 from server.api.database.models import (
-    Lesson,
+    Appointment,
     LessonCreator,
     LessonTopic,
     Payment,
@@ -125,9 +125,11 @@ class Student(SurrogatePK, LessonCreator):
         num of latest lesson+1"""
         latest_lesson = (
             self.lessons.filter(
-                Lesson.approved_lessons_filter(Lesson.date < datetime.utcnow())
+                Appointment.approved_lessons_filter(
+                    Appointment.date < datetime.utcnow()
+                )
             )
-            .order_by(Lesson.date.desc())
+            .order_by(Appointment.date.desc())
             .limit(1)
             .one_or_none()
         )
@@ -139,10 +141,11 @@ class Student(SurrogatePK, LessonCreator):
     @lessons_done.expression
     def lessons_done(cls):
         q = (
-            select([func.count(Lesson.student_id)])
+            select([func.count(Appointment.student_id)])
             .where(
-                Lesson.approved_lessons_filter(
-                    Lesson.date < datetime.utcnow(), Lesson.student_id == cls.id
+                Appointment.approved_lessons_filter(
+                    Appointment.date < datetime.utcnow(),
+                    Appointment.student_id == cls.id,
                 )
             )
             .label("lessons_done")
@@ -165,7 +168,9 @@ class Student(SurrogatePK, LessonCreator):
             sum(
                 lesson.price
                 for lesson in self.lessons.filter(
-                    Lesson.approved_lessons_filter(Lesson.date < datetime.utcnow())
+                    Appointment.approved_lessons_filter(
+                        Appointment.date < datetime.utcnow()
+                    )
                 ).all()
             )
             + self.price * self.number_of_old_lessons
@@ -174,10 +179,11 @@ class Student(SurrogatePK, LessonCreator):
     @total_lessons_price.expression
     def total_lessons_price(cls):
         q = (
-            select([coalesce(func.sum(Lesson.price), 0)])
+            select([coalesce(func.sum(Appointment.price), 0)])
             .where(
-                Lesson.approved_lessons_filter(
-                    Lesson.date < datetime.utcnow(), Lesson.student_id == cls.id
+                Appointment.approved_lessons_filter(
+                    Appointment.date < datetime.utcnow(),
+                    Appointment.student_id == cls.id,
                 )
             )
             .label("total_lessons_price")

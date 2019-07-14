@@ -16,7 +16,7 @@ from server.api.database.mixins import (
     reference_col,
     relationship,
 )
-from server.api.database.models import Lesson, LessonCreator, WorkDay
+from server.api.database.models import Appointment, LessonCreator, WorkDay
 from server.api.rules import LessonRule, rules_registry
 from server.api.utils import get_slots
 from server.consts import WORKDAY_DATE_FORMAT
@@ -55,16 +55,19 @@ class Teacher(SurrogatePK, LessonCreator):
         logger.debug(f"found these work days on the specific date: {work_hours}")
         return work_hours
 
-    def taken_lessons_tuples(self, existing_lessons_query, only_approved: bool):
+    def taken_appointments_tuples(self, existing_query, only_approved: bool):
         """returns list with tuples of start and end hours of taken lessons"""
-        and_partial = functools.partial(and_, Lesson.student_id != None)
+        and_partial = functools.partial(and_, Appointment.student_id != None)
         and_func = and_partial()
         if only_approved:
-            and_func = and_partial(Lesson.is_approved == True)
-        taken_lessons = existing_lessons_query.filter(and_func).all()
+            and_func = and_partial(Appointment.is_approved == True)
+        taken_appointments = existing_query.filter(and_func).all()
         return [
-            (lesson.date, lesson.date + timedelta(minutes=lesson.duration))
-            for lesson in taken_lessons
+            (
+                appointment.date,
+                appointment.date + timedelta(minutes=appointment.duration),
+            )
+            for appointment in taken_appointments
         ]
 
     def available_hours(
@@ -83,18 +86,20 @@ class Teacher(SurrogatePK, LessonCreator):
         if not requested_date:
             return []
 
-        existing_lessons_query = self.lessons.filter(
-            func.extract("day", Lesson.date) == requested_date.day
-        ).filter(func.extract("month", Lesson.date) == requested_date.month)
+        todays_appointments = self.appointments.filter(
+            func.extract("day", Appointment.date) == requested_date.day
+        ).filter(func.extract("month", Appointment.date) == requested_date.month)
         work_hours = self.work_hours_for_date(requested_date)
-        taken_lessons = self.taken_lessons_tuples(existing_lessons_query, only_approved)
+        taken_appointments = self.taken_appointments_tuples(
+            todays_appointments, only_approved
+        )
         blacklist_hours = {"start_hour": set(), "end_hour": set()}
         if student and work_hours:
-            approved_taken_lessons = self.taken_lessons_tuples(
-                existing_lessons_query, only_approved=True
+            approved_taken_appointments = self.taken_appointments_tuples(
+                todays_appointments, only_approved=True
             )
             hours = LessonRule.init_hours(
-                requested_date, student, work_hours, approved_taken_lessons
+                requested_date, student, work_hours, approved_taken_appointments
             )
             for rule_class in rules_registry:
                 rule_instance: LessonRule = rule_class(
@@ -112,16 +117,19 @@ class Teacher(SurrogatePK, LessonCreator):
             )
             yield from get_slots(
                 hours,
-                taken_lessons,
+                taken_appointments,
                 timedelta(minutes=duration_mul * self.lesson_duration),
                 force_future=True,
                 blacklist=blacklist_hours,
             )
 
-        for lesson in existing_lessons_query.filter_by(student_id=None).all():
-            if datetime.utcnow() > lesson.date:
+        for appointment in todays_appointments.filter_by(student_id=None).all():
+            if datetime.utcnow() > appointment.date:
                 continue
-            yield (lesson.date, lesson.date + timedelta(minutes=lesson.duration))
+            yield (
+                appointment.date,
+                appointment.date + timedelta(minutes=appointment.duration),
+            )
 
     @hybrid_method
     def filter_work_days(self, args: werkzeug.datastructures.MultiDict):

@@ -4,7 +4,7 @@ import pytest
 from sqlalchemy import func
 import json
 
-from server.api.database.models import Lesson, PlaceType, Place
+from server.api.database.models import Appointment, PlaceType, Place
 from server.api.rules import (
     LessonRule,
     more_than_lessons_week,
@@ -41,7 +41,7 @@ def test_init_hours(student, teacher, meetup, dropoff):
     # TODO improve test logic
     initial_hours = LessonRule.hours
     date = datetime.utcnow().replace(hour=6, minute=0) + timedelta(days=2)
-    Lesson.create(
+    Appointment.create(
         teacher=teacher,
         student=student,
         creator=teacher.user,
@@ -51,14 +51,14 @@ def test_init_hours(student, teacher, meetup, dropoff):
         dropoff_place=dropoff,
         is_approved=True,
     )
-    query = Lesson.query.filter(func.extract("day", Lesson.date) == date.day).filter(
-        func.extract("month", Lesson.date) == date.month
-    )
+    query = Appointment.query.filter(
+        func.extract("day", Appointment.date) == date.day
+    ).filter(func.extract("month", Appointment.date) == date.month)
     new_hours = LessonRule.init_hours(
         date,
         student,
         teacher.work_hours_for_date(date),
-        teacher.taken_lessons_tuples(query, only_approved=True),
+        teacher.taken_appointments_tuples(query, only_approved=True),
     )
     assert initial_hours != new_hours
     # we want to fill the gap after 6, so hours 7 and 8 should be really cold
@@ -73,14 +73,14 @@ def test_init_hours(student, teacher, meetup, dropoff):
 @pytest.fixture
 def hours(student, teacher):
     date = datetime.utcnow() + timedelta(days=2)
-    query = Lesson.query.filter(func.extract("day", Lesson.date) == date.day).filter(
-        func.extract("month", Lesson.date) == date.month
-    )
+    query = Appointment.query.filter(
+        func.extract("day", Appointment.date) == date.day
+    ).filter(func.extract("month", Appointment.date) == date.month)
     return LessonRule.init_hours(
         date,
         student,
         teacher.work_hours_for_date(date),
-        teacher.taken_lessons_tuples(query, only_approved=True),
+        teacher.taken_appointments_tuples(query, only_approved=True),
     )
 
 
@@ -89,7 +89,7 @@ def test_more_than_lessons_in_week(student, teacher, hours, meetup, dropoff):
     rule = more_than_lessons_week.MoreThanLessonsWeek(date, student, hours)
     assert not rule.blacklisted()["start_hour"]
     for i in range(3):
-        Lesson.create(
+        Appointment.create(
             teacher=teacher,
             student=student,
             creator=teacher.user,
@@ -107,7 +107,7 @@ def test_regular_students(student, teacher, hours, meetup, dropoff):
     rule = regular_students.RegularStudents(date, student, hours)
     assert not rule.blacklisted()["start_hour"]
     for i in range(10):
-        Lesson.create(
+        Appointment.create(
             teacher=teacher,
             student=student,
             creator=teacher.user,
@@ -127,7 +127,7 @@ def test_new_students(student, teacher, hours, meetup, dropoff):
         "start_hour"
     ]  # we don't have more than 2 lessons this week
     for n in range(3):
-        Lesson.create(
+        Appointment.create(
             teacher=teacher,
             student=student,
             creator=teacher.user,
@@ -144,7 +144,7 @@ def test_new_students(student, teacher, hours, meetup, dropoff):
 
 def test_place_distances(student, teacher, meetup, dropoff, hours, responses):
     date = datetime.utcnow().replace(hour=16, minute=0)
-    Lesson.create(
+    Appointment.create(
         teacher=teacher,
         student=student,
         creator=teacher.user,
