@@ -88,7 +88,7 @@ class Appointment(SurrogatePK, Model):
     @staticmethod
     def approved_lessons_filter(*args):
         return Appointment.approved_filter(
-            Appointment.type == AppointmentType.LESSON, *args
+            Appointment.type == AppointmentType.LESSON.value, *args
         )
 
     @hybrid_property

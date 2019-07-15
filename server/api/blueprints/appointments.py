@@ -55,11 +55,29 @@ def get_data(data: dict, user: User, appointment: Optional[Appointment] = None) 
         # trying to add a new lesson in the past??
         raise RouteError("Date is not valid.")
 
+    meetup_input = data.get("meetup_place", {})
+    dropoff_input = data.get("dropoff_place", {})
+    type_ = None
+    if appointment:
+        type_ = appointment.type
+        # don't update same places
+        if (
+            appointment.meetup_place
+            and meetup_input.get("description") == appointment.meetup_place.description
+        ):
+            meetup_input = None
+        if (
+            appointment.dropoff_place
+            and dropoff_input.get("description")
+            == appointment.dropoff_place.description
+        ):
+            dropoff_input = None
+
     duration_mul = float(data.get("duration_mul", 1))
     if user.student:
         student = user.student
         teacher = user.student.teacher
-        type_ = AppointmentType.LESSON.value
+        type_ = type_ or AppointmentType.LESSON.value
         available_hours = itertools.dropwhile(
             lambda hours_range: hours_range[0] != date,
             user.student.teacher.available_hours(
@@ -73,28 +91,13 @@ def get_data(data: dict, user: User, appointment: Optional[Appointment] = None) 
                 raise RouteError("This hour is not available.")
     elif user.teacher:
         type_ = getattr(
-            AppointmentType, data.get("type", ""), AppointmentType.LESSON.value
+            AppointmentType, data.get("type", ""), type_ or AppointmentType.LESSON.value
         )
         teacher = user.teacher
         student = Student.get_by_id(data.get("student_id"))
         if not student:
             raise RouteError("Student does not exist.")
 
-    meetup_input = data.get("meetup_place", {})
-    dropoff_input = data.get("dropoff_place", {})
-    if appointment:
-        # don't update same places
-        if (
-            appointment.meetup_place
-            and meetup_input.get("description") == appointment.meetup_place.description
-        ):
-            meetup_input = None
-        if (
-            appointment.dropoff_place
-            and dropoff_input.get("description")
-            == appointment.dropoff_place.description
-        ):
-            dropoff_input = None
     meetup, dropoff = handle_places(meetup_input, dropoff_input, student)
     try:
         price = int(data.get("price", ""))
@@ -192,7 +195,10 @@ def update_topics(lesson_id):
     data = flask.request.get_json()
     FINISHED_KEY = "finished"
     lesson = Appointment.query.filter(
-        and_(Appointment.type == AppointmentType.LESSON, Appointment.id == lesson_id)
+        and_(
+            Appointment.type == AppointmentType.LESSON.value,
+            Appointment.id == lesson_id,
+        )
     ).first()
     if not lesson:
         raise RouteError("Lesson does not exist.")
@@ -307,13 +313,8 @@ def approve_lesson(lesson_id):
     if not lesson:
         raise RouteError("Lesson does not exist", 404)
     # check if there isn't another lesson at the same time
-    same_time_lesson = Appointment.query.filter(
-        and_(
-            Appointment.type == AppointmentType.LESSON,
-            Appointment.date == lesson.date,
-            Appointment.id != lesson.id,
-            Appointment.is_approved == True,
-        )
+    same_time_lesson = Appointment.approved_lessons_filter(
+        Appointment.date == lesson.date, Appointment.id != lesson.id
     ).first()
     if same_time_lesson:
         raise RouteError("There is another lesson at the same time.")

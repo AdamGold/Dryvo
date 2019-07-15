@@ -478,3 +478,19 @@ def test_new_lesson_topics(
     resp = requester.get(f"/appointments/0/topics?student_id={student.id}")
     assert resp.json["available"][0]["id"] == another_topic.id
 
+
+def test_teacher_adding_test():
+    assert 1 == 2
+
+
+def test_teacher_adding_inner_exam():
+    assert 1 == 2
+
+
+def test_student_adding_test():
+    assert 1 == 2
+
+
+def test_student_blocked_hours_by_test():
+    assert 1 == 2
+

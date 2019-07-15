@@ -33,7 +33,7 @@ class LessonCreator(Model):
 
     @hybrid_property
     def lessons(self):
-        return self.appointments.filter_by(type=AppointmentType.LESSON)
+        return self.appointments.filter_by(type=AppointmentType.LESSON.value)
 
     @hybrid_method
     def filter_appointments(self, args: werkzeug.datastructures.MultiDict):
