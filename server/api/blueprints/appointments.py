@@ -91,12 +91,16 @@ def get_data(data: dict, user: User, appointment: Optional[Appointment] = None) 
                 raise RouteError("This hour is not available.")
     elif user.teacher:
         type_ = getattr(
-            AppointmentType, data.get("type", ""), type_ or AppointmentType.LESSON.value
+            AppointmentType,
+            data.get("type", "").upper(),
+            type_ or AppointmentType.LESSON.value,
         )
         teacher = user.teacher
         student = Student.get_by_id(data.get("student_id"))
         if not student:
             raise RouteError("Student does not exist.")
+    else:
+        raise RouteError("Not authorized.", 401)
 
     meetup, dropoff = handle_places(meetup_input, dropoff_input, student)
     try:
@@ -313,8 +317,10 @@ def approve_lesson(lesson_id):
     if not lesson:
         raise RouteError("Lesson does not exist", 404)
     # check if there isn't another lesson at the same time
-    same_time_lesson = Appointment.approved_lessons_filter(
-        Appointment.date == lesson.date, Appointment.id != lesson.id
+    same_time_lesson = Appointment.query.filter(
+        Appointment.approved_lessons_filter(
+            Appointment.date == lesson.date, Appointment.id != lesson.id
+        )
     ).first()
     if same_time_lesson:
         raise RouteError("There is another lesson at the same time.")

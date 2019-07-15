@@ -6,6 +6,7 @@ import json
 from server.api.blueprints import user
 from server.api.database.models import (
     Appointment,
+    AppointmentType,
     Student,
     User,
     WorkDay,
@@ -161,7 +162,41 @@ def test_available_hours_route(teacher, student, meetup, dropoff, auth, requeste
     auth.login(email=student.user.email)
     lesson.update(is_approved=False)
     resp = requester.post(f"/teacher/{teacher.id}/available_hours", json={"date": date})
-    assert lesson_date not in [hour[0] for hour in resp.json["data"]]
+    hours = [hour[0] for hour in resp.json["data"]]
+    assert all(lesson_date.strftime("%H:%M") not in hour for hour in hours)
+
+
+def test_student_blocked_hours_by_test(
+    teacher, student, meetup, dropoff, auth, requester
+):
+    date = (datetime.utcnow() + timedelta(days=1)).replace(hour=13, minute=0)
+    data = {
+        "teacher_id": teacher.id,
+        "from_hour": 13,
+        "from_minutes": 0,
+        "to_hour": 17,
+        "to_minutes": 0,
+        "on_date": date,
+    }
+    WorkDay.create(**data)
+    Appointment.create(
+        teacher=teacher,
+        student=student,
+        creator=teacher.user,
+        duration=40,
+        date=date,
+        meetup_place=meetup,
+        dropoff_place=dropoff,
+        is_approved=False,
+        type=AppointmentType.TEST.value
+    )
+    auth.login(email=student.user.email)
+    resp = requester.post(
+        f"/teacher/{teacher.id}/available_hours",
+        json={"date": date.strftime(WORKDAY_DATE_FORMAT)},
+    )
+    hours = [hour[0] for hour in resp.json["data"]]
+    assert all(date.strftime("%H:%M") not in hour for hour in hours)
 
 
 def test_available_hours_route_with_places(

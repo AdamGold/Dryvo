@@ -127,6 +127,7 @@ class Appointment(SurrogatePK, Model):
             "duration": self.duration,
             "price": self.price,
             "creator_id": self.creator_id,
+            "type": self.type.name.lower(),
         }
 
     def __repr__(self):

@@ -6,6 +6,7 @@ from loguru import logger
 from server.api.blueprints.appointments import get_data, handle_places
 from server.api.database.models import (
     Appointment,
+    AppointmentType,
     Payment,
     Place,
     Student,
@@ -28,6 +29,7 @@ def create_lesson(
     duration=40,
     deleted=False,
     is_approved=True,
+    **kwargs,
 ):
     return Appointment.create(
         teacher=teacher,
@@ -39,6 +41,7 @@ def create_lesson(
         dropoff_place=dropoff,
         deleted=deleted,
         is_approved=is_approved,
+        **kwargs,
     )
 
 
@@ -93,7 +96,6 @@ def test_student_new_lesson(auth, teacher, student, requester, topic):
         "on_date": tomorrow.date(),
     }
     WorkDay.create(**kwargs)
-    logger.debug(f"added work day for {teacher}")
     resp = requester.post(
         "/appointments/",
         json={
@@ -479,18 +481,44 @@ def test_new_lesson_topics(
     assert resp.json["available"][0]["id"] == another_topic.id
 
 
-def test_teacher_adding_test():
-    assert 1 == 2
+def test_teacher_adding_test(auth, teacher, student, requester):
+    auth.login(email=teacher.user.email)
+    date = (tomorrow.replace(hour=13, minute=00)).strftime(DATE_FORMAT)
+    resp = requester.post(
+        "/appointments/",
+        json={
+            "date": date,
+            "student_id": student.id,
+            "meetup_place": {"description": "test"},
+            "dropoff_place": {"description": "test"},
+            "type": "test",
+        },
+    )
+    assert resp.json["data"]["type"] == AppointmentType.TEST.name.lower()
 
 
-def test_teacher_adding_inner_exam():
-    assert 1 == 2
-
-
-def test_student_adding_test():
-    assert 1 == 2
-
-
-def test_student_blocked_hours_by_test():
-    assert 1 == 2
+def test_student_adding_inner_exam(auth, teacher, student, requester):
+    auth.login(email=student.user.email)
+    kwargs = {
+        "teacher_id": teacher.id,
+        "day": 1,
+        "from_hour": 7,
+        "from_minutes": 0,
+        "to_hour": 21,
+        "to_minutes": 59,
+        "on_date": tomorrow.date(),
+    }
+    WorkDay.create(**kwargs)
+    date = (tomorrow.replace(hour=21, minute=00)).strftime(DATE_FORMAT)
+    resp = requester.post(
+        "/appointments/",
+        json={
+            "date": date,
+            "student_id": student.id,
+            "meetup_place": {"description": "test"},
+            "dropoff_place": {"description": "test"},
+            "type": "inner_exam",
+        },
+    )
+    assert resp.json["data"]["type"] == AppointmentType.LESSON.name.lower()
 
