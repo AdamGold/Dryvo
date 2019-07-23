@@ -8,7 +8,6 @@ from server.api.database.models import Appointment, PlaceType, Place
 from server.api.rules import (
     LessonRule,
     more_than_lessons_week,
-    new_students,
     regular_students,
     place_distance,
 )
@@ -118,28 +117,6 @@ def test_regular_students(student, teacher, hours, meetup, dropoff):
             is_approved=True,
         )
     assert rule.blacklisted()["start_hour"]
-
-
-def test_new_students(student, teacher, hours, meetup, dropoff):
-    date = datetime.utcnow() + timedelta(days=2)
-    rule = new_students.NewStudents(date, student, hours)
-    assert rule.blacklisted()[
-        "start_hour"
-    ]  # we don't have more than 2 lessons this week
-    for n in range(3):
-        Appointment.create(
-            teacher=teacher,
-            student=student,
-            creator=teacher.user,
-            duration=teacher.lesson_duration,
-            date=date + timedelta(minutes=n),
-            meetup_place=meetup,
-            dropoff_place=dropoff,
-            is_approved=True,
-        )
-    assert not rule.blacklisted()[
-        "start_hour"
-    ]  # more than lessons in a week rule is stronger, and we now have 3-4 lessons
 
 
 def test_place_distances(student, teacher, meetup, dropoff, hours, responses):

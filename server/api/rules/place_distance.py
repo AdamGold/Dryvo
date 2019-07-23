@@ -6,7 +6,7 @@ from sqlalchemy import and_, func
 from server.api.database.models import Appointment, PlaceType
 from server.api.rules.lesson_rule import LessonRule
 from server.api.rules.utils import register_rule
-from server.api import gmaps
+from server.api.gmaps import gmaps
 
 
 MAXIMUM_DISTANCE = 15000
