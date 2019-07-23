@@ -90,6 +90,9 @@ def get_data(data: dict, user: User, appointment: Optional[Appointment] = None) 
             if (appointment and date != appointment.date) or not appointment:
                 raise RouteError("This hour is not available.")
     elif user.teacher:
+        # TODO check if there's another lesson within this time
+        # if so - if it's a test, delete it
+        # if not, don't let the teacher schedule this hour
         type_ = getattr(
             AppointmentType,
             data.get("type", "").upper(),
