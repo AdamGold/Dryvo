@@ -11,7 +11,8 @@ from sqlalchemy import and_
 
 from server.api.blueprints import teacher_required
 from server.api.database.models import (
-    Lesson,
+    Appointment,
+    AppointmentType,
     LessonTopic,
     Place,
     PlaceType,
@@ -25,11 +26,11 @@ from server.api.utils import jsonify_response, paginate
 from server.consts import DATE_FORMAT, DEBUG_MODE
 from server.error_handling import RouteError, NotificationError
 
-lessons_routes = Blueprint("lessons", __name__, url_prefix="/lessons")
+appointments_routes = Blueprint("appointments", __name__, url_prefix="/appointments")
 
 
 def init_app(app):
-    app.register_blueprint(lessons_routes)
+    app.register_blueprint(appointments_routes)
 
 
 def handle_places(
@@ -43,21 +44,40 @@ def handle_places(
     )
 
 
-def get_lesson_data(data: dict, user: User, lesson: Optional[Lesson] = None) -> dict:
+def get_data(data: dict, user: User, appointment: Optional[Appointment] = None) -> dict:
     """get request data and a specific user
     - we need the user because we are not decorated in login_required here
     returns dict of new lesson or edited lesson"""
     if not data.get("date"):
         raise RouteError("Date is not valid.")
     date = datetime.strptime(data["date"], DATE_FORMAT)
-    if not lesson and date < datetime.utcnow():
+    if not appointment and date < datetime.utcnow():
         # trying to add a new lesson in the past??
         raise RouteError("Date is not valid.")
+
+    meetup_input = data.get("meetup_place", {})
+    dropoff_input = data.get("dropoff_place", {})
+    type_ = None
+    if appointment:
+        type_ = appointment.type
+        # don't update same places
+        if (
+            appointment.meetup_place
+            and meetup_input.get("description") == appointment.meetup_place.description
+        ):
+            meetup_input = None
+        if (
+            appointment.dropoff_place
+            and dropoff_input.get("description")
+            == appointment.dropoff_place.description
+        ):
+            dropoff_input = None
 
     duration_mul = float(data.get("duration_mul", 1))
     if user.student:
         student = user.student
         teacher = user.student.teacher
+        type_ = type_ or AppointmentType.LESSON.value
         available_hours = itertools.dropwhile(
             lambda hours_range: hours_range[0] != date,
             user.student.teacher.available_hours(
@@ -67,28 +87,24 @@ def get_lesson_data(data: dict, user: User, lesson: Optional[Lesson] = None) -> 
         try:
             next(available_hours)
         except StopIteration:
-            if (lesson and date != lesson.date) or not lesson:
+            if (appointment and date != appointment.date) or not appointment:
                 raise RouteError("This hour is not available.")
     elif user.teacher:
+        # TODO check if there's another lesson within this time
+        # if so - if it's a test, delete it
+        # if not, don't let the teacher schedule this hour
+        type_ = getattr(
+            AppointmentType,
+            data.get("type", "").upper(),
+            type_ or AppointmentType.LESSON.value,
+        )
         teacher = user.teacher
         student = Student.get_by_id(data.get("student_id"))
         if not student:
             raise RouteError("Student does not exist.")
+    else:
+        raise RouteError("Not authorized.", 401)
 
-    meetup_input = data.get("meetup_place", {})
-    dropoff_input = data.get("dropoff_place", {})
-    if lesson:
-        # don't update same places
-        if (
-            lesson.meetup_place
-            and meetup_input.get("description") == lesson.meetup_place.description
-        ):
-            meetup_input = None
-        if (
-            lesson.dropoff_place
-            and dropoff_input.get("description") == lesson.dropoff_place.description
-        ):
-            dropoff_input = None
     meetup, dropoff = handle_places(meetup_input, dropoff_input, student)
     try:
         price = int(data.get("price", ""))
@@ -104,63 +120,67 @@ def get_lesson_data(data: dict, user: User, lesson: Optional[Lesson] = None) -> 
         "price": price,
         "comments": data.get("comments"),
         "is_approved": True if user.teacher else False,
+        "type": type_,
     }
 
 
-@lessons_routes.route("/", methods=["GET"])
+@appointments_routes.route("/", methods=["GET"])
 @jsonify_response
 @login_required
 @paginate
-def lessons():
+def appointments():
     user = current_user.teacher
     if not current_user.teacher:
         user = current_user.student
 
     try:
-        return user.filter_lessons(flask.request.args)
+        return user.filter_appointments(flask.request.args)
     except ValueError:
         raise RouteError("Wrong parameters passed.")
 
 
-@lessons_routes.route("/<int:lesson_id>", methods=["GET"])
+@appointments_routes.route("/<int:id_>", methods=["GET"])
 @jsonify_response
 @login_required
-def lesson(lesson_id):
-    lesson = Lesson.get_by_id(lesson_id)
-    if not lesson:
-        raise RouteError("Lesson does not exist.")
+def appointment(id_):
+    appointment = Appointment.get_by_id(id_)
+    if not appointment:
+        raise RouteError("Appointment does not exist.")
 
-    if current_user.id not in (lesson.student.user.id, lesson.teacher.user.id):
-        raise RouteError("You are not allowed to view this lesson.", 401)
+    if current_user.id not in (
+        appointment.student.user.id,
+        appointment.teacher.user.id,
+    ):
+        raise RouteError("You are not allowed to view this appointment.", 401)
 
-    return {"data": lesson.to_dict()}
+    return {"data": appointment.to_dict()}
 
 
-@lessons_routes.route("/", methods=["POST"])
+@appointments_routes.route("/", methods=["POST"])
 @jsonify_response
 @login_required
-def new_lesson():
+def new_appointment():
     data = flask.request.get_json()
     if not data.get("date"):
-        raise RouteError("Please insert the date of the lesson.")
-    lesson = Lesson.create(**get_lesson_data(data, current_user))
+        raise RouteError("Please insert the date of the appointment.")
+    appointment = Appointment.create(**get_data(data, current_user))
 
     # send fcm to the user who wasn't the one creating the lesson
-    user_to_send_to = lesson.teacher.user
+    user_to_send_to = appointment.teacher.user
     body_text = gettext(
         "%(student)s wants to schedule a new lesson at %(date)s. Click here to check it out.",
-        student=lesson.student.user.name,
-        date=lesson.date,
+        student=appointment.student.user.name,
+        date=appointment.date,
     )
-    if lesson.creator == lesson.teacher.user and lesson.student:
-        user_to_send_to = lesson.student.user
+    if appointment.creator == appointment.teacher.user and appointment.student:
+        user_to_send_to = appointment.student.user
         body_text = gettext(
             "%(teacher)s scheduled a new lesson at %(value)s. Click here to check it out.",
-            teacher=lesson.teacher.user.name,
-            value=lesson.date,
+            teacher=appointment.teacher.user.name,
+            value=appointment.date,
         )
     if user_to_send_to.firebase_token:
-        logger.debug(f"sending fcm to {user_to_send_to} for new lesson")
+        logger.debug(f"sending fcm to {user_to_send_to} for new appointment")
         try:
             FCM.notify(
                 token=user_to_send_to.firebase_token,
@@ -169,10 +189,10 @@ def new_lesson():
             )
         except NotificationError:
             pass
-    return {"data": lesson.to_dict()}, 201
+    return {"data": appointment.to_dict()}, 201
 
 
-@lessons_routes.route("/<int:lesson_id>/topics", methods=["POST"])
+@appointments_routes.route("/<int:lesson_id>/topics", methods=["POST"])
 @jsonify_response
 @login_required
 @teacher_required
@@ -181,7 +201,12 @@ def update_topics(lesson_id):
     accepts {'progress': [topics in progress], 'finished': [finished topics]}"""
     data = flask.request.get_json()
     FINISHED_KEY = "finished"
-    lesson = Lesson.get_by_id(lesson_id)
+    lesson = Appointment.query.filter(
+        and_(
+            Appointment.type == AppointmentType.LESSON.value,
+            Appointment.id == lesson_id,
+        )
+    ).first()
     if not lesson:
         raise RouteError("Lesson does not exist.")
     if not lesson.student:
@@ -207,23 +232,23 @@ def update_topics(lesson_id):
     return {"data": lesson.to_dict()}, 201
 
 
-@lessons_routes.route("/<int:lesson_id>", methods=["DELETE"])
+@appointments_routes.route("/<int:id_>", methods=["DELETE"])
 @jsonify_response
 @login_required
-def delete_lesson(lesson_id):
+def delete_appointment(id_):
     try:
-        lessons = current_user.teacher.lessons
+        appointments = current_user.teacher.appointments
     except AttributeError:
-        lessons = current_user.student.lessons
-    lesson = lessons.filter_by(id=lesson_id).first()
-    if not lesson:
-        raise RouteError("Lesson does not exist.")
+        appointments = current_user.student.appointments
+    appointment = appointments.filter_by(id=id_).first()
+    if not appointment:
+        raise RouteError("Appointment does not exist.")
 
-    lesson.update(deleted=True)
+    appointment.update(deleted=True)
 
-    user_to_send_to = lesson.teacher.user
-    if current_user == lesson.teacher.user:
-        user_to_send_to = lesson.student.user
+    user_to_send_to = appointment.teacher.user
+    if current_user == appointment.teacher.user:
+        user_to_send_to = appointment.student.user
     if user_to_send_to.firebase_token:
         try:
             logger.debug(f"sending fcm to {user_to_send_to} for deleting lesson")
@@ -231,43 +256,43 @@ def delete_lesson(lesson_id):
                 token=user_to_send_to.firebase_token,
                 title=gettext("Lesson Deleted"),
                 body=gettext(
-                    "The lesson at %(value)s has been deleted.", value=lesson.date
+                    "The lesson at %(value)s has been deleted.", value=appointment.date
                 ),
             )
         except NotificationError:
             pass
 
-    return {"message": "Lesson deleted successfully."}
+    return {"message": "Appointment deleted successfully."}
 
 
-@lessons_routes.route("/<int:lesson_id>", methods=["POST"])
+@appointments_routes.route("/<int:id_>", methods=["POST"])
 @jsonify_response
 @login_required
-def update_lesson(lesson_id):
+def update_lesson(id_):
     try:
-        lessons = current_user.teacher.lessons
+        appointments = current_user.teacher.appointments
     except AttributeError:
-        lessons = current_user.student.lessons
-    lesson = lessons.filter_by(id=lesson_id).first()
-    if not lesson:
-        raise RouteError("Lesson does not exist", 404)
+        appointments = current_user.student.appointments
+    appointment = appointments.filter_by(id=id_).first()
+    if not appointment:
+        raise RouteError("Appointment does not exist", 404)
     data = flask.request.get_json()
-    lesson.update_only_changed_fields(
-        **get_lesson_data(data, current_user, lesson=lesson)
+    appointment.update_only_changed_fields(
+        **get_data(data, current_user, appointment=appointment)
     )
 
-    user_to_send_to = lesson.teacher.user
+    user_to_send_to = appointment.teacher.user
     body_text = gettext(
         "%(student)s wants to edit the lesson at %(date)s. Click here to check it out.",
-        student=lesson.student.user.name,
-        date=lesson.date,
+        student=appointment.student.user.name,
+        date=appointment.date,
     )
-    if current_user == lesson.teacher.user:
-        user_to_send_to = lesson.student.user
+    if current_user == appointment.teacher.user:
+        user_to_send_to = appointment.student.user
         body_text = gettext(
             "%(teacher)s edited the lesson at %(value)s. Click here to check it out.",
-            teacher=lesson.teacher.user.name,
-            value=lesson.date,
+            teacher=appointment.teacher.user.name,
+            value=appointment.date,
         )
     if user_to_send_to.firebase_token:
         try:
@@ -280,10 +305,13 @@ def update_lesson(lesson_id):
         except NotificationError:
             pass
 
-    return {"message": "Lesson updated successfully.", "data": lesson.to_dict()}
+    return {
+        "message": "Appointment updated successfully.",
+        "data": appointment.to_dict(),
+    }
 
 
-@lessons_routes.route("/<int:lesson_id>/approve", methods=["GET"])
+@appointments_routes.route("/<int:lesson_id>/approve", methods=["GET"])
 @jsonify_response
 @login_required
 @teacher_required
@@ -292,11 +320,9 @@ def approve_lesson(lesson_id):
     if not lesson:
         raise RouteError("Lesson does not exist", 404)
     # check if there isn't another lesson at the same time
-    same_time_lesson = Lesson.query.filter(
-        and_(
-            Lesson.date == lesson.date,
-            Lesson.id != lesson.id,
-            Lesson.is_approved == True,
+    same_time_lesson = Appointment.query.filter(
+        Appointment.approved_lessons_filter(
+            Appointment.date == lesson.date, Appointment.id != lesson.id
         )
     ).first()
     if same_time_lesson:
@@ -305,7 +331,7 @@ def approve_lesson(lesson_id):
     lesson.update(is_approved=True)
 
     if lesson.student.user.firebase_token:
-        logger.debug(f"sending fcm to {user_to_send_to} for lesson approval")
+        logger.debug(f"sending fcm for lesson approval")
         try:
             FCM.notify(
                 token=lesson.student.user.firebase_token,
@@ -318,7 +344,7 @@ def approve_lesson(lesson_id):
     return {"message": "Lesson approved."}
 
 
-@lessons_routes.route("/payments", methods=["GET"])
+@appointments_routes.route("/payments", methods=["GET"])
 @jsonify_response
 @login_required
 @paginate
@@ -334,7 +360,7 @@ def payments():
         raise RouteError("Wrong parameters passed.")
 
 
-@lessons_routes.route("/<int:lesson_id>/topics", methods=["GET"])
+@appointments_routes.route("/<int:lesson_id>/topics", methods=["GET"])
 @jsonify_response
 @login_required
 def topics(lesson_id: int):
@@ -348,7 +374,7 @@ def topics(lesson_id: int):
         # lesson hasn't been created yet, let's treat this like a new lesson
         lesson_number = student.lessons_done + 1
     else:
-        lesson = Lesson.query.filter_by(id=lesson_id).first()
+        lesson = Appointment.query.filter_by(id=lesson_id).first()
         if not lesson or not lesson.student:
             raise RouteError("Lesson does not exist or not assigned.", 404)
         (student, lesson_number) = (lesson.student, lesson.lesson_number)

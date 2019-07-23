@@ -5,7 +5,7 @@ from sqlalchemy import and_
 
 from server.api.rules.utils import register_rule
 from server.api.rules.lesson_rule import LessonRule
-from server.api.database.models import Lesson
+from server.api.database.models import Appointment
 
 
 @register_rule
@@ -18,7 +18,7 @@ class MoreThanLessonsWeek(LessonRule):
         )  # the 1 because monday is 0, we need sunday to be 0
         end_of_week = start_of_week + timedelta(days=6)
         return self.student.lessons.filter(
-            and_(Lesson.date >= start_of_week, Lesson.date <= end_of_week)
+            and_(Appointment.date >= start_of_week, Appointment.date <= end_of_week)
         ).count()
 
     def start_hour_rule(self) -> Set[int]:

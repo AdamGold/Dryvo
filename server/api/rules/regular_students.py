@@ -5,7 +5,6 @@ from sqlalchemy import and_
 
 from server.api.rules.utils import register_rule
 from server.api.rules.lesson_rule import LessonRule
-from server.api.database.models import Lesson
 
 
 @register_rule

@@ -20,7 +20,7 @@ class LessonTopic(SurrogatePK, Model):
     __tablename__ = "lesson_topics"
     topic_id = reference_col("topics", nullable=False)
     topic = relationship("Topic")
-    lesson_id = Column(db.Integer, db.ForeignKey("lessons.id"), nullable=False)
+    lesson_id = Column(db.Integer, db.ForeignKey("appointments.id"), nullable=False)
     is_finished = Column(db.Boolean, nullable=False, default=False)
     created_at = Column(db.DateTime, nullable=False, default=datetime.utcnow)
 

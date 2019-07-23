@@ -7,7 +7,7 @@ from flask import Blueprint
 from flask_login import current_user, login_required, logout_user
 
 from server.api.blueprints.teacher import teacher_required
-from server.api.database.models import Lesson, Student, Topic
+from server.api.database.models import Student, Topic
 from server.api.utils import jsonify_response, paginate
 from server.error_handling import RouteError
 
@@ -52,7 +52,7 @@ def delete_student(student_id):
     student = Student.get_by_id(student_id)
     if not student:
         raise RouteError("Student does not exist.", 404)
-    if student.lessons.first():  # if any lessons exist
+    if student.appointments.first():  # if any lessons exist
         raise RouteError("Can't delete student.")
 
     if current_user != student.teacher.user:

@@ -5,7 +5,8 @@ import json
 
 from server.api.blueprints import user
 from server.api.database.models import (
-    Lesson,
+    Appointment,
+    AppointmentType,
     Student,
     User,
     WorkDay,
@@ -137,7 +138,7 @@ def test_available_hours_route(teacher, student, meetup, dropoff, auth, requeste
 
     # now let's add a lesson
     lesson_date = datetime.strptime(time_and_date, DATE_FORMAT)
-    lesson = Lesson.create(
+    lesson = Appointment.create(
         teacher=teacher,
         student=student,
         creator=teacher.user,
@@ -152,7 +153,8 @@ def test_available_hours_route(teacher, student, meetup, dropoff, auth, requeste
     assert len(resp.json["data"]) == 6
     lesson.update(is_approved=True)
     resp = requester.post(
-        f"/teacher/{teacher.id}/available_hours", json={"date": date, "duration_mul": "3"}
+        f"/teacher/{teacher.id}/available_hours",
+        json={"date": date, "duration_mul": "3"},
     )
     assert len(resp.json["data"]) == 1
     auth.logout()
@@ -160,7 +162,41 @@ def test_available_hours_route(teacher, student, meetup, dropoff, auth, requeste
     auth.login(email=student.user.email)
     lesson.update(is_approved=False)
     resp = requester.post(f"/teacher/{teacher.id}/available_hours", json={"date": date})
-    assert lesson_date not in [hour[0] for hour in resp.json["data"]]
+    hours = [hour[0] for hour in resp.json["data"]]
+    assert all(lesson_date.strftime("%H:%M") not in hour for hour in hours)
+
+
+def test_student_blocked_hours_by_test(
+    teacher, student, meetup, dropoff, auth, requester
+):
+    date = (datetime.utcnow() + timedelta(days=1)).replace(hour=13, minute=0)
+    data = {
+        "teacher_id": teacher.id,
+        "from_hour": 13,
+        "from_minutes": 0,
+        "to_hour": 17,
+        "to_minutes": 0,
+        "on_date": date,
+    }
+    WorkDay.create(**data)
+    Appointment.create(
+        teacher=teacher,
+        student=student,
+        creator=teacher.user,
+        duration=40,
+        date=date,
+        meetup_place=meetup,
+        dropoff_place=dropoff,
+        is_approved=False,
+        type=AppointmentType.TEST.value
+    )
+    auth.login(email=student.user.email)
+    resp = requester.post(
+        f"/teacher/{teacher.id}/available_hours",
+        json={"date": date.strftime(WORKDAY_DATE_FORMAT)},
+    )
+    hours = [hour[0] for hour in resp.json["data"]]
+    assert all(date.strftime("%H:%M") not in hour for hour in hours)
 
 
 def test_available_hours_route_with_places(
@@ -170,7 +206,7 @@ def test_available_hours_route_with_places(
     tomorrow = datetime.utcnow() + timedelta(days=1)
     data = {
         "teacher_id": teacher.id,
-        "from_hour": 13,
+        "from_hour": 7,
         "from_minutes": 0,
         "to_hour": 17,
         "to_minutes": 0,
@@ -179,7 +215,7 @@ def test_available_hours_route_with_places(
     WorkDay.create(**data)
 
     date = tomorrow.replace(hour=16, minute=0)
-    Lesson.create(
+    Appointment.create(
         teacher=teacher,
         student=student,
         creator=teacher.user,
@@ -238,7 +274,7 @@ def test_teacher_available_hours(teacher, student, requester, meetup, dropoff):
     assert next(teacher.available_hours(tomorrow))[0] == tomorrow
 
     # we create a non approved lesson - available hours should still contain its date
-    lesson = Lesson.create(
+    lesson = Appointment.create(
         teacher=teacher,
         student=student,
         creator=teacher.user,
@@ -464,11 +500,13 @@ def test_invalid_create_bot_student(auth, requester, teacher, name, email, phone
     assert "is required" in resp.json["message"]
 
 
-def test_taken_lessons_tuples(teacher, student, meetup, dropoff, lesson):
-    taken_lessons = teacher.taken_lessons_tuples(Lesson.query, only_approved=False)
+def test_taken_appointments_tuples(teacher, student, meetup, dropoff, lesson):
+    taken_lessons = teacher.taken_appointments_tuples(
+        Appointment.query, only_approved=False
+    )
     assert len(taken_lessons) == 1
     assert isinstance(taken_lessons[0], tuple)
-    Lesson.create(
+    Appointment.create(
         teacher=teacher,
         student=student,
         # schedule to 5 days from now to it won't bother with no test
@@ -479,7 +517,9 @@ def test_taken_lessons_tuples(teacher, student, meetup, dropoff, lesson):
         dropoff_place=dropoff,
         is_approved=False,
     )
-    taken_lessons = teacher.taken_lessons_tuples(Lesson.query, only_approved=True)
+    taken_lessons = teacher.taken_appointments_tuples(
+        Appointment.query, only_approved=True
+    )
     assert len(taken_lessons) == 1
 
 
@@ -499,7 +539,7 @@ def test_teacher_available_hours_with_rules(
     WorkDay.create(**kwargs)
 
     for _ in range(3):
-        Lesson.create(
+        Appointment.create(
             teacher=teacher,
             student=student,
             creator=teacher.user,

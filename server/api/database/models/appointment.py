@@ -1,9 +1,11 @@
 import datetime as dt
+from enum import Enum, auto
 
 from flask_login import current_user
+from sqlalchemy import and_, func
 from sqlalchemy.ext.hybrid import hybrid_property
 from sqlalchemy.orm import backref
-from sqlalchemy import func, and_
+from sqlalchemy_utils import ChoiceType
 
 from server.api.database import db
 from server.api.database.mixins import (
@@ -17,15 +19,21 @@ from server.api.database.models import Topic
 from server.api.database.utils import QueryWithSoftDelete
 
 
-class Lesson(SurrogatePK, Model):
-    """A driving lesson"""
+class AppointmentType(Enum):
+    LESSON = auto()
+    TEST = auto()
+    INNER_EXAM = auto()
 
-    __tablename__ = "lessons"
+
+class Appointment(SurrogatePK, Model):
+    """A driving lesson/test/exam"""
+
+    __tablename__ = "appointments"
     query_class = QueryWithSoftDelete
     teacher_id = reference_col("teachers", nullable=False)
-    teacher = relationship("Teacher", backref=backref("lessons", lazy="dynamic"))
+    teacher = relationship("Teacher", backref=backref("appointments", lazy="dynamic"))
     student_id = reference_col("students", nullable=True)
-    student = relationship("Student", backref=backref("lessons", lazy="dynamic"))
+    student = relationship("Student", backref=backref("appointments", lazy="dynamic"))
     topics = relationship("LessonTopic", lazy="dynamic")
     duration = Column(db.Integer, nullable=False)
     date = Column(db.DateTime, nullable=False)
@@ -40,6 +48,11 @@ class Lesson(SurrogatePK, Model):
     creator_id = reference_col("users", nullable=False)
     creator = relationship("User")
     price = Column(db.Integer, nullable=True)
+    type = Column(
+        ChoiceType(AppointmentType, impl=db.Integer()),
+        default=AppointmentType.LESSON.value,
+        nullable=False,
+    )
 
     ALLOWED_FILTERS = [
         "deleted",
@@ -67,18 +80,27 @@ class Lesson(SurrogatePK, Model):
         self.update(**args)
 
     @staticmethod
+    def approved_filter(*args):
+        return and_(
+            Appointment.is_approved == True, Appointment.deleted == False, *args
+        )
+
+    @staticmethod
     def approved_lessons_filter(*args):
-        return and_(Lesson.is_approved == True, Lesson.deleted == False, *args)
+        return Appointment.approved_filter(
+            Appointment.type == AppointmentType.LESSON.value, *args
+        )
 
     @hybrid_property
     def lesson_number(self):
         return (
             (
-                db.session.query(func.count(Lesson.id))
-                .select_from(Lesson)
+                db.session.query(func.count(Appointment.id))
+                .select_from(Appointment)
                 .filter(
                     self.approved_lessons_filter(
-                        Lesson.date < self.date, Lesson.student == self.student
+                        Appointment.date < self.date,
+                        Appointment.student == self.student,
                     )
                 )
                 .scalar()
@@ -105,11 +127,12 @@ class Lesson(SurrogatePK, Model):
             "duration": self.duration,
             "price": self.price,
             "creator_id": self.creator_id,
+            "type": self.type.name.lower(),
         }
 
     def __repr__(self):
         return (
-            f"<Lesson date={self.date}, created_at={self.created_at},"
+            f"<Appointment date={self.date}, created_at={self.created_at},"
             f"student={self.student}, teacher={self.teacher}"
             f",approved={self.is_approved}, number={self.lesson_number}, duration={self.duration}>"
         )

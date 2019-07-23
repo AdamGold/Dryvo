@@ -1,2 +1,2 @@
 from .teacher import teacher_required
-from . import lessons, login, topics, student, teacher, user
+from . import appointments, login, topics, student, teacher, user

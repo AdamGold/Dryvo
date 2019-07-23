@@ -5,7 +5,7 @@ import pytest
 from flask_sqlalchemy import BaseQuery
 
 from server.api.database.models import (
-    Lesson,
+    Appointment,
     LessonTopic,
     Payment,
     Place,
@@ -19,7 +19,7 @@ from server.consts import DATE_FORMAT
 
 def new_lesson(requester, date, student):
     return requester.post(
-        "/lessons/",
+        "/appointments/",
         json={
             "date": date,
             "student_id": student.id,
@@ -30,7 +30,7 @@ def new_lesson(requester, date, student):
 
 
 def new_topics(requester, topics, lesson_id):
-    return requester.post(f"/lessons/{lesson_id}/topics", json={"topics": topics})
+    return requester.post(f"/appointments/{lesson_id}/topics", json={"topics": topics})
 
 
 def test_commons(teacher, student, meetup, dropoff):
@@ -38,7 +38,7 @@ def test_commons(teacher, student, meetup, dropoff):
     and dropoff. check returns of common_meetup
     and common_dropoff"""
     for _ in range(2):
-        Lesson.create(
+        Appointment.create(
             teacher=teacher,
             student=student,
             creator=teacher.user,
@@ -55,7 +55,7 @@ def test_commons(teacher, student, meetup, dropoff):
         description="other", used_as=PlaceType.dropoff.value, student=student
     )
 
-    Lesson.create(
+    Appointment.create(
         teacher=teacher,
         student=student,
         creator=teacher.user,
@@ -88,7 +88,7 @@ def test_lessons_done(teacher, student, meetup, dropoff):
     """create new lesson for student,
     check lessons_done updates"""
     old_lesson_number = student.lessons_done
-    lesson = Lesson.create(
+    lesson = Appointment.create(
         teacher=teacher,
         student=student,
         creator=teacher.user,
@@ -100,7 +100,7 @@ def test_lessons_done(teacher, student, meetup, dropoff):
     assert student.lessons_done == old_lesson_number + 1
     assert student.lessons_done == lesson.lesson_number
     old_lesson_number = student.lessons_done
-    Lesson.create(
+    Appointment.create(
         teacher=teacher,
         student=student,
         creator=teacher.user,
@@ -127,7 +127,7 @@ def test_filter_topics(teacher, student, meetup, dropoff, topic, lesson):
     assert topic in student.topics(is_finished=False)
 
     # let's create another lesson with same topic
-    lesson = Lesson.create(
+    lesson = Appointment.create(
         teacher=teacher,
         student=student,
         creator=teacher.user,
@@ -145,7 +145,7 @@ def test_filter_topics(teacher, student, meetup, dropoff, topic, lesson):
 
 
 def test_lesson_topics(teacher, student, topic, meetup, dropoff):
-    lesson = Lesson.create(
+    lesson = Appointment.create(
         teacher=teacher,
         student=student,
         creator=teacher.user,
@@ -164,7 +164,7 @@ def test_lesson_topics(teacher, student, topic, meetup, dropoff):
 def test_topics_in_progress(teacher, student, topic, meetup, dropoff, lesson):
     lesson_topic = LessonTopic(is_finished=False, topic_id=topic.id)
     lesson.topics.append(lesson_topic)
-    lesson = Lesson.create(
+    lesson = Appointment.create(
         teacher=teacher,
         student=student,
         creator=teacher.user,
@@ -180,7 +180,7 @@ def test_topics_in_progress(teacher, student, topic, meetup, dropoff, lesson):
     in_progress = student._topics_in_progress(lt)
     assert topic in in_progress
 
-    lesson = Lesson.create(
+    lesson = Appointment.create(
         teacher=teacher,
         student=student,
         creator=teacher.user,
@@ -199,7 +199,7 @@ def test_topics_in_progress(teacher, student, topic, meetup, dropoff, lesson):
 def test_balance(teacher, student, meetup, dropoff):
     # we have one lesson currently and 0 payments, but the lesson hasn't yet happened
     assert student.balance == 0
-    lesson = Lesson.create(
+    lesson = Appointment.create(
         teacher=teacher,
         student=student,
         creator=teacher.user,
@@ -230,7 +230,7 @@ def test_total_lessons_price(teacher, student, meetup, dropoff):
         Student.total_lessons_price == 0
     ).first()  # no lesson has been done yet
     assert st == student
-    Lesson.create(
+    Appointment.create(
         teacher=teacher,
         student=student,
         creator=teacher.user,
@@ -247,7 +247,7 @@ def test_total_lessons_price(teacher, student, meetup, dropoff):
     # this is still true because lessons have a fixed price once scheduled
     assert student.total_lessons_price == teacher.price
 
-    Lesson.create(
+    Appointment.create(
         teacher=teacher,
         student=student,
         creator=teacher.user,
@@ -268,7 +268,7 @@ def test_total_lessons_price_with_different_prices(teacher, student, meetup, dro
     price = 100
     prices = price
     for x in range(3):
-        Lesson.create(
+        Appointment.create(
             teacher=teacher,
             student=student,
             creator=teacher.user,

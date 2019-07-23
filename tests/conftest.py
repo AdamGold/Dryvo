@@ -13,7 +13,7 @@ import responses as responses_module
 from server import create_app
 from server.api.database import close_db, db, reset_db
 from server.api.database.models import (
-    Lesson,
+    Appointment,
     Place,
     PlaceType,
     Student,
@@ -103,7 +103,7 @@ def setup_db(app):
         on_date=(datetime.utcnow() + timedelta(days=2)).date(),
     )  # 2 days from now
     Topic.create(title="topic test", min_lesson_number=1, max_lesson_number=5)
-    Lesson.create(
+    Appointment.create(
         teacher=teacher,
         student=student,
         # schedule to 5 days from now to it won't bother with no test
@@ -274,7 +274,7 @@ def topic(app):
 @pytest.fixture
 def lesson(app):
     with app.app_context():
-        yield Lesson.query.first()
+        yield Appointment.query.first()
 
 
 @pytest.fixture

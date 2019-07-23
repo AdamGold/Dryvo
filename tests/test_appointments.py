@@ -3,9 +3,10 @@ from datetime import datetime, timedelta
 import pytest
 from loguru import logger
 
-from server.api.blueprints.lessons import get_lesson_data, handle_places
+from server.api.blueprints.appointments import get_data, handle_places
 from server.api.database.models import (
-    Lesson,
+    Appointment,
+    AppointmentType,
     Payment,
     Place,
     Student,
@@ -28,8 +29,9 @@ def create_lesson(
     duration=40,
     deleted=False,
     is_approved=True,
+    **kwargs,
 ):
-    return Lesson.create(
+    return Appointment.create(
         teacher=teacher,
         student=student,
         creator=student.user if student else teacher.user,
@@ -39,6 +41,7 @@ def create_lesson(
         dropoff_place=dropoff,
         deleted=deleted,
         is_approved=is_approved,
+        **kwargs,
     )
 
 
@@ -47,16 +50,16 @@ def test_lessons(auth, teacher, student, meetup, dropoff, requester):
     create_lesson(teacher, student, meetup, dropoff, date)
     create_lesson(teacher, student, meetup, dropoff, date, deleted=True)
     auth.login(email=student.user.email)
-    resp1 = requester.get("/lessons/?limit=1&page=1")  # no filters
+    resp1 = requester.get("/appointments/?limit=1&page=1")  # no filters
     assert isinstance(resp1.json["data"], list)
     assert resp1.json["next_url"]
     resp2 = requester.get(resp1.json["next_url"])
     assert resp2.json["data"][0]["id"] != resp1.json["data"][0]["id"]
-    resp = requester.get("/lessons/?student_id=gt:1")
+    resp = requester.get("/appointments/?student_id=gt:1")
     assert not resp.json["data"]
-    resp = requester.get("/lessons/?date=2018-20-01T20")
+    resp = requester.get("/appointments/?date=2018-20-01T20")
     assert "wrong parameters" in resp.json["message"].lower()
-    resp = requester.get("/lessons/?deleted=true")
+    resp = requester.get("/appointments/?deleted=true")
     assert len(resp.json["data"]) == 2
 
 
@@ -64,7 +67,7 @@ def test_deleted_lessons(auth, teacher, student, meetup, dropoff, requester):
     date = datetime(year=2018, month=11, day=27, hour=13, minute=00)
     create_lesson(teacher, student, meetup, dropoff, date, duration=80, deleted=True)
     auth.login(email=teacher.user.email)
-    resp = requester.get("/lessons/?deleted=true")
+    resp = requester.get("/appointments/?deleted=true")
     assert resp.json["data"][0]["duration"] == 80
 
 
@@ -72,11 +75,11 @@ def test_single_lesson(auth, teacher, student, meetup, dropoff, requester):
     date = datetime(year=2018, month=11, day=27, hour=13, minute=00)
     lesson = create_lesson(teacher, student, meetup, dropoff, date)
     auth.login(email=student.user.email)
-    resp = requester.get(f"/lessons/{lesson.id}")
+    resp = requester.get(f"/appointments/{lesson.id}")
     assert resp.json["data"]
     auth.logout()
     auth.login()
-    resp = requester.get(f"/lessons/{lesson.id}")
+    resp = requester.get(f"/appointments/{lesson.id}")
     assert resp._status_code == 401
 
 
@@ -93,9 +96,8 @@ def test_student_new_lesson(auth, teacher, student, requester, topic):
         "on_date": tomorrow.date(),
     }
     WorkDay.create(**kwargs)
-    logger.debug(f"added work day for {teacher}")
     resp = requester.post(
-        "/lessons/",
+        "/appointments/",
         json={
             "date": date,
             "duration_mul": "1.5",
@@ -112,7 +114,7 @@ def test_update_topics(auth, teacher, student, requester, topic):
     auth.login(email=teacher.user.email)
     date = (tomorrow.replace(hour=13, minute=00)).strftime(DATE_FORMAT)
     resp = requester.post(
-        "/lessons/",
+        "/appointments/",
         json={
             "date": date,
             "student_id": student.id,
@@ -122,7 +124,7 @@ def test_update_topics(auth, teacher, student, requester, topic):
     )
     lesson_id = resp.json["data"]["id"]
     resp = requester.post(
-        f"/lessons/{lesson_id}/topics",
+        f"/appointments/{lesson_id}/topics",
         json={"topics": {"progress": [], "finished": [topic.id]}},
     )
     assert resp.json["data"]
@@ -133,14 +135,14 @@ def test_update_topics(auth, teacher, student, requester, topic):
     )
     # let's say we're editing a lesson, and sending existing topics
     resp = requester.post(
-        f"/lessons/{lesson_id}/topics",
+        f"/appointments/{lesson_id}/topics",
         json={"topics": {"progress": [another_topic.id], "finished": []}},
     )
     assert resp.json["data"]
     assert LessonTopic.query.filter_by(topic=another_topic).first()
     # now we're marking a finished topic
     resp = requester.post(
-        f"/lessons/{lesson_id}/topics",
+        f"/appointments/{lesson_id}/topics",
         json={"topics": {"progress": [], "finished": [another_topic.id]}},
     )
     assert resp.json["data"]
@@ -166,7 +168,7 @@ def test_invalid_update_topics(
     date = tomorrow.replace(hour=13, minute=00)
     student = Student.get_by_id(student_id) if student_id else None
     lesson = create_lesson(teacher, student, meetup, dropoff, date)
-    resp = requester.post(f"/lessons/{lesson.id}/topics", json={"topics": topics})
+    resp = requester.post(f"/appointments/{lesson.id}/topics", json={"topics": topics})
     assert resp.status_code == 400
     assert resp.json["message"] == error
 
@@ -186,7 +188,7 @@ def test_hour_not_available(auth, teacher, student, requester):
     WorkDay.create(**kwargs)
     logger.debug(f"added work day for {teacher}")
     resp = requester.post(
-        "/lessons/",
+        "/appointments/",
         json={
             "date": date,
             "meetup_place": {"description": "test"},
@@ -199,7 +201,7 @@ def test_hour_not_available(auth, teacher, student, requester):
 def test_teacher_new_lesson_without_student(auth, teacher, student, requester):
     auth.login(email=teacher.user.email)
     date = (tomorrow.replace(hour=13, minute=00)).strftime(DATE_FORMAT)
-    resp = requester.post("/lessons/", json={"date": date})
+    resp = requester.post("/appointments/", json={"date": date})
     assert "does not exist" in resp.json["message"]
 
 
@@ -207,7 +209,7 @@ def test_teacher_new_lesson_with_student(auth, teacher, student, requester):
     auth.login(email=teacher.user.email)
     date = (tomorrow.replace(hour=13, minute=00)).strftime(DATE_FORMAT)
     resp = requester.post(
-        "/lessons/",
+        "/appointments/",
         json={
             "date": date,
             "student_id": student.id,
@@ -223,7 +225,7 @@ def test_delete_lesson(auth, teacher, student, meetup, dropoff, requester):
     lesson = create_lesson(teacher, student, meetup, dropoff, datetime.utcnow())
     auth.login(email=student.user.email)
     old_lesson_number = student.lessons_done
-    resp = requester.delete(f"/lessons/{lesson.id}")
+    resp = requester.delete(f"/appointments/{lesson.id}")
     assert "successfully" in resp.json["message"]
     assert student.lessons_done == old_lesson_number - 1
 
@@ -231,9 +233,9 @@ def test_delete_lesson(auth, teacher, student, meetup, dropoff, requester):
 def test_approve_lesson(auth, teacher, student, meetup, dropoff, requester):
     lesson = create_lesson(teacher, student, meetup, dropoff, datetime.utcnow())
     auth.login(email=teacher.user.email)
-    resp = requester.get(f"/lessons/{lesson.id}/approve")
+    resp = requester.get(f"/appointments/{lesson.id}/approve")
     assert "approved" in resp.json["message"]
-    resp = requester.get(f"/lessons/7/approve")
+    resp = requester.get(f"/appointments/7/approve")
     assert "not exist" in resp.json["message"]
     assert lesson.is_approved
 
@@ -242,7 +244,7 @@ def test_approve_lesson(auth, teacher, student, meetup, dropoff, requester):
     date = datetime.utcnow()
     create_lesson(teacher, student, meetup, dropoff, date)
     second = create_lesson(teacher, student, meetup, dropoff, date, is_approved=False)
-    resp = requester.get(f"/lessons/{second.id}/approve")
+    resp = requester.get(f"/appointments/{second.id}/approve")
     assert "There is another lesson at the same time" in resp.json["message"]
 
 
@@ -254,20 +256,20 @@ def test_user_edit_lesson(app, auth, student, teacher, meetup, dropoff, requeste
     times_used = lesson.meetup_place.times_used
     auth.login(email=student.user.email)
     resp = requester.post(
-        f"/lessons/{lesson.id}",
+        f"/appointments/{lesson.id}",
         json={
             "date": date.strftime(DATE_FORMAT),
             "meetup_place": {"description": lesson.meetup_place.description},
         },
     )
-    lesson = Lesson.query.filter_by(id=lesson.id).first()
+    lesson = Appointment.query.filter_by(id=lesson.id).first()
     assert lesson.meetup_place.google_id == "ID1"
     assert lesson.meetup_place.times_used == times_used
     assert "successfully" in resp.json["message"]
     assert "test" == resp.json["data"]["meetup_place"]
     assert not resp.json["data"]["is_approved"]
     resp = requester.post(
-        f"/lessons/{lesson.id}",
+        f"/appointments/{lesson.id}",
         json={
             "date": date.strftime(DATE_FORMAT),
             "meetup_place": {"description": "no"},
@@ -278,7 +280,7 @@ def test_user_edit_lesson(app, auth, student, teacher, meetup, dropoff, requeste
     auth.logout()
     auth.login(email=teacher.user.email)
     resp = requester.post(
-        f"/lessons/{lesson.id}",
+        f"/appointments/{lesson.id}",
         json={
             "date": date.strftime(DATE_FORMAT),
             "meetup_place": {"description": "yes"},
@@ -318,9 +320,9 @@ def test_handle_places(student: Student, meetup: Place):
         ({"date": (tomorrow.strftime(DATE_FORMAT))}, "This hour is not available."),
     ),
 )
-def test_student_invalid_get_lesson_data(student, data_dict: dict, error: str):
+def test_student_invalid_get_data(student, data_dict: dict, error: str):
     with pytest.raises(RouteError) as e:
-        get_lesson_data(data_dict, student.user)
+        get_data(data_dict, student.user)
     assert e.value.description == error
 
 
@@ -338,13 +340,13 @@ def test_student_invalid_get_lesson_data(student, data_dict: dict, error: str):
         ),
     ),
 )
-def test_teacher_invalid_get_lesson_data(teacher, data_dict: dict, error: str):
+def test_teacher_invalid_get_data(teacher, data_dict: dict, error: str):
     with pytest.raises(RouteError) as e:
-        get_lesson_data(data_dict, teacher.user)
+        get_data(data_dict, teacher.user)
     assert e.value.description == error
 
 
-def test_valid_get_lesson_data(student):
+def test_valid_get_data(student):
     date = ((tomorrow + timedelta(days=1)).replace(hour=00, minute=00)).strftime(
         DATE_FORMAT
     )
@@ -353,7 +355,7 @@ def test_valid_get_lesson_data(student):
         "meetup_place": {"description": "test"},
         "dropoff_place": {"description": "test"},
     }
-    get_lesson_data(data_dict, student.user)
+    get_data(data_dict, student.user)
 
 
 def test_lesson_number(teacher, student, meetup, dropoff):
@@ -388,7 +390,7 @@ def test_payments(auth, teacher, student, requester):
         )
 
     auth.login(email=teacher.user.email)
-    resp = requester.get("/lessons/payments?limit=2")
+    resp = requester.get("/appointments/payments?limit=2")
     assert len(resp.json["data"]) == 2
     assert resp.json["data"][0]["id"] == payments[-1].id
 
@@ -407,11 +409,11 @@ def test_payments(auth, teacher, student, requester):
     start_of_month = start_of_month.strftime(DATE_FORMAT)
     end_next_month = end_next_month.strftime(DATE_FORMAT)
     resp = requester.get(
-        f"/lessons/payments?created_at=ge:{start_next_month}&created_at=lt:{end_next_month}"
+        f"/appointments/payments?created_at=ge:{start_next_month}&created_at=lt:{end_next_month}"
     )
     assert resp.json["data"][0]["amount"] == 100_000
     resp = requester.get(
-        f"/lessons/payments?created_at=ge:{start_of_month}&created_at=lt:{start_of_month}"
+        f"/appointments/payments?created_at=ge:{start_of_month}&created_at=lt:{start_of_month}"
     )
     assert not resp.json["data"]
 
@@ -423,20 +425,20 @@ def test_lesson_topics(auth, requester, student, meetup, dropoff, topic, teacher
     3. lesson without topics, but user with topics"""
     lesson = create_lesson(teacher, student, meetup, dropoff, datetime.utcnow())
     auth.login(email=teacher.user.email)
-    resp = requester.get(f"/lessons/{lesson.id}/topics")
+    resp = requester.get(f"/appointments/{lesson.id}/topics")
     assert resp.json["available"][0]["id"] == topic.id
     another_topic = Topic.create(
         title="test3", min_lesson_number=20, max_lesson_number=22
     )
     requester.post(
-        f"/lessons/{lesson.id}/topics",
+        f"/appointments/{lesson.id}/topics",
         json={"topics": {"progress": [topic.id], "finished": []}},
     )
     requester.post(
-        f"/lessons/{lesson.id}/topics",
+        f"/appointments/{lesson.id}/topics",
         json={"topics": {"progress": [another_topic.id], "finished": [topic.id]}},
     )
-    resp = requester.get(f"/lessons/{lesson.id}/topics")
+    resp = requester.get(f"/appointments/{lesson.id}/topics")
     lesson_topics = [topic["id"] for topic in resp.json["available"]]
     assert another_topic.id in resp.json["progress"]
     assert another_topic.id in lesson_topics
@@ -444,17 +446,17 @@ def test_lesson_topics(auth, requester, student, meetup, dropoff, topic, teacher
     assert topic.id in lesson_topics
 
     another_lesson = create_lesson(teacher, student, meetup, dropoff, datetime.utcnow())
-    resp = requester.get(f"/lessons/{another_lesson.id}/topics")
+    resp = requester.get(f"/appointments/{another_lesson.id}/topics")
     assert another_topic.id == resp.json["available"][0]["id"]
     assert topic.id not in [topic["id"] for topic in resp.json["available"]]
     assert len(resp.json["available"]) == 1
 
     # if we have 2 lessons with same topic, topic is finished on the 2nd
     requester.post(
-        f"/lessons/{lesson.id}/topics",
+        f"/appointments/{lesson.id}/topics",
         json={"topics": {"progress": [], "finished": [another_topic.id]}},
     )
-    resp = requester.get(f"/lessons/{lesson.id}/topics")
+    resp = requester.get(f"/appointments/{lesson.id}/topics")
     assert another_topic.id in [topic["id"] for topic in resp.json["available"]]
     assert another_topic.id in resp.json["finished"]
 
@@ -463,18 +465,60 @@ def test_new_lesson_topics(
     auth, requester, student, meetup, dropoff, topic, lesson, teacher
 ):
     auth.login(email=teacher.user.email)
-    resp = requester.get(f"/lessons/0/topics")
+    resp = requester.get(f"/appointments/0/topics")
     assert "Lesson does not exist" in resp.json["message"]
-    resp = requester.get(f"/lessons/0/topics?student_id=1000")
+    resp = requester.get(f"/appointments/0/topics?student_id=1000")
     assert "Lesson does not exist" in resp.json["message"]
     another_topic = Topic.create(
         title="test3", min_lesson_number=20, max_lesson_number=22
     )
     requester.post(
-        f"/lessons/{lesson.id}/topics",
+        f"/appointments/{lesson.id}/topics",
         json={"topics": {"progress": [another_topic.id], "finished": [topic.id]}},
     )
-    requester.get(f"/lessons/{lesson.id}/topics")
-    resp = requester.get(f"/lessons/0/topics?student_id={student.id}")
+    requester.get(f"/appointments/{lesson.id}/topics")
+    resp = requester.get(f"/appointments/0/topics?student_id={student.id}")
     assert resp.json["available"][0]["id"] == another_topic.id
+
+
+def test_teacher_adding_test(auth, teacher, student, requester):
+    auth.login(email=teacher.user.email)
+    date = (tomorrow.replace(hour=13, minute=00)).strftime(DATE_FORMAT)
+    resp = requester.post(
+        "/appointments/",
+        json={
+            "date": date,
+            "student_id": student.id,
+            "meetup_place": {"description": "test"},
+            "dropoff_place": {"description": "test"},
+            "type": "test",
+        },
+    )
+    assert resp.json["data"]["type"] == AppointmentType.TEST.name.lower()
+
+
+def test_student_adding_inner_exam(auth, teacher, student, requester):
+    auth.login(email=student.user.email)
+    kwargs = {
+        "teacher_id": teacher.id,
+        "day": 1,
+        "from_hour": 7,
+        "from_minutes": 0,
+        "to_hour": 21,
+        "to_minutes": 59,
+        "on_date": tomorrow.date(),
+    }
+    WorkDay.create(**kwargs)
+    date = (tomorrow.replace(hour=21, minute=00)).strftime(DATE_FORMAT)
+    resp = requester.post(
+        "/appointments/",
+        json={
+            "date": date,
+            "student_id": student.id,
+            "meetup_place": {"description": "test"},
+            "dropoff_place": {"description": "test"},
+            "type": "inner_exam",
+        },
+    )
+    assert resp.json["data"]["type"] == AppointmentType.LESSON.name.lower()
 
