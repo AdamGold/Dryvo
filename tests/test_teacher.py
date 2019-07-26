@@ -538,13 +538,13 @@ def test_teacher_available_hours_with_rules(
     }
     WorkDay.create(**kwargs)
 
-    for _ in range(3):
+    for i in range(3):
         Appointment.create(
             teacher=teacher,
             student=student,
             creator=teacher.user,
             duration=teacher.lesson_duration,
-            date=tomorrow,
+            date=tomorrow + timedelta(minutes=i),
             meetup_place=meetup,
             dropoff_place=dropoff,
             is_approved=True,

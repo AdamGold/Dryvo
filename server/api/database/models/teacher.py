@@ -106,6 +106,8 @@ class Teacher(SurrogatePK, LessonCreator):
                     requested_date, student, hours, places
                 )
                 blacklisted = rule_instance.blacklisted()
+                print(type(rule_instance))
+                print(blacklisted)
                 for key in blacklist_hours.keys():
                     blacklist_hours[key].update(blacklisted[key])
 

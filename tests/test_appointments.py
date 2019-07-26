@@ -297,7 +297,7 @@ def test_user_edit_lesson(app, auth, student, teacher, meetup, dropoff, requeste
     assert resp.json["data"]["is_approved"]
 
 
-def test_handle_places(student: Student, meetup: Place):
+def test_handle_places(student: Student, meetup: Place, teacher, dropoff):
     assert handle_places(
         {
             "meetup_place": dict(description="test", google_id="ID1"),
@@ -320,6 +320,16 @@ def test_handle_places(student: Student, meetup: Place):
     assert new_meetup.times_used == 1
     assert new_meetup.google_id == "ID1"
     assert new_dropoff.times_used == 1
+
+    appointment = create_lesson(teacher, student, meetup, dropoff, datetime.utcnow())
+    assert handle_places(
+        {
+            "meetup_place": dict(description=meetup.description),
+            "dropoff_place": dict(description=dropoff.description),
+        },
+        student,
+        appointment,
+    ) == (None, None)
 
 
 @pytest.mark.parametrize(
