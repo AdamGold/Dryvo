@@ -36,32 +36,13 @@ def init_app(app):
 
 
 def handle_places(
-    meetup_place: Optional[Dict], dropoff_place: Optional[Dict], student: Student
-) -> Tuple[Place, Place]:
+    data: dict, student: Student, appointment: Optional[Appointment] = None
+) -> Tuple[Optional[Place], Optional[Place]]:
     if not student:
         return None, None
-    return (
-        Place.create_or_find(meetup_place, PlaceType.meetup, student),
-        Place.create_or_find(dropoff_place, PlaceType.dropoff, student),
-    )
-
-
-def get_data(data: dict, user: User, appointment: Optional[Appointment] = None) -> dict:
-    """get request data and a specific user
-    - we need the user because we are not decorated in login_required here
-    returns dict of new lesson or edited lesson"""
-    if not data.get("date"):
-        raise RouteError("Date is not valid.")
-    date = datetime.strptime(data["date"], DATE_FORMAT)
-    if not appointment and date < datetime.utcnow():
-        # trying to add a new lesson in the past??
-        raise RouteError("Date is not valid.")
-
     meetup_input = data.get("meetup_place", {})
     dropoff_input = data.get("dropoff_place", {})
-    type_ = None
     if appointment:
-        type_ = appointment.type
         # don't update same places
         if (
             appointment.meetup_place
@@ -74,25 +55,55 @@ def get_data(data: dict, user: User, appointment: Optional[Appointment] = None) 
             == appointment.dropoff_place.description
         ):
             dropoff_input = None
+    return (
+        Place.create_or_find(meetup_input, PlaceType.meetup, student),
+        Place.create_or_find(dropoff_input, PlaceType.dropoff, student),
+    )
 
-    duration_mul = float(data.get("duration_mul", 1))
+
+def check_available_hours_for_student(
+    date: datetime, student: Student, appointment: Optional[Appointment], duration: int
+):
+    available_hours = itertools.dropwhile(
+        lambda hours_range: hours_range[0] != date,
+        student.teacher.available_hours(
+            requested_date=date, student=student, duration=duration
+        ),
+    )  # check if requested date in available hours
+    try:
+        next(available_hours)
+    except StopIteration:
+        if (appointment and date != appointment.date) or not appointment:
+            raise RouteError("This hour is not available.")
+
+
+def get_data(data: dict, user: User, appointment: Optional[Appointment] = None) -> dict:
+    """get request data and a specific user
+    - we need the user because we are not decorated in login_required here
+    returns dict of new lesson or edited lesson"""
+    if not data.get("date"):
+        raise RouteError("Date is not valid.")
+    date = datetime.strptime(data["date"], DATE_FORMAT)
+    if appointment:
+        type_ = appointment.type
+    else:
+        type_ = None
+        if date < datetime.utcnow():
+            # trying to add a new lesson in the past??
+            raise RouteError("Date is not valid.")
+
+    duration = data.get("duration")
+    if not duration:
+        raise RouteError("Duration is required.")
+    duration = int(duration)
     if user.student:
         student = user.student
         teacher = user.student.teacher
         type_ = type_ or AppointmentType.LESSON.value
-        available_hours = itertools.dropwhile(
-            lambda hours_range: hours_range[0] != date,
-            user.student.teacher.available_hours(
-                requested_date=date, student=student, duration_mul=duration_mul
-            ),
-        )  # check if requested date in available hours
-        try:
-            next(available_hours)
-        except StopIteration:
-            if (appointment and date != appointment.date) or not appointment:
-                raise RouteError("This hour is not available.")
+        check_available_hours_for_student(date, student, appointment, duration)
     elif user.teacher:
         # TODO check if there's another lesson within this time
+        # (filter existing lessons, hours[0] <= start and hours[1] >= end)
         # if so - if it's a test, delete it
         # if not, don't let the teacher schedule this hour
         type_ = getattr(
@@ -107,7 +118,7 @@ def get_data(data: dict, user: User, appointment: Optional[Appointment] = None) 
     else:
         raise RouteError("Not authorized.", 401)
 
-    meetup, dropoff = handle_places(meetup_input, dropoff_input, student)
+    meetup, dropoff = handle_places(data, student, appointment)
     try:
         price = int(data.get("price", ""))
     except ValueError:
@@ -118,7 +129,7 @@ def get_data(data: dict, user: User, appointment: Optional[Appointment] = None) 
         "dropoff_place": dropoff,
         "student": student,
         "teacher": teacher,
-        "duration": duration_mul * teacher.lesson_duration,
+        "duration": duration,
         "price": price,
         "comments": data.get("comments"),
         "is_approved": True if user.teacher else False,
