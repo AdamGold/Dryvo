@@ -13,10 +13,11 @@ class MoreThanLessonsWeek(LessonRule):
     """if a student has already scheduled 2 lessons this week, return hours >5 score (blacklisted)"""
 
     def filter_(self):
-        start_of_week = self.date.replace(hour=00, minute=00) - timedelta(
-            days=self.date.weekday() + 1
-        )  # the 1 because monday is 0, we need sunday to be 0
-        end_of_week = start_of_week + timedelta(days=6)
+        weekday = ["NEVER USED", 1, 2, 3, 4, 5, 6, 0][
+            self.date.isoweekday()
+        ]  # convert sundays to 0
+        start_of_week = self.date.replace(hour=00, minute=00) - timedelta(days=weekday)
+        end_of_week = start_of_week.replace(hour=23, minute=59) + timedelta(days=6)
         return self.student.lessons.filter(
             and_(Appointment.date >= start_of_week, Appointment.date <= end_of_week)
         ).count()
