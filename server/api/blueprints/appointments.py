@@ -8,6 +8,7 @@ from flask import Blueprint
 from flask_babel import gettext
 from flask_login import current_user, login_required, logout_user
 from loguru import logger
+from pytz import timezone
 from sqlalchemy import and_
 
 from server.api.blueprints import teacher_required
@@ -24,7 +25,7 @@ from server.api.database.models import (
 )
 from server.api.push_notifications import FCM
 from server.api.utils import jsonify_response, paginate
-from server.consts import DATE_FORMAT, DEBUG_MODE, LOCALE
+from server.consts import DATE_FORMAT, DEBUG_MODE, LOCALE, TIMEZONE
 from server.error_handling import NotificationError, RouteError
 
 appointments_routes = Blueprint("appointments", __name__, url_prefix="/appointments")
@@ -171,14 +172,21 @@ def new_appointment():
     body_text = gettext(
         "%(student)s wants to schedule a new lesson at %(date)s. Click here to check it out.",
         student=appointment.student.user.name,
-        date=format_datetime(appointment.date, locale=LOCALE, format="short"),
+        date=format_datetime(
+            appointment.date, locale=LOCALE, format="short", tzinfo=timezone(TIMEZONE)
+        ),
     )
     if appointment.creator == appointment.teacher.user and appointment.student:
         user_to_send_to = appointment.student.user
         body_text = gettext(
             "%(teacher)s scheduled a new lesson at %(value)s. Click here to check it out.",
             teacher=appointment.teacher.user.name,
-            value=format_datetime(appointment.date, locale=LOCALE, format="short"),
+            value=format_datetime(
+                appointment.date,
+                locale=LOCALE,
+                format="short",
+                tzinfo=timezone(TIMEZONE),
+            ),
         )
     if user_to_send_to.firebase_token:
         logger.debug(f"sending fcm to {user_to_send_to} for new appointment")
@@ -259,7 +267,10 @@ def delete_appointment(id_):
                 body=gettext(
                     "The lesson at %(value)s has been deleted by %(user)s.",
                     value=format_datetime(
-                        appointment.date, locale=LOCALE, format="short"
+                        appointment.date,
+                        locale=LOCALE,
+                        format="short",
+                        tzinfo=timezone(TIMEZONE),
                     ),
                     user=user_to_send_to.name,
                 ),
@@ -290,14 +301,21 @@ def update_lesson(id_):
     body_text = gettext(
         "%(student)s wants to edit the lesson at %(date)s. Click here to check it out.",
         student=appointment.student.user.name,
-        date=format_datetime(appointment.date, locale=LOCALE, format="short"),
+        date=format_datetime(
+            appointment.date, locale=LOCALE, format="short", tzinfo=timezone(TIMEZONE)
+        ),
     )
     if current_user == appointment.teacher.user:
         user_to_send_to = appointment.student.user
         body_text = gettext(
             "%(teacher)s edited the lesson at %(value)s. Click here to check it out.",
             teacher=appointment.teacher.user.name,
-            value=format_datetime(appointment.date, locale=LOCALE, format="short"),
+            value=format_datetime(
+                appointment.date,
+                locale=LOCALE,
+                format="short",
+                tzinfo=timezone(TIMEZONE),
+            ),
         )
     if user_to_send_to.firebase_token:
         try:
@@ -343,7 +361,12 @@ def approve_lesson(lesson_id):
                 title=gettext("Lesson Approved"),
                 body=gettext(
                     "Lesson at %(date)s has been approved!",
-                    date=format_datetime(lesson.date, locale=LOCALE, format="short"),
+                    date=format_datetime(
+                        lesson.date,
+                        locale=LOCALE,
+                        format="short",
+                        tzinfo=timezone(TIMEZONE),
+                    ),
                 ),
             )
         except NotificationError:

@@ -10,3 +10,4 @@ PROFILE_SIZE = 200
 RECEIPT_URL = os.environ.get("RECEIPT_URL", "https://demo.ezcount.co.il/")
 RECEIPTS_DEVELOPER_EMAIL = "roivanunu222@gmail.com"  # EZCount login mail
 LOCALE = "he"
+TIMEZONE = "Asia/Jerusalem"
