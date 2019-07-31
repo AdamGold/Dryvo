@@ -71,9 +71,9 @@ class Appointment(SurrogatePK, Model):
         db.Model.__init__(self, **kwargs)
         if not self.price:
             if self.student:
-                self.price = self.student.price
+                self.price = self.student.price * self.lesson_length
             else:
-                self.price = self.teacher.price
+                self.price = self.teacher.price * self.lesson_length
 
     def update_only_changed_fields(self, **kwargs):
         args = {k: v for k, v in kwargs.items() if v or isinstance(v, bool)}

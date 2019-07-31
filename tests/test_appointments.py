@@ -106,7 +106,7 @@ def test_student_new_lesson(auth, teacher, student, requester, topic):
         },
     )
     assert not resp.json["data"]["is_approved"]
-    assert resp.json["data"]["price"] == student.price
+    assert resp.json["data"]["price"] == student.price * 1.5
     assert resp.json["data"]["duration"] == teacher.lesson_duration * 1.5
 
 
@@ -374,9 +374,10 @@ def test_lesson_number(teacher, student, meetup, dropoff):
     assert new_lesson.lesson_number == 1
     assert lessons[1].lesson_number == 3
 
-    lesson = create_lesson(teacher, student, meetup, dropoff, datetime.utcnow(), duration=60)
+    lesson = create_lesson(
+        teacher, student, meetup, dropoff, datetime.utcnow(), duration=60
+    )
     assert lesson.lesson_number == 4.5
-
 
 
 def test_topics_for_lesson(app):
