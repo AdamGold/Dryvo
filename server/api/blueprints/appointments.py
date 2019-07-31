@@ -1,5 +1,5 @@
 import itertools
-from datetime import datetime
+from datetime import datetime, timedelta
 from typing import Dict, Optional, Tuple
 
 import flask
@@ -9,7 +9,7 @@ from flask_babel import gettext
 from flask_login import current_user, login_required, logout_user
 from loguru import logger
 from pytz import timezone
-from sqlalchemy import and_
+from sqlalchemy import and_, or_, func
 
 from server.api.blueprints import teacher_required
 from server.api.database.models import (
@@ -77,6 +77,32 @@ def check_available_hours_for_student(
             raise RouteError("This hour is not available.")
 
 
+def handle_teacher_hours(
+    teacher: Teacher, date: datetime, duration: int, type_: Optional[AppointmentType]
+):
+    """check if there are existing lessons in the date given.
+    If so - is test? - delete all existing lessons.
+    NO - raise RouteError"""
+
+    # check if there's another lesson that ends or starts within this time
+    end_date = date + timedelta(minutes=duration)
+    appointment_end_date = Appointment.date + func.make_interval(
+        0, 0, 0, Appointment.duration
+    )
+    existing_lessons = Appointment.query.filter(
+        Appointment.approved_lessons_filter(
+            or_(
+                and_(Appointment.date <= end_date, Appointment.date >= date),
+                and_(appointment_end_date >= date, appointment_end_date <= end_date),
+            )
+        )
+    ).all()
+    if existing_lessons:
+        if type_ == AppointmentType.LESSON:
+            raise RouteError("This hour is not available.")
+        # delete all lessons and send FCMs
+
+
 def get_data(data: dict, user: User, appointment: Optional[Appointment] = None) -> dict:
     """get request data and a specific user
     - we need the user because we are not decorated in login_required here
@@ -88,9 +114,6 @@ def get_data(data: dict, user: User, appointment: Optional[Appointment] = None) 
         type_ = appointment.type
     else:
         type_ = None
-        if date < datetime.utcnow():
-            # trying to add a new lesson in the past??
-            raise RouteError("Date is not valid.")
 
     duration = data.get("duration")
     if not duration:
@@ -100,17 +123,17 @@ def get_data(data: dict, user: User, appointment: Optional[Appointment] = None) 
         student = user.student
         teacher = user.student.teacher
         type_ = type_ or AppointmentType.LESSON.value
+        if date < datetime.utcnow():
+            # trying to add a new lesson in the past??
+            raise RouteError("Date is not valid.")
         check_available_hours_for_student(date, student, appointment, duration)
     elif user.teacher:
-        # TODO check if there's another lesson within this time
-        # (filter existing lessons, hours[0] <= start and hours[1] >= end)
-        # if so - if it's a test, delete it
-        # if not, don't let the teacher schedule this hour
         type_ = getattr(
             AppointmentType,
             data.get("type", "").upper(),
             type_ or AppointmentType.LESSON.value,
         )
+        handle_teacher_hours(user.teacher, date, duration, type_)
         teacher = user.teacher
         student = Student.get_by_id(data.get("student_id"))
         if not student:

@@ -106,8 +106,6 @@ class Teacher(SurrogatePK, LessonCreator):
                     requested_date, student, hours, places
                 )
                 blacklisted = rule_instance.blacklisted()
-                print(type(rule_instance))
-                print(blacklisted)
                 for key in blacklist_hours.keys():
                     blacklist_hours[key].update(blacklisted[key])
 
@@ -123,14 +121,6 @@ class Teacher(SurrogatePK, LessonCreator):
                 timedelta(minutes=duration or self.lesson_duration),
                 force_future=True,
                 blacklist=blacklist_hours,
-            )
-
-        for appointment in todays_appointments.filter_by(student_id=None).all():
-            if datetime.utcnow() > appointment.date:
-                continue
-            yield (
-                appointment.date,
-                appointment.date + timedelta(minutes=appointment.duration),
             )
 
     @hybrid_method
