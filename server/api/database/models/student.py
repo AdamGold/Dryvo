@@ -5,7 +5,7 @@ from typing import List, Set
 from cloudinary.utils import cloudinary_url
 from flask_login import current_user
 from flask_sqlalchemy import BaseQuery
-from sqlalchemy import and_, func, select
+from sqlalchemy import and_, func, select, cast
 from sqlalchemy.ext.hybrid import hybrid_method, hybrid_property
 from sqlalchemy.orm import backref
 from sqlalchemy.sql.functions import coalesce
@@ -140,16 +140,18 @@ class Student(SurrogatePK, LessonCreator):
 
     @lessons_done.expression
     def lessons_done(cls):
-        q = (
-            select([func.count(Appointment.student_id)])
-            .where(
-                Appointment.approved_lessons_filter(
-                    Appointment.date < datetime.utcnow(),
-                    Appointment.student_id == cls.id,
-                )
+        q = select(
+            [
+                cast(func.sum(Appointment.duration), db.Float)
+                / (func.count(Appointment.student_id) * Teacher.lesson_duration)
+            ]
+        ).where(
+            Appointment.approved_lessons_filter(
+                Appointment.date < datetime.utcnow(), Appointment.student_id == cls.id
             )
-            .label("lessons_done")
         )
+        j = Student.__table__.join(Teacher.__table__)
+        q = q.select_from(j).label("lessons_done")
         return q + cls.number_of_old_lessons
 
     @hybrid_property

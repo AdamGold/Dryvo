@@ -374,6 +374,10 @@ def test_lesson_number(teacher, student, meetup, dropoff):
     assert new_lesson.lesson_number == 1
     assert lessons[1].lesson_number == 3
 
+    lesson = create_lesson(teacher, student, meetup, dropoff, datetime.utcnow(), duration=60)
+    assert lesson.lesson_number == 4.5
+
+
 
 def test_topics_for_lesson(app):
     topic = Topic.create(

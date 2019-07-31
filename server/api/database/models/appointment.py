@@ -92,21 +92,21 @@ class Appointment(SurrogatePK, Model):
         )
 
     @hybrid_property
-    def lesson_number(self):
-        return (
-            (
-                db.session.query(func.count(Appointment.id))
-                .select_from(Appointment)
-                .filter(
-                    self.approved_lessons_filter(
-                        Appointment.date < self.date,
-                        Appointment.student == self.student,
-                    )
-                )
-                .scalar()
+    def lesson_length(self) -> float:
+        return self.duration / self.teacher.lesson_duration
+
+    @hybrid_property
+    def lesson_number(self) -> float:
+        lessons = Appointment.query.filter(
+            self.approved_lessons_filter(
+                Appointment.date < self.date, Appointment.student == self.student
             )
+        ).all()
+
+        return (
+            sum(lesson.lesson_length for lesson in lessons)
             + self.student.number_of_old_lessons
-            + 1
+            + self.lesson_length
         )
 
     def to_dict(self):

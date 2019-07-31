@@ -92,12 +92,12 @@ def test_lessons_done(teacher, student, meetup, dropoff):
         teacher=teacher,
         student=student,
         creator=teacher.user,
-        duration=40,
+        duration=60,
         date=datetime.utcnow(),
         meetup_place=meetup,
         dropoff_place=dropoff,
     )
-    assert student.lessons_done == old_lesson_number + 1
+    assert student.lessons_done == old_lesson_number + 60 / teacher.lesson_duration
     assert student.lessons_done == lesson.lesson_number
     old_lesson_number = student.lessons_done
     Appointment.create(
@@ -113,7 +113,6 @@ def test_lessons_done(teacher, student, meetup, dropoff):
         student.lessons_done == old_lesson_number
     )  # because it's later than now, it hasn't changed
 
-    # now test expression
     st = Student.query.filter(Student.lessons_done == old_lesson_number).first()
     assert st.id == student.id
 
