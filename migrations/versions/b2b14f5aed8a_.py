@@ -32,7 +32,7 @@ def upgrade():
     op.add_column(
         "students",
         sa.Column(
-            "number_of_old_lessons", sa.Integer(), nullable=False, server_default="0"
+            "number_of_old_lessons", sa.Float(), nullable=False, server_default="0"
         ),
     )
     op.add_column(

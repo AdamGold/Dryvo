@@ -321,7 +321,7 @@ def test_edit_student(auth, requester, teacher, student):
         data={
             "theory": "true",
             "price": "1000",
-            "number_of_old_lessons": 10,
+            "number_of_old_lessons": 10.5,
             "doctor_check": "true",
         },
     )

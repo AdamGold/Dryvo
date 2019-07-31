@@ -121,7 +121,7 @@ def edit_student(student_id):
                 price = None
             extra_data = dict(
                 theory=data.get("theory", False) == "true",
-                number_of_old_lessons=int(data.get("number_of_old_lessons", 0)),
+                number_of_old_lessons=float(data.get("number_of_old_lessons", 0)),
                 price=price,
             )
         if image:

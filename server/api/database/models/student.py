@@ -41,7 +41,7 @@ class Student(SurrogatePK, LessonCreator):
     creator_id = reference_col("users", nullable=False)
     creator = relationship("User", foreign_keys=[creator_id])
     created_at = Column(db.DateTime, nullable=False, default=datetime.utcnow)
-    number_of_old_lessons = Column(db.Integer, nullable=False, default=0)
+    number_of_old_lessons = Column(db.Float, nullable=False, default=0)
     theory = Column(db.Boolean, nullable=False, default=False)
     doctor_check = Column(db.Boolean, nullable=False, default=False)
     eyes_check = Column(db.Boolean, nullable=False, default=False)
