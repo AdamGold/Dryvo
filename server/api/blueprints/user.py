@@ -78,11 +78,14 @@ def make_student():
         )
     if user_to_send_to.firebase_token:
         logger.debug(f"sending fcm to {user_to_send_to}")
-        FCM.notify(
-            token=user_to_send_to.firebase_token,
-            title=gettext("Join Request"),
-            body=body_text,
-        )
+        try:
+            FCM.notify(
+                token=user_to_send_to.firebase_token,
+                title=gettext("Join Request"),
+                body=body_text,
+            )
+        except:
+            pass
     return {"data": student.to_dict()}, 201
 
 
