@@ -253,7 +253,7 @@ def test_approve_lesson(auth, teacher, student, meetup, dropoff, requester):
 
 def test_user_edit_lesson(app, auth, student, teacher, meetup, dropoff, requester):
     """ test that is_approved turns false when user edits lesson"""
-    date = datetime.utcnow()
+    date = datetime.utcnow() + timedelta(minutes=5)
     lesson = create_lesson(teacher, student, meetup, dropoff, date)
     assert lesson.meetup_place.google_id == "ID1"
     times_used = lesson.meetup_place.times_used

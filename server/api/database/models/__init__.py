@@ -1,6 +1,6 @@
 from .blacklist_token import BlacklistToken
 from .topic import Topic
-from .appointment import Appointment, AppointmentType
+from .appointment import Appointment, AppointmentType, addinterval
 from .user import User, TokenScope
 from .payment import Payment, PaymentType
 from .lesson_creator import LessonCreator

@@ -22,6 +22,7 @@ from server.api.database.models import (
     Teacher,
     Topic,
     User,
+    addinterval,
 )
 from server.api.push_notifications import FCM
 from server.api.utils import jsonify_response, paginate
@@ -86,13 +87,11 @@ def handle_teacher_hours(
 
     # check if there's another lesson that ends or starts within this time
     end_date = date + timedelta(minutes=duration)
-    appointment_end_date = Appointment.date + func.make_interval(
-        0, 0, 0, Appointment.duration
-    )
+    appointment_end_date = addinterval(Appointment.date, Appointment.duration)
     existing_lessons = Appointment.query.filter(
         Appointment.approved_lessons_filter(
             or_(
-                and_(Appointment.date <= end_date, Appointment.date >= date),
+                Appointment.date.between(date, end_date),
                 and_(appointment_end_date >= date, appointment_end_date <= end_date),
             )
         )
@@ -101,6 +100,8 @@ def handle_teacher_hours(
         if type_ == AppointmentType.LESSON:
             raise RouteError("This hour is not available.")
         # delete all lessons and send FCMs
+        for appointment in existing_lessons:
+            delete_appointment_with_fcm(appointment)
 
 
 def get_data(data: dict, user: User, appointment: Optional[Appointment] = None) -> dict:
@@ -275,18 +276,7 @@ def update_topics(lesson_id):
     return {"data": lesson.to_dict()}, 201
 
 
-@appointments_routes.route("/<int:id_>", methods=["DELETE"])
-@jsonify_response
-@login_required
-def delete_appointment(id_):
-    try:
-        appointments = current_user.teacher.appointments
-    except AttributeError:
-        appointments = current_user.student.appointments
-    appointment = appointments.filter_by(id=id_).first()
-    if not appointment:
-        raise RouteError("Appointment does not exist.")
-
+def delete_appointment_with_fcm(appointment: Appointment):
     appointment.update(deleted=True)
 
     user_to_send_to = appointment.teacher.user
@@ -311,6 +301,21 @@ def delete_appointment(id_):
             )
         except NotificationError:
             pass
+
+
+@appointments_routes.route("/<int:id_>", methods=["DELETE"])
+@jsonify_response
+@login_required
+def delete_appointment(id_):
+    try:
+        appointments = current_user.teacher.appointments
+    except AttributeError:
+        appointments = current_user.student.appointments
+    appointment = appointments.filter_by(id=id_).first()
+    if not appointment:
+        raise RouteError("Appointment does not exist.")
+
+    delete_appointment_with_fcm(appointment)
 
     return {"message": "Appointment deleted successfully."}
 

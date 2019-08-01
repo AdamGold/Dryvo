@@ -3,8 +3,10 @@ from enum import Enum, auto
 
 from flask_login import current_user
 from sqlalchemy import and_, func
+from sqlalchemy.ext.compiler import compiles
 from sqlalchemy.ext.hybrid import hybrid_property
 from sqlalchemy.orm import backref
+from sqlalchemy.sql import expression
 from sqlalchemy_utils import ChoiceType
 
 from server.api.database import db
@@ -136,3 +138,21 @@ class Appointment(SurrogatePK, Model):
             f"student={self.student}, teacher={self.teacher}"
             f",approved={self.is_approved}, number={self.lesson_number}, duration={self.duration}>"
         )
+
+
+class addinterval(expression.FunctionElement):
+    type = db.DateTime()
+    name = "addinterval"
+
+
+@compiles(addinterval, "sqlite")
+def sl_addinterval(element, compiler, **kw):
+    dt1, dt2 = list(element.clauses)
+    return compiler.process(func.strftime("%s", dt1) + func.strftime("%s", dt2))
+
+
+@compiles(addinterval, "postgresql")
+def pg_addinterval(element, compiler, **kw):
+    dt1, dt2 = list(element.clauses)
+    return compiler.process(dt1 + func.make_interval(0, 0, 0, 0, 0, dt2))
+
