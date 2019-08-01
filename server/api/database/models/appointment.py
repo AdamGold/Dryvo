@@ -2,9 +2,11 @@ import datetime as dt
 from enum import Enum, auto
 
 from flask_login import current_user
-from sqlalchemy import and_, func
+from sqlalchemy import and_, func, or_
+from sqlalchemy.ext.compiler import compiles
 from sqlalchemy.ext.hybrid import hybrid_property
 from sqlalchemy.orm import backref
+from sqlalchemy.sql import expression
 from sqlalchemy_utils import ChoiceType
 
 from server.api.database import db
@@ -91,6 +93,19 @@ class Appointment(SurrogatePK, Model):
             Appointment.type == AppointmentType.LESSON.value, *args
         )
 
+    @staticmethod
+    def appointments_between(start_date, end_date):
+        appointment_end_date = addinterval(Appointment.date, Appointment.duration)
+        query = Appointment.approved_filter(
+            or_(
+                and_(start_date <= Appointment.date, end_date >= Appointment.date),
+                and_(
+                    start_date <= appointment_end_date, appointment_end_date <= end_date
+                ),
+            )
+        )
+        return Appointment.query.filter(query)
+
     @hybrid_property
     def lesson_length(self) -> float:
         return self.duration / self.teacher.lesson_duration
@@ -136,3 +151,22 @@ class Appointment(SurrogatePK, Model):
             f"student={self.student}, teacher={self.teacher}"
             f",approved={self.is_approved}, number={self.lesson_number}, duration={self.duration}>"
         )
+
+
+class addinterval(expression.FunctionElement):
+    type = db.DateTime()
+    name = "addinterval"
+
+
+@compiles(addinterval, "sqlite")
+def sl_addinterval(element, compiler, **kw):
+    dt1, dt2 = list(element.clauses)
+    return compiler.process(
+        func.datetime(func.strftime("%s", dt1) + dt2 * 60, "unixepoch")
+    )
+
+
+@compiles(addinterval)
+def default_addinterval(element, compiler, **kw):
+    dt1, dt2 = list(element.clauses)
+    return compiler.process(dt1 + func.make_interval(0, 0, 0, 0, 0, dt2))

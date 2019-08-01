@@ -100,7 +100,7 @@ def test_student_new_lesson(auth, teacher, student, requester, topic):
         "/appointments/",
         json={
             "date": date,
-            "duration_mul": "1.5",
+            "duration": "60",
             "meetup_place": {"description": "test"},
             "dropoff_place": {"description": "test"},
         },
@@ -117,6 +117,7 @@ def test_update_topics(auth, teacher, student, requester, topic):
         "/appointments/",
         json={
             "date": date,
+            "duration": 60,
             "student_id": student.id,
             "meetup_place": {"description": "test"},
             "dropoff_place": {"description": "test"},
@@ -191,6 +192,7 @@ def test_hour_not_available(auth, teacher, student, requester):
         "/appointments/",
         json={
             "date": date,
+            "duration": 40,
             "meetup_place": {"description": "test"},
             "dropoff_place": {"description": "test"},
         },
@@ -201,7 +203,7 @@ def test_hour_not_available(auth, teacher, student, requester):
 def test_teacher_new_lesson_without_student(auth, teacher, student, requester):
     auth.login(email=teacher.user.email)
     date = (tomorrow.replace(hour=13, minute=00)).strftime(DATE_FORMAT)
-    resp = requester.post("/appointments/", json={"date": date})
+    resp = requester.post("/appointments/", json={"date": date, "duration": 40})
     assert "does not exist" in resp.json["message"]
 
 
@@ -215,10 +217,79 @@ def test_teacher_new_lesson_with_student(auth, teacher, student, requester):
             "student_id": student.id,
             "meetup_place": {"description": "test"},
             "dropoff_place": {"description": "test"},
+            "duration": 40,
         },
     )
     assert resp.json["data"]["is_approved"]
     assert resp.json["data"]["price"] == student.price
+
+
+def test_teacher_new_lesson_with_existing_lessons(
+    auth, teacher, meetup, dropoff, student, requester
+):
+    auth.login(email=teacher.user.email)
+    date = tomorrow.replace(hour=13, minute=00)
+    lesson = create_lesson(teacher, student, meetup, dropoff, date)
+    resp = requester.post(
+        "/appointments/",
+        json={
+            "date": date.replace(minute=30).strftime(DATE_FORMAT),
+            "student_id": student.id,
+            "meetup_place": {"description": "test"},
+            "dropoff_place": {"description": "test"},
+            "duration": 40,
+        },
+    )
+    assert "not available" in resp.json["message"]
+    resp = requester.post(
+        "/appointments/",
+        json={
+            "date": date.replace(hour=12, minute=30).strftime(DATE_FORMAT),
+            "student_id": student.id,
+            "meetup_place": {"description": "test"},
+            "dropoff_place": {"description": "test"},
+            "duration": 40,
+        },
+    )
+    assert "not available" in resp.json["message"]
+
+
+def test_teacher_new_test_with_existing_lessons(
+    auth, teacher, student, requester, meetup, dropoff
+):
+    auth.login(email=teacher.user.email)
+    date = tomorrow.replace(hour=13, minute=00)
+    lesson = create_lesson(teacher, student, meetup, dropoff, date)
+    assert not lesson.deleted
+    resp = requester.post(
+        "/appointments/",
+        json={
+            "date": date.replace(minute=30).strftime(DATE_FORMAT),
+            "student_id": student.id,
+            "meetup_place": {"description": "test"},
+            "dropoff_place": {"description": "test"},
+            "duration": 40,
+            "type": "test",
+        },
+    )
+    assert lesson.deleted
+
+
+def test_teacher_past_lesson(auth, teacher, student, requester, meetup, dropoff):
+    auth.login(email=teacher.user.email)
+    date = datetime.now() - timedelta(days=3)
+    resp = requester.post(
+        "/appointments/",
+        json={
+            "date": date.strftime(DATE_FORMAT),
+            "student_id": student.id,
+            "meetup_place": {"description": "test"},
+            "dropoff_place": {"description": "test"},
+            "duration": 40,
+            "type": "test",
+        },
+    )
+    assert resp.json["data"]
 
 
 def test_delete_lesson(auth, teacher, student, meetup, dropoff, requester):
@@ -250,7 +321,7 @@ def test_approve_lesson(auth, teacher, student, meetup, dropoff, requester):
 
 def test_user_edit_lesson(app, auth, student, teacher, meetup, dropoff, requester):
     """ test that is_approved turns false when user edits lesson"""
-    date = datetime.utcnow()
+    date = datetime.utcnow() + timedelta(minutes=5)
     lesson = create_lesson(teacher, student, meetup, dropoff, date)
     assert lesson.meetup_place.google_id == "ID1"
     times_used = lesson.meetup_place.times_used
@@ -258,6 +329,7 @@ def test_user_edit_lesson(app, auth, student, teacher, meetup, dropoff, requeste
     resp = requester.post(
         f"/appointments/{lesson.id}",
         json={
+            "duration": 40,
             "date": date.strftime(DATE_FORMAT),
             "meetup_place": {"description": lesson.meetup_place.description},
         },
@@ -271,6 +343,7 @@ def test_user_edit_lesson(app, auth, student, teacher, meetup, dropoff, requeste
     resp = requester.post(
         f"/appointments/{lesson.id}",
         json={
+            "duration": 40,
             "date": date.strftime(DATE_FORMAT),
             "meetup_place": {"description": "no"},
             "dropoff_place": {"description": None},
@@ -282,6 +355,7 @@ def test_user_edit_lesson(app, auth, student, teacher, meetup, dropoff, requeste
     resp = requester.post(
         f"/appointments/{lesson.id}",
         json={
+            "duration": 40,
             "date": date.strftime(DATE_FORMAT),
             "meetup_place": {"description": "yes"},
             "student_id": student.id,
@@ -291,33 +365,58 @@ def test_user_edit_lesson(app, auth, student, teacher, meetup, dropoff, requeste
     assert resp.json["data"]["is_approved"]
 
 
-def test_handle_places(student: Student, meetup: Place):
+def test_handle_places(student: Student, meetup: Place, teacher, dropoff):
     assert handle_places(
-        dict(description="test", google_id="ID1"),
-        dict(description="test2", google_id="ID2"),
+        {
+            "meetup_place": dict(description="test", google_id="ID1"),
+            "dropoff_place": dict(description="test2", google_id="ID2"),
+        },
         None,
     ) == (None, None)
-    assert handle_places(dict(description=meetup.description), None, student) == (
-        meetup,
-        None,
-    )
+    assert handle_places(
+        {"meetup_place": dict(description=meetup.description), "dropoff_place": None},
+        student,
+    ) == (meetup, None)
     new_meetup, new_dropoff = handle_places(
-        dict(description="aa", google_id="ID1"), dict(description="bb"), student
+        {
+            "meetup_place": dict(description="aa", google_id="ID1"),
+            "dropoff_place": dict(description="bb"),
+        },
+        student,
     )
     assert new_meetup.description == "aa"
     assert new_meetup.times_used == 1
     assert new_meetup.google_id == "ID1"
     assert new_dropoff.times_used == 1
 
+    appointment = create_lesson(teacher, student, meetup, dropoff, datetime.utcnow())
+    assert handle_places(
+        {
+            "meetup_place": dict(description=meetup.description),
+            "dropoff_place": dict(description=dropoff.description),
+        },
+        student,
+        appointment,
+    ) == (None, None)
+
 
 @pytest.mark.parametrize(
     ("data_dict", "error"),
     (
         (
-            {"date": (datetime.utcnow() - timedelta(minutes=2)).strftime(DATE_FORMAT)},
+            {
+                "duration": 40,
+                "date": (datetime.utcnow() - timedelta(minutes=2)).strftime(
+                    DATE_FORMAT
+                ),
+            },
             "Date is not valid.",
         ),
-        ({"date": (tomorrow.strftime(DATE_FORMAT))}, "This hour is not available."),
+        (
+            {"duration": 40, "date": (tomorrow.strftime(DATE_FORMAT))},
+            "This hour is not available.",
+        ),
+        ({"date": (tomorrow.strftime(DATE_FORMAT))}, "Duration is required."),
     ),
 )
 def test_student_invalid_get_data(student, data_dict: dict, error: str):
@@ -331,6 +430,7 @@ def test_student_invalid_get_data(student, data_dict: dict, error: str):
     (
         (
             {
+                "duration": 40,
                 "date": (datetime.utcnow() + timedelta(days=2))
                 .replace(hour=10, minute=0)
                 .strftime(DATE_FORMAT),
@@ -351,6 +451,7 @@ def test_valid_get_data(student):
         DATE_FORMAT
     )
     data_dict = {
+        "duration": 40,
         "date": date,
         "meetup_place": {"description": "test"},
         "dropoff_place": {"description": "test"},
@@ -492,6 +593,7 @@ def test_teacher_adding_test(auth, teacher, student, requester):
     resp = requester.post(
         "/appointments/",
         json={
+            "duration": 40,
             "date": date,
             "student_id": student.id,
             "meetup_place": {"description": "test"},
@@ -518,6 +620,7 @@ def test_student_adding_inner_exam(auth, teacher, student, requester):
     resp = requester.post(
         "/appointments/",
         json={
+            "duration": 40,
             "date": date,
             "student_id": student.id,
             "meetup_place": {"description": "test"},

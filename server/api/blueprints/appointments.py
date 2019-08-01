@@ -1,5 +1,5 @@
 import itertools
-from datetime import datetime
+from datetime import datetime, timedelta
 from typing import Dict, Optional, Tuple
 
 import flask
@@ -36,32 +36,13 @@ def init_app(app):
 
 
 def handle_places(
-    meetup_place: Optional[Dict], dropoff_place: Optional[Dict], student: Student
-) -> Tuple[Place, Place]:
+    data: dict, student: Student, appointment: Optional[Appointment] = None
+) -> Tuple[Optional[Place], Optional[Place]]:
     if not student:
         return None, None
-    return (
-        Place.create_or_find(meetup_place, PlaceType.meetup, student),
-        Place.create_or_find(dropoff_place, PlaceType.dropoff, student),
-    )
-
-
-def get_data(data: dict, user: User, appointment: Optional[Appointment] = None) -> dict:
-    """get request data and a specific user
-    - we need the user because we are not decorated in login_required here
-    returns dict of new lesson or edited lesson"""
-    if not data.get("date"):
-        raise RouteError("Date is not valid.")
-    date = datetime.strptime(data["date"], DATE_FORMAT)
-    if not appointment and date < datetime.utcnow():
-        # trying to add a new lesson in the past??
-        raise RouteError("Date is not valid.")
-
     meetup_input = data.get("meetup_place", {})
     dropoff_input = data.get("dropoff_place", {})
-    type_ = None
     if appointment:
-        type_ = appointment.type
         # don't update same places
         if (
             appointment.meetup_place
@@ -74,32 +55,77 @@ def get_data(data: dict, user: User, appointment: Optional[Appointment] = None) 
             == appointment.dropoff_place.description
         ):
             dropoff_input = None
+    return (
+        Place.create_or_find(meetup_input, PlaceType.meetup, student),
+        Place.create_or_find(dropoff_input, PlaceType.dropoff, student),
+    )
 
-    duration_mul = float(data.get("duration_mul", 1))
+
+def check_available_hours_for_student(
+    date: datetime, student: Student, appointment: Optional[Appointment], duration: int
+):
+    available_hours = itertools.dropwhile(
+        lambda hours_range: hours_range[0] != date,
+        student.teacher.available_hours(
+            requested_date=date, student=student, duration=duration
+        ),
+    )  # check if requested date in available hours
+    try:
+        next(available_hours)
+    except StopIteration:
+        if (appointment and date != appointment.date) or not appointment:
+            raise RouteError("This hour is not available.")
+
+
+def handle_teacher_hours(
+    teacher: Teacher, date: datetime, duration: int, type_: Optional[AppointmentType]
+):
+    """check if there are existing lessons in the date given.
+    If so - is test? - delete all existing lessons.
+    NO - raise RouteError"""
+
+    # check if there's another lesson that ends or starts within this time
+    end_date = date + timedelta(minutes=duration)
+    existing_lessons = Appointment.appointments_between(date, end_date).all()
+    if existing_lessons:
+        if type_ == AppointmentType.LESSON:
+            raise RouteError("This hour is not available.")
+        # delete all lessons and send FCMs
+        for appointment in existing_lessons:
+            delete_appointment_with_fcm(appointment)
+
+
+def get_data(data: dict, user: User, appointment: Optional[Appointment] = None) -> dict:
+    """get request data and a specific user
+    - we need the user because we are not decorated in login_required here
+    returns dict of new lesson or edited lesson"""
+    if not data.get("date"):
+        raise RouteError("Date is not valid.")
+    date = datetime.strptime(data["date"], DATE_FORMAT)
+    if appointment:
+        type_ = appointment.type
+    else:
+        type_ = None
+
+    duration = data.get("duration")
+    if not duration:
+        raise RouteError("Duration is required.")
+    duration = int(duration)
     if user.student:
         student = user.student
         teacher = user.student.teacher
-        type_ = type_ or AppointmentType.LESSON.value
-        available_hours = itertools.dropwhile(
-            lambda hours_range: hours_range[0] != date,
-            user.student.teacher.available_hours(
-                requested_date=date, student=student, duration_mul=duration_mul
-            ),
-        )  # check if requested date in available hours
-        try:
-            next(available_hours)
-        except StopIteration:
-            if (appointment and date != appointment.date) or not appointment:
-                raise RouteError("This hour is not available.")
+        type_ = type_ or AppointmentType.LESSON
+        if date < datetime.utcnow():
+            # trying to add a new lesson in the past??
+            raise RouteError("Date is not valid.")
+        check_available_hours_for_student(date, student, appointment, duration)
     elif user.teacher:
-        # TODO check if there's another lesson within this time
-        # if so - if it's a test, delete it
-        # if not, don't let the teacher schedule this hour
         type_ = getattr(
             AppointmentType,
             data.get("type", "").upper(),
-            type_ or AppointmentType.LESSON.value,
+            type_ or AppointmentType.LESSON,
         )
+        handle_teacher_hours(user.teacher, date, duration, type_)
         teacher = user.teacher
         student = Student.get_by_id(data.get("student_id"))
         if not student:
@@ -107,7 +133,7 @@ def get_data(data: dict, user: User, appointment: Optional[Appointment] = None) 
     else:
         raise RouteError("Not authorized.", 401)
 
-    meetup, dropoff = handle_places(meetup_input, dropoff_input, student)
+    meetup, dropoff = handle_places(data, student, appointment)
     try:
         price = int(data.get("price", ""))
     except ValueError:
@@ -118,7 +144,7 @@ def get_data(data: dict, user: User, appointment: Optional[Appointment] = None) 
         "dropoff_place": dropoff,
         "student": student,
         "teacher": teacher,
-        "duration": duration_mul * teacher.lesson_duration,
+        "duration": duration,
         "price": price,
         "comments": data.get("comments"),
         "is_approved": True if user.teacher else False,
@@ -241,18 +267,7 @@ def update_topics(lesson_id):
     return {"data": lesson.to_dict()}, 201
 
 
-@appointments_routes.route("/<int:id_>", methods=["DELETE"])
-@jsonify_response
-@login_required
-def delete_appointment(id_):
-    try:
-        appointments = current_user.teacher.appointments
-    except AttributeError:
-        appointments = current_user.student.appointments
-    appointment = appointments.filter_by(id=id_).first()
-    if not appointment:
-        raise RouteError("Appointment does not exist.")
-
+def delete_appointment_with_fcm(appointment: Appointment):
     appointment.update(deleted=True)
 
     user_to_send_to = appointment.teacher.user
@@ -277,6 +292,21 @@ def delete_appointment(id_):
             )
         except NotificationError:
             pass
+
+
+@appointments_routes.route("/<int:id_>", methods=["DELETE"])
+@jsonify_response
+@login_required
+def delete_appointment(id_):
+    try:
+        appointments = current_user.teacher.appointments
+    except AttributeError:
+        appointments = current_user.student.appointments
+    appointment = appointments.filter_by(id=id_).first()
+    if not appointment:
+        raise RouteError("Appointment does not exist.")
+
+    delete_appointment_with_fcm(appointment)
 
     return {"message": "Appointment deleted successfully."}
 

@@ -21,6 +21,7 @@ def new_lesson(requester, date, student):
     return requester.post(
         "/appointments/",
         json={
+            "duration": 40,
             "date": date,
             "student_id": student.id,
             "meetup_place": "test",

@@ -74,7 +74,7 @@ class Teacher(SurrogatePK, LessonCreator):
         self,
         requested_date: datetime,
         student: "Student" = None,
-        duration_mul: float = 1,
+        duration: int = None,
         only_approved: bool = False,
         places: Tuple[Optional[str]] = (None, None),
     ) -> Iterable[Tuple[datetime, datetime]]:
@@ -118,17 +118,9 @@ class Teacher(SurrogatePK, LessonCreator):
             yield from get_slots(
                 hours,
                 taken_appointments,
-                timedelta(minutes=duration_mul * self.lesson_duration),
+                timedelta(minutes=duration or self.lesson_duration),
                 force_future=True,
                 blacklist=blacklist_hours,
-            )
-
-        for appointment in todays_appointments.filter_by(student_id=None).all():
-            if datetime.utcnow() > appointment.date:
-                continue
-            yield (
-                appointment.date,
-                appointment.date + timedelta(minutes=appointment.duration),
             )
 
     @hybrid_method

@@ -154,7 +154,7 @@ def test_available_hours_route(teacher, student, meetup, dropoff, auth, requeste
     lesson.update(is_approved=True)
     resp = requester.post(
         f"/teacher/{teacher.id}/available_hours",
-        json={"date": date, "duration_mul": "3"},
+        json={"date": date, "duration": "120"},
     )
     assert len(resp.json["data"]) == 1
     auth.logout()
@@ -538,13 +538,13 @@ def test_teacher_available_hours_with_rules(
     }
     WorkDay.create(**kwargs)
 
-    for _ in range(3):
+    for i in range(3):
         Appointment.create(
             teacher=teacher,
             student=student,
             creator=teacher.user,
             duration=teacher.lesson_duration,
-            date=tomorrow,
+            date=tomorrow + timedelta(minutes=i),
             meetup_place=meetup,
             dropoff_place=dropoff,
             is_approved=True,
