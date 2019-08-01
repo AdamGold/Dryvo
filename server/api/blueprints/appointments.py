@@ -9,7 +9,7 @@ from flask_babel import gettext
 from flask_login import current_user, login_required, logout_user
 from loguru import logger
 from pytz import timezone
-from sqlalchemy import and_, or_, func
+from sqlalchemy import and_
 
 from server.api.blueprints import teacher_required
 from server.api.database.models import (
@@ -22,7 +22,6 @@ from server.api.database.models import (
     Teacher,
     Topic,
     User,
-    addinterval,
 )
 from server.api.push_notifications import FCM
 from server.api.utils import jsonify_response, paginate
@@ -87,15 +86,7 @@ def handle_teacher_hours(
 
     # check if there's another lesson that ends or starts within this time
     end_date = date + timedelta(minutes=duration)
-    appointment_end_date = addinterval(Appointment.date, Appointment.duration)
-    existing_lessons = Appointment.query.filter(
-        Appointment.approved_lessons_filter(
-            or_(
-                Appointment.date.between(date, end_date),
-                and_(appointment_end_date >= date, appointment_end_date <= end_date),
-            )
-        )
-    ).all()
+    existing_lessons = Appointment.appointments_between(date, end_date).all()
     if existing_lessons:
         if type_ == AppointmentType.LESSON:
             raise RouteError("This hour is not available.")
@@ -123,7 +114,7 @@ def get_data(data: dict, user: User, appointment: Optional[Appointment] = None) 
     if user.student:
         student = user.student
         teacher = user.student.teacher
-        type_ = type_ or AppointmentType.LESSON.value
+        type_ = type_ or AppointmentType.LESSON
         if date < datetime.utcnow():
             # trying to add a new lesson in the past??
             raise RouteError("Date is not valid.")
@@ -132,7 +123,7 @@ def get_data(data: dict, user: User, appointment: Optional[Appointment] = None) 
         type_ = getattr(
             AppointmentType,
             data.get("type", "").upper(),
-            type_ or AppointmentType.LESSON.value,
+            type_ or AppointmentType.LESSON,
         )
         handle_teacher_hours(user.teacher, date, duration, type_)
         teacher = user.teacher

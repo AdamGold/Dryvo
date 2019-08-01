@@ -224,6 +224,74 @@ def test_teacher_new_lesson_with_student(auth, teacher, student, requester):
     assert resp.json["data"]["price"] == student.price
 
 
+def test_teacher_new_lesson_with_existing_lessons(
+    auth, teacher, meetup, dropoff, student, requester
+):
+    auth.login(email=teacher.user.email)
+    date = tomorrow.replace(hour=13, minute=00)
+    lesson = create_lesson(teacher, student, meetup, dropoff, date)
+    resp = requester.post(
+        "/appointments/",
+        json={
+            "date": date.replace(minute=30).strftime(DATE_FORMAT),
+            "student_id": student.id,
+            "meetup_place": {"description": "test"},
+            "dropoff_place": {"description": "test"},
+            "duration": 40,
+        },
+    )
+    assert "not available" in resp.json["message"]
+    resp = requester.post(
+        "/appointments/",
+        json={
+            "date": date.replace(hour=12, minute=30).strftime(DATE_FORMAT),
+            "student_id": student.id,
+            "meetup_place": {"description": "test"},
+            "dropoff_place": {"description": "test"},
+            "duration": 40,
+        },
+    )
+    assert "not available" in resp.json["message"]
+
+
+def test_teacher_new_test_with_existing_lessons(
+    auth, teacher, student, requester, meetup, dropoff
+):
+    auth.login(email=teacher.user.email)
+    date = tomorrow.replace(hour=13, minute=00)
+    lesson = create_lesson(teacher, student, meetup, dropoff, date)
+    assert not lesson.deleted
+    resp = requester.post(
+        "/appointments/",
+        json={
+            "date": date.replace(minute=30).strftime(DATE_FORMAT),
+            "student_id": student.id,
+            "meetup_place": {"description": "test"},
+            "dropoff_place": {"description": "test"},
+            "duration": 40,
+            "type": "test",
+        },
+    )
+    assert lesson.deleted
+
+
+def test_teacher_past_lesson(auth, teacher, student, requester, meetup, dropoff):
+    auth.login(email=teacher.user.email)
+    date = datetime.now() - timedelta(days=3)
+    resp = requester.post(
+        "/appointments/",
+        json={
+            "date": date.strftime(DATE_FORMAT),
+            "student_id": student.id,
+            "meetup_place": {"description": "test"},
+            "dropoff_place": {"description": "test"},
+            "duration": 40,
+            "type": "test",
+        },
+    )
+    assert resp.json["data"]
+
+
 def test_delete_lesson(auth, teacher, student, meetup, dropoff, requester):
     lesson = create_lesson(teacher, student, meetup, dropoff, datetime.utcnow())
     auth.login(email=student.user.email)
