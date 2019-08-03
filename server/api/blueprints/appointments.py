@@ -88,7 +88,7 @@ def handle_teacher_hours(
     end_date = date + timedelta(minutes=duration)
     existing_lessons = Appointment.appointments_between(date, end_date).all()
     if existing_lessons:
-        if type_ == AppointmentType.LESSON:
+        if type_ == AppointmentType.LESSON or date < datetime.utcnow():
             raise RouteError("This hour is not available.")
         # delete all lessons and send FCMs
         for appointment in existing_lessons:
