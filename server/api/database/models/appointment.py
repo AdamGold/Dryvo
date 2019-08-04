@@ -98,9 +98,9 @@ class Appointment(SurrogatePK, Model):
         appointment_end_date = addinterval(Appointment.date, Appointment.duration)
         query = Appointment.approved_filter(
             or_(
-                and_(start_date < Appointment.date, end_date > Appointment.date),
+                and_(start_date <= Appointment.date, Appointment.date < end_date),
                 and_(
-                    start_date < appointment_end_date, appointment_end_date < end_date
+                    start_date < appointment_end_date, appointment_end_date <= end_date
                 ),
             )
         )

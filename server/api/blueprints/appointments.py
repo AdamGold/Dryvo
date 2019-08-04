@@ -87,12 +87,14 @@ def handle_teacher_hours(
     # check if there's another lesson that ends or starts within this time
     end_date = date + timedelta(minutes=duration)
     existing_lessons = Appointment.appointments_between(date, end_date).all()
+    logger.debug(f"Found existing lessons: {existing_lessons}")
     if existing_lessons:
         if type_ == AppointmentType.LESSON or date < datetime.utcnow():
             raise RouteError("This hour is not available.")
         # delete all lessons and send FCMs
         for appointment in existing_lessons:
-            delete_appointment_with_fcm(appointment)
+            if appointment.type == AppointmentType.LESSON:
+                delete_appointment_with_fcm(appointment)
 
 
 def get_data(data: dict, user: User, appointment: Optional[Appointment] = None) -> dict:
