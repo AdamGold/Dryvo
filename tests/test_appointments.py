@@ -36,7 +36,7 @@ def create_lesson(
         student=student,
         creator=student.user if student else teacher.user,
         duration=duration,
-        date=date,
+        date=date.replace(second=0, microsecond=0),
         meetup_place=meetup,
         dropoff_place=dropoff,
         deleted=deleted,
@@ -500,9 +500,15 @@ def test_valid_get_data(student):
 
 def test_lesson_number(teacher, student, meetup, dropoff):
     lessons = []
-    for _ in range(2):
+    for i in range(2):
         lessons.append(
-            create_lesson(teacher, student, meetup, dropoff, datetime.utcnow())
+            create_lesson(
+                teacher,
+                student,
+                meetup,
+                dropoff,
+                datetime.utcnow() + timedelta(minutes=i),
+            )
         )
 
     assert lessons[1].lesson_number == 2
@@ -515,7 +521,12 @@ def test_lesson_number(teacher, student, meetup, dropoff):
     assert lessons[1].lesson_number == 3
 
     lesson = create_lesson(
-        teacher, student, meetup, dropoff, datetime.utcnow(), duration=60
+        teacher,
+        student,
+        meetup,
+        dropoff,
+        datetime.utcnow() + timedelta(minutes=5),
+        duration=60,
     )
     assert lesson.lesson_number == 4.5
 

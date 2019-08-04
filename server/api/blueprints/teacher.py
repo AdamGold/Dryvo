@@ -404,8 +404,12 @@ def create_report():
         dates["since"] = post_data.get("since")
         dates["until"] = post_data.get("until")
         try:
-            dates["since"] = datetime.strptime(dates["since"], WORKDAY_DATE_FORMAT)
-            dates["until"] = datetime.strptime(dates["until"], WORKDAY_DATE_FORMAT)
+            dates["since"] = datetime.strptime(
+                dates["since"], WORKDAY_DATE_FORMAT
+            ).replace(second=0, microsecond=0)
+            dates["until"] = datetime.strptime(
+                dates["until"], WORKDAY_DATE_FORMAT
+            ).replace(second=0, microsecond=0)
         except (ValueError, TypeError):
             raise RouteError("Dates are not valid.")
     report = Report.create(
