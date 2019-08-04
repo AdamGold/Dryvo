@@ -96,16 +96,21 @@ def update_work_days():
     OR
     "03-15-2019": [{from_hour: 8}], "03-16-2019": []....
     """
+    logger.debug(f"WORK DAYS - got the following data")
+    logger.debug(data)
     for day, hours_list in data.items():
         # first, let's delete all current data with this date
         # TODO better algorithm for that
         try:
             day = int(day)
-            params = dict(day=day)
+            params = dict(day=day, teacher=current_user.teacher)
             WorkDay.query.filter_by(**params).delete()
         except ValueError:
             # probably a date
-            params = dict(on_date=datetime.strptime(day, WORKDAY_DATE_FORMAT))
+            params = dict(
+                on_date=datetime.strptime(day, WORKDAY_DATE_FORMAT),
+                teacher=current_user.teacher,
+            )
             WorkDay.query.filter_by(**params).delete()
 
         for hours in hours_list:
