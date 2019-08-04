@@ -103,7 +103,7 @@ def get_data(data: dict, user: User, appointment: Optional[Appointment] = None) 
     returns dict of new lesson or edited lesson"""
     if not data.get("date"):
         raise RouteError("Date is not valid.")
-    date = datetime.strptime(data["date"], DATE_FORMAT)
+    date = datetime.strptime(data["date"], DATE_FORMAT).replace(second=0, microsecond=0)
     if appointment:
         type_ = appointment.type
     else:

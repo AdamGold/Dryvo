@@ -300,7 +300,7 @@ def test_teacher_new_consecutive_lessons(auth, teacher, student, requester):
         },
     )
     assert resp.json["data"]
-    date = date.replace(hour=12, minute=20)
+    date = date.replace(hour=12, minute=20, second=59)
     resp = requester.post(
         "/appointments/",
         json={

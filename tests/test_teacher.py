@@ -553,7 +553,3 @@ def test_teacher_available_hours_with_rules(
     hours_without_rules = list(teacher.available_hours(tomorrow))
     assert hours_with_rules != hours_without_rules
 
-
-def test_appointments_between():
-    assert 1 == 2
-
