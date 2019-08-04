@@ -153,8 +153,7 @@ def test_available_hours_route(teacher, student, meetup, dropoff, auth, requeste
     assert len(resp.json["data"]) == 6
     lesson.update(is_approved=True)
     resp = requester.post(
-        f"/teacher/{teacher.id}/available_hours",
-        json={"date": date, "duration": "120"},
+        f"/teacher/{teacher.id}/available_hours", json={"date": date, "duration": "120"}
     )
     assert len(resp.json["data"]) == 1
     auth.logout()
@@ -188,7 +187,7 @@ def test_student_blocked_hours_by_test(
         meetup_place=meetup,
         dropoff_place=dropoff,
         is_approved=False,
-        type=AppointmentType.TEST.value
+        type=AppointmentType.TEST.value,
     )
     auth.login(email=student.user.email)
     resp = requester.post(
@@ -553,4 +552,8 @@ def test_teacher_available_hours_with_rules(
     hours_with_rules = list(teacher.available_hours(tomorrow, student=student))
     hours_without_rules = list(teacher.available_hours(tomorrow))
     assert hours_with_rules != hours_without_rules
+
+
+def test_appointments_between():
+    assert 1 == 2
 

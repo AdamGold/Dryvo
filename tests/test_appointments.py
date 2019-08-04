@@ -275,6 +275,45 @@ def test_teacher_new_test_with_existing_lessons(
     assert lesson.deleted
 
 
+def test_teacher_new_consecutive_lessons(auth, teacher, student, requester):
+    auth.login(email=teacher.user.email)
+    date = tomorrow.replace(hour=13, minute=00)
+    resp = requester.post(
+        "/appointments/",
+        json={
+            "date": date.strftime(DATE_FORMAT),
+            "student_id": student.id,
+            "meetup_place": {"description": "test"},
+            "dropoff_place": {"description": "test"},
+            "duration": 40,
+        },
+    )
+    date = date.replace(minute=40)
+    resp = requester.post(
+        "/appointments/",
+        json={
+            "date": date.strftime(DATE_FORMAT),
+            "student_id": student.id,
+            "meetup_place": {"description": "test"},
+            "dropoff_place": {"description": "test"},
+            "duration": 40,
+        },
+    )
+    assert resp.json["data"]
+    date = date.replace(hour=12, minute=20)
+    resp = requester.post(
+        "/appointments/",
+        json={
+            "date": date.strftime(DATE_FORMAT),
+            "student_id": student.id,
+            "meetup_place": {"description": "test"},
+            "dropoff_place": {"description": "test"},
+            "duration": 40,
+        },
+    )
+    assert resp.json["data"]
+
+
 def test_teacher_past_lesson(auth, teacher, student, requester, meetup, dropoff):
     auth.login(email=teacher.user.email)
     date = datetime.now() - timedelta(days=3)
