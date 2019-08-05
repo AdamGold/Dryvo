@@ -34,6 +34,8 @@ class PlaceDistances(LessonRule):
         # loop through today's lessons
         relevant_lessons = []
         for lesson in self.today_lessons:
+            if not lesson.dropoff_place or not lesson.meetup_place:
+                continue
             if type_ == PlaceType.meetup:
                 origin = lesson.meetup_place.google_id
                 destination = self.dropoff_place_id

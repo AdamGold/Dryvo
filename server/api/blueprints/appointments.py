@@ -87,7 +87,7 @@ def handle_teacher_hours(
     # check if there's another lesson that ends or starts within this time
     end_date = date + timedelta(minutes=duration)
     existing_lessons = Appointment.appointments_between(date, end_date).all()
-    logger.debug(f"Found existing lessons: {existing_lessons}")
+    logger.debug(f"For {date}, found existing lessons: {existing_lessons}")
     if existing_lessons:
         if type_ == AppointmentType.LESSON or date < datetime.utcnow():
             raise RouteError("This hour is not available.")
@@ -273,7 +273,9 @@ def delete_appointment_with_fcm(appointment: Appointment):
     appointment.update(deleted=True)
 
     user_to_send_to = appointment.teacher.user
+    other_user = appointment.student.user
     if current_user == appointment.teacher.user:
+        other_user = user_to_send_to
         user_to_send_to = appointment.student.user
     if user_to_send_to.firebase_token:
         try:
@@ -289,7 +291,7 @@ def delete_appointment_with_fcm(appointment: Appointment):
                         format="short",
                         tzinfo=timezone(TIMEZONE),
                     ),
-                    user=user_to_send_to.name,
+                    user=other_user.name,
                 ),
             )
         except NotificationError:
