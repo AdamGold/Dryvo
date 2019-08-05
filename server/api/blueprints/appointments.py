@@ -304,11 +304,19 @@ def delete_appointment_with_fcm(appointment: Appointment):
 def delete_appointment(id_):
     try:
         appointments = current_user.teacher.appointments
+        is_student = False
     except AttributeError:
+        # a student
         appointments = current_user.student.appointments
+        is_student = True
     appointment = appointments.filter_by(id=id_).first()
     if not appointment:
         raise RouteError("Appointment does not exist.")
+    # if the appointment is in the past / in less than 24 hours, student can not cancel
+    if is_student and (appointment.date < datetime.utcnow() + timedelta(hours=24)):
+        raise RouteError(
+            "This appointment is either in the past or in less than 24 hours."
+        )
 
     delete_appointment_with_fcm(appointment)
 

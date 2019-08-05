@@ -96,7 +96,8 @@ class Appointment(SurrogatePK, Model):
     @staticmethod
     def appointments_between(start_date, end_date):
         appointment_end_date = addinterval(Appointment.date, Appointment.duration)
-        # TODO test this method
+        start_date = start_date.replace(second=0, microsecond=0)
+        end_date = end_date.replace(second=0, microsecond=0)
         query = Appointment.approved_filter(
             or_(
                 and_(start_date <= Appointment.date, Appointment.date < end_date),

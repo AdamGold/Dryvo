@@ -332,12 +332,24 @@ def test_teacher_past_lesson(auth, teacher, student, requester, meetup, dropoff)
 
 
 def test_delete_lesson(auth, teacher, student, meetup, dropoff, requester):
-    lesson = create_lesson(teacher, student, meetup, dropoff, datetime.utcnow())
+    lesson = create_lesson(
+        teacher, student, meetup, dropoff, datetime.utcnow() + timedelta(hours=23)
+    )
     auth.login(email=student.user.email)
-    old_lesson_number = student.lessons_done
+    resp = requester.delete(f"/appointments/{lesson.id}")
+    assert (
+        "This appointment is either in the past or in less than 24 hours."
+        == resp.json["message"]
+    )
+    lesson.update(date=datetime.utcnow() - timedelta(hours=2))
+    resp = requester.delete(f"/appointments/{lesson.id}")
+    assert (
+        "This appointment is either in the past or in less than 24 hours."
+        == resp.json["message"]
+    )
+    lesson.update(date=datetime.utcnow() + timedelta(days=2))
     resp = requester.delete(f"/appointments/{lesson.id}")
     assert "successfully" in resp.json["message"]
-    assert student.lessons_done == old_lesson_number - 1
 
 
 def test_approve_lesson(auth, teacher, student, meetup, dropoff, requester):
@@ -680,3 +692,30 @@ def test_student_adding_inner_exam(auth, teacher, student, requester):
     )
     assert resp.json["data"]["type"] == AppointmentType.LESSON.name.lower()
 
+
+@pytest.mark.parametrize(
+    ("date", "end_date", "result"),
+    (
+        (tomorrow, tomorrow + timedelta(minutes=60), True),
+        (tomorrow.replace(minute=10), tomorrow + timedelta(minutes=40), True),
+        (tomorrow - timedelta(hours=1), tomorrow + timedelta(minutes=30), True),
+        (tomorrow + timedelta(minutes=10), tomorrow + timedelta(minutes=50), True),
+        (tomorrow + timedelta(minutes=40), tomorrow + timedelta(minutes=50), False),
+        (tomorrow - timedelta(hours=1), tomorrow, False),
+        (tomorrow, tomorrow + timedelta(minutes=40), True),
+    ),
+)
+def test_appointments_between(
+    teacher, student, requester, meetup, dropoff, date, end_date, result
+):
+    """1. get lessons with the same starting hour
+    2. get lessons with the same ending hour
+    3. get lessons that end within existing hours
+    4. get lessons that start within existing hours
+    5. lessons that start when existing lesson ends
+    6. lesson that ends when existing lesson starts
+    7. exactly the same hours
+    """
+    lesson = create_lesson(teacher, student, meetup, dropoff, tomorrow)
+    existing_lessons = Appointment.appointments_between(date, end_date).all()
+    assert (lesson in existing_lessons) == result

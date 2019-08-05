@@ -552,4 +552,3 @@ def test_teacher_available_hours_with_rules(
     hours_with_rules = list(teacher.available_hours(tomorrow, student=student))
     hours_without_rules = list(teacher.available_hours(tomorrow))
     assert hours_with_rules != hours_without_rules
-
