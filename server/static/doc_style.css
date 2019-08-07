@@ -11,7 +11,7 @@ body {
 }
 @page {
 	@bottom-center {
-		content: "הופק באמצעות Dryvo";
+		content: "הופק באמצעות Dryvo, תעודת רישום מספר 226101";
 	}
 	@bottom-right {
 		content: "דף " counter(page) " מתוך " counter(pages);

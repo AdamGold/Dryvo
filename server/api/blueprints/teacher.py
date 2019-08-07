@@ -22,6 +22,9 @@ from server.api.database.models import (
     Teacher,
     User,
     WorkDay,
+    Kilometer,
+    Car,
+    CarType,
 )
 from server.api.push_notifications import FCM
 from server.api.utils import jsonify_response, paginate
@@ -432,6 +435,9 @@ def show_report(uuid):
                 Appointment.date > report.since,
             )
         ),
+        "kilometers": lambda report: report.teacher.kilometers.filter(
+            and_(Kilometer.date < report.until, Kilometer.date > report.since)
+        ),
     }
     report = Report.query.filter_by(uuid=uuid).first()
     if not report:
@@ -464,3 +470,19 @@ def create_bot_student():
     )
 
     return {"data": student.user.to_dict()}, 201
+
+
+def register_car():
+    """register a new car for a teacher"""
+
+
+def update_car():
+    pass
+
+
+def delete_car():
+    pass
+
+
+def update_kilometer():
+    """update kilometer for a specific date"""
