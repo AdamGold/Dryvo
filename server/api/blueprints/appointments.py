@@ -101,9 +101,12 @@ def get_data(data: dict, user: User, appointment: Optional[Appointment] = None) 
     """get request data and a specific user
     - we need the user because we are not decorated in login_required here
     returns dict of new lesson or edited lesson"""
-    if not data.get("date"):
+    try:
+        date = datetime.strptime(data.get("date"), DATE_FORMAT).replace(
+            second=0, microsecond=0
+        )
+    except (ValueError, TypeError):
         raise RouteError("Date is not valid.")
-    date = datetime.strptime(data["date"], DATE_FORMAT).replace(second=0, microsecond=0)
     if appointment:
         type_ = appointment.type
     else:

@@ -22,6 +22,9 @@ from server.api.database.models import (
     Teacher,
     User,
     WorkDay,
+    Kilometer,
+    Car,
+    CarType,
 )
 from server.api.push_notifications import FCM
 from server.api.utils import jsonify_response, paginate
@@ -399,6 +402,7 @@ def create_report():
     except KeyError:
         raise RouteError("Report type was not found.")
 
+    car = current_user.teacher.cars.filter_by(id=post_data.get("car")).first()
     dates = dict()
     if report_type.name in Report.DATES_REQUIRED:
         dates["since"] = post_data.get("since")
@@ -412,8 +416,9 @@ def create_report():
             ).replace(second=0, microsecond=0)
         except (ValueError, TypeError):
             raise RouteError("Dates are not valid.")
+
     report = Report.create(
-        report_type=report_type.value, teacher=current_user.teacher, **dates
+        report_type=report_type.value, teacher=current_user.teacher, car=car, **dates
     )
 
     return {"data": report.to_dict()}
@@ -430,6 +435,13 @@ def show_report(uuid):
                 Appointment.is_approved == True,
                 Appointment.date < report.until,
                 Appointment.date > report.since,
+            )
+        ),
+        "kilometers": lambda report: report.teacher.kilometers.filter(
+            and_(
+                Kilometer.date < report.until,
+                Kilometer.date > report.since,
+                Kilometer.car == report.car,
             )
         ),
     }
@@ -464,3 +476,113 @@ def create_bot_student():
     )
 
     return {"data": student.user.to_dict()}, 201
+
+
+@teacher_routes.route("/<int:teacher_id>/cars", methods=["GET"])
+@jsonify_response
+@login_required
+def cars(teacher_id):
+    teacher = Teacher.get_by_id(teacher_id)
+    if not teacher:
+        raise RouteError("Teacher not found.")
+    return {
+        "data": [car.to_dict() for car in Car.query.filter_by(teacher=teacher).all()]
+    }
+
+
+@teacher_routes.route("/cars", methods=["POST"])
+@jsonify_response
+@login_required
+@teacher_required
+def register_car():
+    """register a new car for a teacher"""
+    data = flask.request.values
+    number = data.get("number")
+    if not number:
+        raise RouteError("Car number is required.")
+    # if this number already exist, raise error
+    exists = current_user.teacher.cars.filter_by(number=number).first()
+    if exists:
+        raise RouteError("Car already exists.")
+    try:
+        type_ = CarType[data.get("type", "")]
+    except KeyError:
+        type_ = CarType.manual
+    car = Car.create(
+        name=data.get("name"),
+        type=type_.value,
+        number=number,
+        teacher=current_user.teacher,
+    )
+
+    return {"data": car.to_dict()}, 201
+
+
+@teacher_routes.route("/cars/<int:id_>", methods=["POST"])
+@jsonify_response
+@login_required
+@teacher_required
+def update_car(id_):
+    data = flask.request.values
+    car = current_user.teacher.cars.filter_by(id=id_).first()
+    if not car:
+        raise RouteError("Car does not exist.")
+
+    number = data.get("number")
+    if not number:
+        raise RouteError("Car number is required.")
+
+    try:
+        type_ = CarType[data.get("type", "")]
+    except KeyError:
+        type_ = CarType.manual
+    car.update(name=data.get("name"), type=type_.value, number=number)
+    return {"data": car.to_dict()}
+
+
+@teacher_routes.route("/cars/<int:id_>", methods=["DELETE"])
+@jsonify_response
+@login_required
+@teacher_required
+def delete_car(id_):
+    car = current_user.teacher.cars.filter_by(id=id_).first()
+    if not car:
+        raise RouteError("Car does not exist.")
+
+    car.delete()
+    return {"message": "Car deleted."}
+
+
+@teacher_routes.route("/cars/<int:id_>/kilometer", methods=["POST"])
+@jsonify_response
+@login_required
+@teacher_required
+def update_kilometer(id_):
+    """update kilometer for a specific date"""
+    car = current_user.teacher.cars.filter_by(id=id_).first()
+    if not car:
+        raise RouteError("Car does not exist.")
+
+    data = flask.request.values
+    try:
+        date = datetime.strptime(data.get("date"), WORKDAY_DATE_FORMAT)
+    except (ValueError, TypeError):
+        raise RouteError("Date is not valid.")
+    # if this date exist, delete it first
+    exists = current_user.teacher.kilometers.filter_by(date=date).first()
+    if exists:
+        exists.delete()
+    start, end = data.get("start"), data.get("end")
+    if not start or not end:
+        raise RouteError("All kilometer distances are required.")
+
+    kilometer = Kilometer.create(
+        date=date,
+        personal=data.get("personal", 0),
+        start_of_day=start,
+        end_of_day=end,
+        car=car,
+        teacher=current_user.teacher,
+    )
+
+    return {"data": kilometer.to_dict()}, 201

@@ -12,3 +12,5 @@ from .review import Review
 from .teacher import Teacher
 from .student import Student
 from .report import Report, ReportType
+from .kilometer import Kilometer
+from .car import Car, CarType

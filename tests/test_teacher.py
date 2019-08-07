@@ -16,6 +16,8 @@ from server.api.database.models import (
     Report,
     Place,
     PlaceType,
+    Car,
+    Kilometer,
 )
 from server.consts import DATE_FORMAT, WORKDAY_DATE_FORMAT
 
@@ -447,14 +449,25 @@ def test_invalid_login_to_ezcount(auth, requester):
 
 
 @pytest.mark.parametrize(
-    ("report_type", "since", "until"),
-    (("lessons", "2019-05-01", "2019-05-30"), ("students", None, None)),
+    ("report_type", "since", "until", "with_car"),
+    (
+        ("lessons", "2019-05-01", "2019-05-30", True),
+        ("students", None, None, False),
+        ("kilometers", "2019-05-01", "2019-05-30", True),
+    ),
 )
-def test_create_report(auth, requester, teacher, report_type, since, until):
+def test_create_report(
+    auth, requester, teacher, report_type, since, until, with_car, car
+):
     auth.login(email=teacher.user.email)
     resp = requester.post(
         "/teacher/reports",
-        json={"report_type": report_type, "since": since, "until": until},
+        json={
+            "report_type": report_type,
+            "since": since,
+            "until": until,
+            "car": car.id if with_car else None,
+        },
     )
     assert resp.json["data"]["uuid"]
     saved_report = Report.query.filter_by(uuid=resp.json["data"]["uuid"]).first()
@@ -552,3 +565,79 @@ def test_teacher_available_hours_with_rules(
     hours_with_rules = list(teacher.available_hours(tomorrow, student=student))
     hours_without_rules = list(teacher.available_hours(tomorrow))
     assert hours_with_rules != hours_without_rules
+
+
+def test_cars(auth, teacher, requester, car):
+    auth.login()
+    resp = requester.get(f"/teacher/{teacher.id}/cars")
+    assert resp.json["data"]
+    resp = requester.get(f"/teacher/5555/cars")
+    assert "not found" in resp.json["message"]
+
+
+def test_register_car(auth, requester, teacher):
+    auth.login(email=teacher.user.email)
+    data = {"name": "test", "number": 11111111111, "type": "auto"}
+    resp = requester.post(f"/teacher/cars", data=data)
+    assert resp.json["data"]["type"] == "auto"
+    data = {"name": "test", "number": 123123, "type": "test"}
+    resp = requester.post(f"/teacher/cars", data=data)
+    assert resp.json["data"]["type"] == "manual"
+
+    # check existing car
+    data = {"name": "test", "number": 11111111111, "type": "auto"}
+    resp = requester.post(f"/teacher/cars", data=data)
+    assert resp.json["message"] == "Car already exists."
+
+def test_update_car(auth, requester, teacher, car):
+    auth.login(email=teacher.user.email)
+    data = {"name": "test", "number": 123123123, "type": "auto"}
+    resp = requester.post(f"/teacher/cars/{car.id}", data=data)
+    assert resp.json["data"]["number"] == 123123123
+
+
+@pytest.mark.parametrize(
+    ("car_id", "number", "error"),
+    ((1, None, "Car number is required."), (1233, 123, "Car does not exist.")),
+)
+def test_invalid_update_car(auth, requester, teacher, car_id, number, error):
+    auth.login(email=teacher.user.email)
+    data = {"name": "test", "number": number}
+    resp = requester.post(f"/teacher/cars/{car_id}", data=data)
+    assert resp.json["message"] == error
+
+
+def test_delete_car(auth, teacher, requester, car):
+    auth.login(email=teacher.user.email)
+    resp = requester.delete(f"/teacher/cars/{car.id}")
+    assert "deleted" in resp.json["message"]
+    assert not Car.query.first()
+
+
+def test_update_kilometer(auth, teacher, requester, car):
+    auth.login(email=teacher.user.email)
+    data = {"date": "2019-06-30", "start": 1000, "end": 3000, "personal": 100}
+    resp = requester.post(f"/teacher/cars/{car.id}/kilometer", data=data)
+    assert resp.json["data"]["total_work_km"] == 3000 - 1000 + 100
+    assert resp.status_code == 201
+
+    # delete existing kilometer
+    data = {"date": "2019-06-30", "start": 1, "end": 2}
+    resp = requester.post(f"/teacher/cars/{car.id}/kilometer", data=data)
+    assert resp.json["data"]["total_work_km"] == 1
+
+@pytest.mark.parametrize(
+    ("car_id", "date", "start", "end", "error"),
+    (
+        (1, "2019-05-30", None, 1100, "All kilometer distances are required."),
+        (1233, "2019-05-30", 1000, 1000, "Car does not exist."),
+        (1, "2019-50-30", 1000, 1000, "Date is not valid."),
+    ),
+)
+def test_invalid_update_kilometer(
+    auth, teacher, requester, car, car_id, date, start, end, error
+):
+    auth.login(email=teacher.user.email)
+    data = {"date": date, "start": start, "end": end, "personal": 100}
+    resp = requester.post(f"/teacher/cars/{car_id}/kilometer", data=data)
+    assert resp.json["message"] == error
