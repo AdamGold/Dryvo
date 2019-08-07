@@ -18,8 +18,8 @@ from server.api.database.mixins import (
 
 
 class CarType(Enum):
-    auto = 1
-    manual = 2
+    manual = 1
+    auto = 2
 
 
 class Car(SurrogatePK, Model):
@@ -27,7 +27,7 @@ class Car(SurrogatePK, Model):
 
     __tablename__ = "cars"
     name = Column(db.String, nullable=True)
-    type = Column(ChoiceType(CarType, impl=db.Integer()), nullable=False)
+    type = Column(ChoiceType(CarType, impl=db.Integer()), default=1, nullable=False)
     number = Column(db.Integer, nullable=False)
     teacher_id = reference_col("teachers", nullable=False)
     teacher = relationship("Teacher", backref=backref("cars", lazy="dynamic"))
