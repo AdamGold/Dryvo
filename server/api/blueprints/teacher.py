@@ -500,7 +500,10 @@ def register_car():
     number = data.get("number")
     if not number:
         raise RouteError("Car number is required.")
-
+    # if this number already exist, raise error
+    exists = current_user.teacher.cars.filter_by(number=number).first()
+    if exists:
+        raise RouteError("Car already exists.")
     try:
         type_ = CarType[data.get("type", "")]
     except KeyError:
@@ -521,10 +524,11 @@ def register_car():
 @teacher_required
 def update_car(id_):
     data = flask.request.values
-    car = Car.get_by_id(id_)
-    number = data.get("number")
+    car = current_user.teacher.cars.filter_by(id=id_).first()
     if not car:
         raise RouteError("Car does not exist.")
+
+    number = data.get("number")
     if not number:
         raise RouteError("Car number is required.")
 
@@ -558,22 +562,27 @@ def update_kilometer(id_):
     car = current_user.teacher.cars.filter_by(id=id_).first()
     if not car:
         raise RouteError("Car does not exist.")
+
     data = flask.request.values
     try:
         date = datetime.strptime(data.get("date"), WORKDAY_DATE_FORMAT)
     except (ValueError, TypeError):
         raise RouteError("Date is not valid.")
+    # if this date exist, delete it first
+    exists = current_user.teacher.kilometers.filter_by(date=date).first()
+    if exists:
+        exists.delete()
     start, end = data.get("start"), data.get("end")
     if not start or not end:
         raise RouteError("All kilometer distances are required.")
 
-    kilometer = Kilometer(
+    kilometer = Kilometer.create(
         date=date,
         personal=data.get("personal", 0),
         start_of_day=start,
         end_of_day=end,
         car=car,
+        teacher=current_user.teacher,
     )
-    current_user.teacher.kilometers.append(kilometer)
 
     return {"data": kilometer.to_dict()}, 201

@@ -580,10 +580,14 @@ def test_register_car(auth, requester, teacher):
     data = {"name": "test", "number": 11111111111, "type": "auto"}
     resp = requester.post(f"/teacher/cars", data=data)
     assert resp.json["data"]["type"] == "auto"
-    data = {"name": "test", "number": 11111111111, "type": "test"}
+    data = {"name": "test", "number": 123123, "type": "test"}
     resp = requester.post(f"/teacher/cars", data=data)
     assert resp.json["data"]["type"] == "manual"
 
+    # check existing car
+    data = {"name": "test", "number": 11111111111, "type": "auto"}
+    resp = requester.post(f"/teacher/cars", data=data)
+    assert resp.json["message"] == "Car already exists."
 
 def test_update_car(auth, requester, teacher, car):
     auth.login(email=teacher.user.email)
@@ -617,6 +621,10 @@ def test_update_kilometer(auth, teacher, requester, car):
     assert resp.json["data"]["total_work_km"] == 3000 - 1000 + 100
     assert resp.status_code == 201
 
+    # delete existing kilometer
+    data = {"date": "2019-06-30", "start": 1, "end": 2}
+    resp = requester.post(f"/teacher/cars/{car.id}/kilometer", data=data)
+    assert resp.json["data"]["total_work_km"] == 1
 
 @pytest.mark.parametrize(
     ("car_id", "date", "start", "end", "error"),
