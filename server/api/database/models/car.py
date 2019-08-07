@@ -27,7 +27,9 @@ class Car(SurrogatePK, Model):
 
     __tablename__ = "cars"
     name = Column(db.String, nullable=True)
-    type = Column(ChoiceType(CarType, impl=db.Integer()), default=1, nullable=False)
+    type = Column(
+        ChoiceType(CarType, impl=db.Integer()), default=CarType.manual, nullable=False
+    )
     number = Column(db.Integer, nullable=False)
     teacher_id = reference_col("teachers", nullable=False)
     teacher = relationship("Teacher", backref=backref("cars", lazy="dynamic"))
@@ -41,6 +43,6 @@ class Car(SurrogatePK, Model):
         return {
             "name": self.name,
             "type": self.type.name,
-            "number": self.numbere,
+            "number": self.number,
             "created_at": self.created_at,
         }

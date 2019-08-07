@@ -36,6 +36,7 @@
 			<thead>
 				<tr>
 					<th scope="col">סה״כ עבודה</th>
+					<th scope="col">סה״כ יומי</th>
 					<th scope="col">
 						פרטי
 					</th>
@@ -51,6 +52,7 @@
 				{% for kilometer in data %}
 				<tr>
 					<td>{{ kilometer.total_work_km }}</td>
+					<td>{{ kilometer.end_of_day - kilometer.start_of_day }}</td>
 					<td>
 						{{ kilometer.personal }}
 					</td>

@@ -478,12 +478,16 @@ def create_bot_student():
     return {"data": student.user.to_dict()}, 201
 
 
-@teacher_routes.route("/cars", methods=["GET"])
+@teacher_routes.route("/<int:teacher_id>/cars", methods=["GET"])
 @jsonify_response
 @login_required
-@teacher_required
-def cars():
-    return {"data": [car.to_dict() for car in current_user.teacher.cars.all()]}
+def cars(teacher_id):
+    teacher = Teacher.get_by_id(teacher_id)
+    if not teacher:
+        raise RouteError("Teacher not found.")
+    return {
+        "data": [car.to_dict() for car in Car.query.filter_by(teacher=teacher).all()]
+    }
 
 
 @teacher_routes.route("/cars", methods=["POST"])
@@ -497,14 +501,21 @@ def register_car():
     if not number:
         raise RouteError("Car number is required.")
 
-    type_ = getattr(CarType, data.get("type", ""), 1)
-    car = Car(name=data.get("name"), type=type_, number=number)
-    current_user.teacher.cars.append(car)
+    try:
+        type_ = CarType[data.get("type", "")]
+    except KeyError:
+        type_ = CarType.manual
+    car = Car.create(
+        name=data.get("name"),
+        type=type_.value,
+        number=number,
+        teacher=current_user.teacher,
+    )
 
     return {"data": car.to_dict()}, 201
 
 
-@teacher_routes.route("/cars/<int:id_>/update", methods=["POST"])
+@teacher_routes.route("/cars/<int:id_>", methods=["POST"])
 @jsonify_response
 @login_required
 @teacher_required
@@ -517,8 +528,11 @@ def update_car(id_):
     if not number:
         raise RouteError("Car number is required.")
 
-    type_ = getattr(CarType, data.get("type", ""), 1)
-    car.update(name=data.get("name"), type=type_, number=number)
+    try:
+        type_ = CarType[data.get("type", "")]
+    except KeyError:
+        type_ = CarType.manual
+    car.update(name=data.get("name"), type=type_.value, number=number)
     return {"data": car.to_dict()}
 
 

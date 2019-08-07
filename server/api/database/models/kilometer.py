@@ -37,7 +37,7 @@ class Kilometer(SurrogatePK, Model):
 
     @hybrid_property
     def total_work_km(self) -> float:
-        return self.end_of_day - self.start_of_day + self.personal
+        return float(self.end_of_day) - float(self.start_of_day) + float(self.personal)
 
     def to_dict(self) -> dict:
         return {
