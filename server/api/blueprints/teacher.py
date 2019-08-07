@@ -402,6 +402,7 @@ def create_report():
     except KeyError:
         raise RouteError("Report type was not found.")
 
+    car = current_user.teacher.cars.filter_by(id=post_data.get("car")).first()
     dates = dict()
     if report_type.name in Report.DATES_REQUIRED:
         dates["since"] = post_data.get("since")
@@ -415,8 +416,9 @@ def create_report():
             ).replace(second=0, microsecond=0)
         except (ValueError, TypeError):
             raise RouteError("Dates are not valid.")
+
     report = Report.create(
-        report_type=report_type.value, teacher=current_user.teacher, **dates
+        report_type=report_type.value, teacher=current_user.teacher, car=car, **dates
     )
 
     return {"data": report.to_dict()}
@@ -439,7 +441,7 @@ def show_report(uuid):
             and_(
                 Kilometer.date < report.until,
                 Kilometer.date > report.since,
-                Kilometer.car_id == report.car_id,
+                Kilometer.car == report.car,
             )
         ),
     }
@@ -533,7 +535,7 @@ def delete_car(id_):
     return {"message": "Car deleted."}
 
 
-@teacher_routes.route("/cars/<int: id_>/kilometer", methods=["POST"])
+@teacher_routes.route("/cars/<int:id_>/kilometer", methods=["POST"])
 @jsonify_response
 @login_required
 @teacher_required
@@ -545,7 +547,7 @@ def update_kilometer(id_):
     data = flask.request.values
     try:
         date = datetime.strptime(data.get("date"), WORKDAY_DATE_FORMAT)
-    except ValueError:
+    except (ValueError, TypeError):
         raise RouteError("Date is not valid.")
     start, end = data.get("start"), data.get("end")
     if not start or not end:

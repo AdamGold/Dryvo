@@ -21,6 +21,7 @@ from server.api.database.models import (
     Topic,
     User,
     WorkDay,
+    Car,
 )
 from server.api.social import SocialNetwork, social_networks_classes
 
@@ -76,6 +77,7 @@ def setup_db(app):
         crn=999999999,
         invoice_api_key=DEMO_API_KEY,
     )
+    Car.create(teacher=teacher, number=1111111111)
     student_user = User.create(
         email="student@test.com", password="test", name="student", area="test"
     )
@@ -275,6 +277,12 @@ def topic(app):
 def lesson(app):
     with app.app_context():
         yield Appointment.query.first()
+
+
+@pytest.fixture
+def car(app):
+    with app.app_context():
+        yield Car.query.first()
 
 
 @pytest.fixture

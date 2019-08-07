@@ -20,6 +20,7 @@ from server.api.database.mixins import (
 class ReportType(Enum):
     students = 1
     lessons = 2
+    kilometers = 3
 
 
 class Report(SurrogatePK, Model):
@@ -32,8 +33,10 @@ class Report(SurrogatePK, Model):
     until = Column(db.DateTime, nullable=True)
     teacher_id = reference_col("teachers", nullable=False)
     teacher = relationship("Teacher", backref=backref("reports", lazy="dynamic"))
+    car_id = reference_col("cars", nullable=True)
+    car = relationship("Car", backref=backref("reports", lazy="dynamic"))
     created_at = Column(db.DateTime, nullable=False, default=dt.datetime.utcnow)
-    DATES_REQUIRED = ["lessons"]  # list of types where dates are required
+    DATES_REQUIRED = ["lessons", "kilometers"]  # list of types where dates are required
 
     def __init__(self, **kwargs):
         """Create instance."""

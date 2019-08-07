@@ -447,14 +447,25 @@ def test_invalid_login_to_ezcount(auth, requester):
 
 
 @pytest.mark.parametrize(
-    ("report_type", "since", "until"),
-    (("lessons", "2019-05-01", "2019-05-30"), ("students", None, None)),
+    ("report_type", "since", "until", "with_car"),
+    (
+        ("lessons", "2019-05-01", "2019-05-30", True),
+        ("students", None, None, False),
+        ("kilometers", "2019-05-01", "2019-05-30", True),
+    ),
 )
-def test_create_report(auth, requester, teacher, report_type, since, until):
+def test_create_report(
+    auth, requester, teacher, report_type, since, until, with_car, car
+):
     auth.login(email=teacher.user.email)
     resp = requester.post(
         "/teacher/reports",
-        json={"report_type": report_type, "since": since, "until": until},
+        json={
+            "report_type": report_type,
+            "since": since,
+            "until": until,
+            "car": car.id if with_car else None,
+        },
     )
     assert resp.json["data"]["uuid"]
     saved_report = Report.query.filter_by(uuid=resp.json["data"]["uuid"]).first()
@@ -552,3 +563,23 @@ def test_teacher_available_hours_with_rules(
     hours_with_rules = list(teacher.available_hours(tomorrow, student=student))
     hours_without_rules = list(teacher.available_hours(tomorrow))
     assert hours_with_rules != hours_without_rules
+
+
+def test_cars():
+    assert 1 == 2
+
+
+def test_register_car():
+    assert 1 == 2
+
+
+def test_update_car():
+    assert 1 == 2
+
+
+def test_delete_car():
+    assert 1 == 2
+
+
+def test_update_kilometer():
+    assert 1 == 2
