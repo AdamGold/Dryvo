@@ -61,7 +61,9 @@
 						{{ kilometer.start_of_day }}
 					</td>
 					<td>
-						<strong>{{ kilometer.date }}</strong>
+						<strong>{{
+							kilometer.date.strftime("%d/%m/%Y")
+						}}</strong>
 					</td>
 					<th scope="row">{{ loop.index }}</th>
 				</tr>

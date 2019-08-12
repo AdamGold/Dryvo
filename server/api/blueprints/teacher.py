@@ -575,6 +575,8 @@ def update_kilometer(id_):
     start, end = data.get("start"), data.get("end")
     if not start or not end:
         raise RouteError("All kilometer distances are required.")
+    if end < start:
+        raise RouteError("Ending value must be bigger than starting value.")
 
     kilometer = Kilometer.create(
         date=date,

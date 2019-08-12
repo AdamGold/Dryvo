@@ -632,6 +632,7 @@ def test_update_kilometer(auth, teacher, requester, car):
         (1, "2019-05-30", None, 1100, "All kilometer distances are required."),
         (1233, "2019-05-30", 1000, 1000, "Car does not exist."),
         (1, "2019-50-30", 1000, 1000, "Date is not valid."),
+        (1, "2019-08-30", 1000, 200, "Ending value must be bigger than starting value."),
     ),
 )
 def test_invalid_update_kilometer(
