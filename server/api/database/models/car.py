@@ -30,7 +30,7 @@ class Car(SurrogatePK, Model):
     type = Column(
         ChoiceType(CarType, impl=db.Integer()), default=CarType.manual, nullable=False
     )
-    number = Column(db.Integer, nullable=False)
+    number = Column(db.String, nullable=False)
     teacher_id = reference_col("teachers", nullable=False)
     teacher = relationship("Teacher", backref=backref("cars", lazy="dynamic"))
     created_at = Column(db.DateTime, nullable=False, default=dt.datetime.utcnow)
@@ -41,6 +41,7 @@ class Car(SurrogatePK, Model):
 
     def to_dict(self) -> dict:
         return {
+            "id": self.id,
             "name": self.name,
             "type": self.type.name,
             "number": self.number,

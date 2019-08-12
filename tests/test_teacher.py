@@ -577,15 +577,15 @@ def test_cars(auth, teacher, requester, car):
 
 def test_register_car(auth, requester, teacher):
     auth.login(email=teacher.user.email)
-    data = {"name": "test", "number": 11111111111, "type": "auto"}
+    data = {"name": "test", "number": "11111111111", "type": "auto"}
     resp = requester.post(f"/teacher/cars", data=data)
     assert resp.json["data"]["type"] == "auto"
-    data = {"name": "test", "number": 123123, "type": "test"}
+    data = {"name": "test", "number": "123123", "type": "test"}
     resp = requester.post(f"/teacher/cars", data=data)
     assert resp.json["data"]["type"] == "manual"
 
     # check existing car
-    data = {"name": "test", "number": 11111111111, "type": "auto"}
+    data = {"name": "test", "number": "11111111111", "type": "auto"}
     resp = requester.post(f"/teacher/cars", data=data)
     assert resp.json["message"] == "Car already exists."
 
@@ -593,12 +593,12 @@ def test_update_car(auth, requester, teacher, car):
     auth.login(email=teacher.user.email)
     data = {"name": "test", "number": 123123123, "type": "auto"}
     resp = requester.post(f"/teacher/cars/{car.id}", data=data)
-    assert resp.json["data"]["number"] == 123123123
+    assert resp.json["data"]["number"] == "123123123"
 
 
 @pytest.mark.parametrize(
     ("car_id", "number", "error"),
-    ((1, None, "Car number is required."), (1233, 123, "Car does not exist.")),
+    ((1, None, "Car number is required."), (1233, "123", "Car does not exist.")),
 )
 def test_invalid_update_car(auth, requester, teacher, car_id, number, error):
     auth.login(email=teacher.user.email)

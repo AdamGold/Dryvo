@@ -23,7 +23,7 @@ def upgrade():
         sa.Column("id", sa.Integer(), nullable=False),
         sa.Column("name", sa.String(), nullable=True),
         sa.Column("type", sa.Integer(), nullable=False),
-        sa.Column("number", sa.Integer(), nullable=False),
+        sa.Column("number", sa.String(), nullable=False),
         sa.Column("teacher_id", sa.Integer(), nullable=False),
         sa.Column("created_at", sa.DateTime(), nullable=False),
         sa.ForeignKeyConstraint(["teacher_id"], ["teachers.id"]),
