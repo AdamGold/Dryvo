@@ -496,7 +496,7 @@ def cars(teacher_id):
 @teacher_required
 def register_car():
     """register a new car for a teacher"""
-    data = flask.request.values
+    data = flask.request.get_json()
     number = data.get("number")
     if not number:
         raise RouteError("Car number is required.")
@@ -523,7 +523,7 @@ def register_car():
 @login_required
 @teacher_required
 def update_car(id_):
-    data = flask.request.values
+    data = flask.request.get_json()
     car = current_user.teacher.cars.filter_by(id=id_).first()
     if not car:
         raise RouteError("Car does not exist.")
@@ -563,7 +563,7 @@ def update_kilometer(id_):
     if not car:
         raise RouteError("Car does not exist.")
 
-    data = flask.request.values
+    data = flask.request.get_json()
     try:
         date = datetime.strptime(data.get("date"), WORKDAY_DATE_FORMAT)
     except (ValueError, TypeError):

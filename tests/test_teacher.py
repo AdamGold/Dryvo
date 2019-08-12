@@ -578,21 +578,21 @@ def test_cars(auth, teacher, requester, car):
 def test_register_car(auth, requester, teacher):
     auth.login(email=teacher.user.email)
     data = {"name": "test", "number": "11111111111", "type": "auto"}
-    resp = requester.post(f"/teacher/cars", data=data)
+    resp = requester.post(f"/teacher/cars", json=data)
     assert resp.json["data"]["type"] == "auto"
     data = {"name": "test", "number": "123123", "type": "test"}
-    resp = requester.post(f"/teacher/cars", data=data)
+    resp = requester.post(f"/teacher/cars", json=data)
     assert resp.json["data"]["type"] == "manual"
 
     # check existing car
     data = {"name": "test", "number": "11111111111", "type": "auto"}
-    resp = requester.post(f"/teacher/cars", data=data)
+    resp = requester.post(f"/teacher/cars", json=data)
     assert resp.json["message"] == "Car already exists."
 
 def test_update_car(auth, requester, teacher, car):
     auth.login(email=teacher.user.email)
     data = {"name": "test", "number": 123123123, "type": "auto"}
-    resp = requester.post(f"/teacher/cars/{car.id}", data=data)
+    resp = requester.post(f"/teacher/cars/{car.id}", json=data)
     assert resp.json["data"]["number"] == "123123123"
 
 
@@ -603,7 +603,7 @@ def test_update_car(auth, requester, teacher, car):
 def test_invalid_update_car(auth, requester, teacher, car_id, number, error):
     auth.login(email=teacher.user.email)
     data = {"name": "test", "number": number}
-    resp = requester.post(f"/teacher/cars/{car_id}", data=data)
+    resp = requester.post(f"/teacher/cars/{car_id}", json=data)
     assert resp.json["message"] == error
 
 
@@ -617,13 +617,13 @@ def test_delete_car(auth, teacher, requester, car):
 def test_update_kilometer(auth, teacher, requester, car):
     auth.login(email=teacher.user.email)
     data = {"date": "2019-06-30", "start": 1000, "end": 3000, "personal": 100}
-    resp = requester.post(f"/teacher/cars/{car.id}/kilometer", data=data)
+    resp = requester.post(f"/teacher/cars/{car.id}/kilometer", json=data)
     assert resp.json["data"]["total_work_km"] == 3000 - 1000 + 100
     assert resp.status_code == 201
 
     # delete existing kilometer
     data = {"date": "2019-06-30", "start": 1, "end": 2}
-    resp = requester.post(f"/teacher/cars/{car.id}/kilometer", data=data)
+    resp = requester.post(f"/teacher/cars/{car.id}/kilometer", json=data)
     assert resp.json["data"]["total_work_km"] == 1
 
 @pytest.mark.parametrize(
@@ -639,5 +639,5 @@ def test_invalid_update_kilometer(
 ):
     auth.login(email=teacher.user.email)
     data = {"date": date, "start": start, "end": end, "personal": 100}
-    resp = requester.post(f"/teacher/cars/{car_id}/kilometer", data=data)
+    resp = requester.post(f"/teacher/cars/{car_id}/kilometer", json=data)
     assert resp.json["message"] == error
