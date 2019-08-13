@@ -618,7 +618,7 @@ def test_update_kilometer(auth, teacher, requester, car):
     auth.login(email=teacher.user.email)
     data = {"date": "2019-06-30", "start": 1000, "end": 3000, "personal": 100}
     resp = requester.post(f"/teacher/cars/{car.id}/kilometer", json=data)
-    assert resp.json["data"]["total_work_km"] == 3000 - 1000 + 100
+    assert resp.json["data"]["total_work_km"] == 3000 - 1000 - 100
     assert resp.status_code == 201
 
     # delete existing kilometer
