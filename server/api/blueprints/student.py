@@ -7,7 +7,7 @@ from flask import Blueprint
 from flask_login import current_user, login_required, logout_user
 
 from server.api.blueprints.teacher import teacher_required
-from server.api.database.models import Student, Topic, Car
+from server.api.database.models import Student, Topic
 from server.api.utils import jsonify_response, paginate
 from server.error_handling import RouteError
 

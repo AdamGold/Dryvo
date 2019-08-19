@@ -338,6 +338,27 @@ def test_edit_student(auth, requester, teacher, student):
     assert resp.json["data"]["eyes_check"]
 
 
+@pytest.mark.parametrize(
+    ("car_id", "student_id", "error"),
+    ((1, 300, "Student does not exist."), (300, 1, "Car does not exist.")),
+)
+def test_invalid_edit_student(
+    auth, requester, teacher, student, student_id, car_id, error
+):
+    auth.login(email=teacher.user.email)
+    resp = requester.post(
+        f"/student/{student_id}",
+        data={
+            "theory": "true",
+            "price": "1000",
+            "number_of_old_lessons": 10.5,
+            "doctor_check": "true",
+            "car_id": car_id,
+        },
+    )
+    assert resp.json["message"] == error
+
+
 def test_not_authorized_edit_student(auth, requester, student, admin):
     auth.login(email=admin.email)
     resp = requester.post(

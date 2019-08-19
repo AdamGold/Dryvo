@@ -75,13 +75,15 @@ def test_work_days(teacher, auth, requester):
 
 def test_update_work_days(teacher, auth, requester):
     auth.login(email=teacher.user.email)
+    car = teacher.cars.first()
     # update normal work days
     data = {
-        0: [{"from_hour": "23", "from_minutes": 0, "to_hour": "24", "to_minutes": 0}]
+        0: [{"car_id": car.id, "from_hour": "23", "from_minutes": 0, "to_hour": "24", "to_minutes": 0}]
     }
     resp = requester.post("/teacher/work_days", json=data)
     assert resp.status_code == 200
     assert WorkDay.query.filter_by(from_hour=23).first().day.value == 0
+    assert WorkDay.query.filter_by(from_hour=23).first().car == car
     # check everything older gets deleted
     data = {0: [{"from_hour": 11, "from_minutes": 0, "to_hour": 12, "to_minutes": 0}]}
     resp = requester.post("/teacher/work_days", json=data)
@@ -583,9 +585,11 @@ def test_cars(auth, teacher, requester, car):
 
 def test_register_car(auth, requester, teacher):
     auth.login(email=teacher.user.email)
-    data = {"name": "test", "number": "11111111111", "type": "auto"}
+    long_color = "0000000000000000"
+    data = {"name": "test", "number": "11111111111", "type": "auto", "color": long_color}
     resp = requester.post(f"/teacher/cars", json=data)
     assert resp.json["data"]["type"] == "auto"
+    assert resp.json["data"]["color"] == long_color[:6]
     data = {"name": "test", "number": "123123", "type": "test"}
     resp = requester.post(f"/teacher/cars", json=data)
     assert resp.json["data"]["type"] == "manual"
