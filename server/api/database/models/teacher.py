@@ -43,8 +43,11 @@ class Teacher(SurrogatePK, LessonCreator):
         """Create instance."""
         db.Model.__init__(self, **kwargs)
 
-    def work_hours_for_date(self, date: datetime):
-        work_hours = self.work_days.filter_by(on_date=date.date()).all()
+    def work_hours_for_date(self, date: datetime, student: "Student" = None):
+        car = self.cars.first()
+        if student:
+            car = student.car
+        work_hours = self.work_days.filter_by(on_date=date.date(), car=car).all()
         if not work_hours:
             weekday = ["NEVER USED", 1, 2, 3, 4, 5, 6, 0][
                 date.isoweekday()
@@ -89,7 +92,7 @@ class Teacher(SurrogatePK, LessonCreator):
         todays_appointments = self.appointments.filter(
             func.extract("day", Appointment.date) == requested_date.day
         ).filter(func.extract("month", Appointment.date) == requested_date.month)
-        work_hours = self.work_hours_for_date(requested_date)
+        work_hours = self.work_hours_for_date(requested_date, student=student)
         taken_appointments = self.taken_appointments_tuples(
             todays_appointments, only_approved
         )

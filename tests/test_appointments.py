@@ -87,7 +87,7 @@ def test_student_new_lesson(auth, teacher, student, requester, topic):
     auth.login(email=student.user.email)
     date = (tomorrow.replace(hour=16, minute=00)).strftime(DATE_FORMAT)
     kwargs = {
-        "teacher_id": teacher.id,
+        "teacher": teacher,
         "day": 1,
         "from_hour": 7,
         "from_minutes": 0,
@@ -178,7 +178,7 @@ def test_hour_not_available(auth, teacher, student, requester):
     auth.login(email=student.user.email)
     date = (tomorrow.replace(hour=12, minute=00)).strftime(DATE_FORMAT)
     kwargs = {
-        "teacher_id": teacher.id,
+        "teacher": teacher,
         "day": 1,
         "from_hour": 13,
         "from_minutes": 0,
@@ -669,7 +669,7 @@ def test_teacher_adding_test(auth, teacher, student, requester):
 def test_student_adding_inner_exam(auth, teacher, student, requester):
     auth.login(email=student.user.email)
     kwargs = {
-        "teacher_id": teacher.id,
+        "teacher": teacher,
         "day": 1,
         "from_hour": 7,
         "from_minutes": 0,

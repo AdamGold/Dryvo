@@ -324,6 +324,7 @@ def test_edit_student(auth, requester, teacher, student):
             "price": "1000",
             "number_of_old_lessons": 10.5,
             "doctor_check": "true",
+            "car_id": teacher.cars.first().id,
         },
     )
     assert not resp.json["data"]["eyes_check"]

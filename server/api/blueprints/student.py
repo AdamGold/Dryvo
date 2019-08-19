@@ -7,7 +7,7 @@ from flask import Blueprint
 from flask_login import current_user, login_required, logout_user
 
 from server.api.blueprints.teacher import teacher_required
-from server.api.database.models import Student, Topic
+from server.api.database.models import Student, Topic, Car
 from server.api.utils import jsonify_response, paginate
 from server.error_handling import RouteError
 
@@ -119,9 +119,13 @@ def edit_student(student_id):
                 price = int(data.get("price", ""))
             except ValueError:
                 price = None
+            car = current_user.teacher.cars.filter_by(id=data.get("car_id")).first()
+            if not car:
+                raise RouteError("Car does not exist.")
             extra_data = dict(
                 theory=data.get("theory", False) == "true",
                 number_of_old_lessons=float(data.get("number_of_old_lessons", 0)),
+                car=car,
                 price=price,
             )
         if image:

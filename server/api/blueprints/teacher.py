@@ -121,6 +121,9 @@ def update_work_days():
             to_hour = max(min(int(hours.get("to_hour")), 24), 0)
             from_minutes = max(min(int(hours.get("from_minutes")), 60), 0)
             to_minutes = max(min(int(hours.get("to_minutes")), 60), 0)
+            car = current_user.teacher.cars.filter_by(id=hours.get("car_id")).first()
+            if not car:
+                car = current_user.teacher.cars.first()
 
             if from_hour >= to_hour:
                 raise RouteError(
@@ -133,6 +136,7 @@ def update_work_days():
                     from_minutes=from_minutes,
                     to_hour=to_hour,
                     to_minutes=to_minutes,
+                    car=car,
                     **params,
                 )
             )
@@ -467,12 +471,20 @@ def create_bot_student():
     teacher = current_user.teacher
     data = flask.request.values
     user = create_user_from_data(data, required=["email", "name", "phone"])
+    car = teacher.cars.filter_by(id=data.get("car_id")).first()
+    if not car:
+        raise RouteError("Car does not exist.")
     try:
         price = int(data.get("price", ""))
     except ValueError:
         price = None
     student = Student.create(
-        user=user, teacher=teacher, creator=current_user, price=price, is_approved=True
+        user=user,
+        teacher=teacher,
+        creator=current_user,
+        price=price,
+        car=car,
+        is_approved=True,
     )
 
     return {"data": student.user.to_dict()}, 201
@@ -508,11 +520,14 @@ def register_car():
         type_ = CarType[data.get("type", "")]
     except KeyError:
         type_ = CarType.manual
+
+    color = data.get("color")
     car = Car.create(
         name=data.get("name"),
         type=type_.value,
         number=number,
         teacher=current_user.teacher,
+        color=color[:6] if color else None,
     )
 
     return {"data": car.to_dict()}, 201
