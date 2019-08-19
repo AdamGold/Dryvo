@@ -37,6 +37,8 @@ class WorkDay(SurrogatePK, Model):
     to_hour = Column(db.Integer, nullable=False)
     to_minutes = Column(db.Integer, nullable=False, default=0)
     on_date = Column(db.Date, nullable=True)
+    car_id = reference_col("cars", nullable=True)
+    car = relationship("Car", backref=backref("work_days", lazy="dynamic"))
 
     ALLOWED_FILTERS = ["day", "on_date"]
     default_sort_column = "day"
@@ -44,6 +46,8 @@ class WorkDay(SurrogatePK, Model):
     def __init__(self, **kwargs):
         """Create instance."""
         db.Model.__init__(self, **kwargs)
+        if not self.car:
+            self.car = self.teacher.cars.first()
 
     def to_dict(self):
         return {
@@ -52,6 +56,7 @@ class WorkDay(SurrogatePK, Model):
             "from_hour": self.from_hour,
             "from_minutes": self.from_minutes,
             "to_hour": self.to_hour,
+            "car": self.car.to_dict(),
             "to_minutes": self.to_minutes,
             "on_date": self.on_date,
         }

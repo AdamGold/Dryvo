@@ -13,6 +13,7 @@ from server.api.database.models import (
     Topic,
     WorkDay,
     LessonTopic,
+    Car
 )
 from server.consts import DATE_FORMAT
 from server.error_handling import RouteError
@@ -87,7 +88,7 @@ def test_student_new_lesson(auth, teacher, student, requester, topic):
     auth.login(email=student.user.email)
     date = (tomorrow.replace(hour=16, minute=00)).strftime(DATE_FORMAT)
     kwargs = {
-        "teacher_id": teacher.id,
+        "teacher": teacher,
         "day": 1,
         "from_hour": 7,
         "from_minutes": 0,
@@ -109,6 +110,31 @@ def test_student_new_lesson(auth, teacher, student, requester, topic):
     assert resp.json["data"]["price"] == student.price * 1.5
     assert resp.json["data"]["duration"] == teacher.lesson_duration * 1.5
 
+
+def test_student_different_car_new_lesson(auth, teacher, student, requester, topic):
+    auth.login(email=student.user.email)
+    date = (tomorrow.replace(hour=16, minute=00)).strftime(DATE_FORMAT)
+    kwargs = {
+        "teacher": teacher,
+        "day": 1,
+        "from_hour": 7,
+        "from_minutes": 0,
+        "to_hour": 21,
+        "to_minutes": 59,
+        "on_date": tomorrow.date(),
+        "car": Car.create(teacher=teacher, number="11111111")
+    }
+    WorkDay.create(**kwargs)
+    resp = requester.post(
+        "/appointments/",
+        json={
+            "date": date,
+            "duration": "60",
+            "meetup_place": {"description": "test"},
+            "dropoff_place": {"description": "test"},
+        },
+    )
+    assert "not available" in resp.json["message"]
 
 def test_update_topics(auth, teacher, student, requester, topic):
     auth.login(email=teacher.user.email)
@@ -178,7 +204,7 @@ def test_hour_not_available(auth, teacher, student, requester):
     auth.login(email=student.user.email)
     date = (tomorrow.replace(hour=12, minute=00)).strftime(DATE_FORMAT)
     kwargs = {
-        "teacher_id": teacher.id,
+        "teacher": teacher,
         "day": 1,
         "from_hour": 13,
         "from_minutes": 0,
@@ -669,7 +695,7 @@ def test_teacher_adding_test(auth, teacher, student, requester):
 def test_student_adding_inner_exam(auth, teacher, student, requester):
     auth.login(email=student.user.email)
     kwargs = {
-        "teacher_id": teacher.id,
+        "teacher": teacher,
         "day": 1,
         "from_hour": 7,
         "from_minutes": 0,

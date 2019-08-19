@@ -32,8 +32,12 @@ class Car(SurrogatePK, Model):
     )
     number = Column(db.String, nullable=False)
     teacher_id = reference_col("teachers", nullable=False)
-    teacher = relationship("Teacher", backref=backref("cars", lazy="dynamic"))
+    teacher = relationship(
+        "Teacher",
+        backref=backref("cars", lazy="dynamic", order_by="Car.created_at.asc()"),
+    )
     created_at = Column(db.DateTime, nullable=False, default=dt.datetime.utcnow)
+    color = Column(db.String, nullable=True)
 
     def __init__(self, **kwargs):
         """Create instance."""
@@ -45,5 +49,6 @@ class Car(SurrogatePK, Model):
             "name": self.name,
             "type": self.type.name,
             "number": self.number,
+            "color": self.color,
             "created_at": self.created_at,
         }

@@ -47,6 +47,8 @@ class Student(SurrogatePK, LessonCreator):
     eyes_check = Column(db.Boolean, nullable=False, default=False)
     green_form = Column(db.String(240), nullable=True)
     price = Column(db.Integer, nullable=True)
+    car_id = reference_col("cars", nullable=True)
+    car = relationship("Car", backref=backref("students", lazy="dynamic"))
 
     ALLOWED_FILTERS = [
         "is_active",
@@ -64,6 +66,8 @@ class Student(SurrogatePK, LessonCreator):
         db.Model.__init__(self, **kwargs)
         if not self.price:
             self.price = self.teacher.price
+        if not self.car:
+            self.car = self.teacher.cars.first()
 
     def _lesson_topics(self, is_finished: bool):
         lesson_ids = [lesson.id for lesson in self.lessons]
@@ -228,6 +232,7 @@ class Student(SurrogatePK, LessonCreator):
             "number_of_old_lessons": self.number_of_old_lessons,
             "green_form": green_form,
             "price": self.price,
+            "car": self.car.to_dict(),
         }
 
     def __repr__(self):

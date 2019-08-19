@@ -75,13 +75,15 @@ def test_work_days(teacher, auth, requester):
 
 def test_update_work_days(teacher, auth, requester):
     auth.login(email=teacher.user.email)
+    car = teacher.cars.first()
     # update normal work days
     data = {
-        0: [{"from_hour": "23", "from_minutes": 0, "to_hour": "24", "to_minutes": 0}]
+        0: [{"car_id": car.id, "from_hour": "23", "from_minutes": 0, "to_hour": "24", "to_minutes": 0}]
     }
     resp = requester.post("/teacher/work_days", json=data)
     assert resp.status_code == 200
     assert WorkDay.query.filter_by(from_hour=23).first().day.value == 0
+    assert WorkDay.query.filter_by(from_hour=23).first().car == car
     # check everything older gets deleted
     data = {0: [{"from_hour": 11, "from_minutes": 0, "to_hour": 12, "to_minutes": 0}]}
     resp = requester.post("/teacher/work_days", json=data)
@@ -109,7 +111,7 @@ def test_add_work_day_invalid_values(teacher, auth, requester):
 def test_delete_work_day(teacher, auth, requester):
     auth.login(email=teacher.user.email)
     kwargs = {
-        "teacher_id": 1,
+        "teacher": teacher,
         "day": 1,
         "from_hour": 13,
         "from_minutes": 0,
@@ -129,7 +131,7 @@ def test_available_hours_route(teacher, student, meetup, dropoff, auth, requeste
     date = tomorrow.strftime(WORKDAY_DATE_FORMAT)
     time_and_date = date + "T13:30:20.123123Z"
     data = {
-        "teacher_id": teacher.id,
+        "teacher": teacher,
         "from_hour": 13,
         "from_minutes": 0,
         "to_hour": 17,
@@ -172,7 +174,7 @@ def test_student_blocked_hours_by_test(
 ):
     date = (datetime.utcnow() + timedelta(days=1)).replace(hour=13, minute=0)
     data = {
-        "teacher_id": teacher.id,
+        "teacher": teacher,
         "from_hour": 13,
         "from_minutes": 0,
         "to_hour": 17,
@@ -206,7 +208,7 @@ def test_available_hours_route_with_places(
     auth.login(email=student.user.email)
     tomorrow = datetime.utcnow() + timedelta(days=1)
     data = {
-        "teacher_id": teacher.id,
+        "teacher": teacher,
         "from_hour": 7,
         "from_minutes": 0,
         "to_hour": 17,
@@ -263,7 +265,7 @@ def test_available_hours_route_with_places(
 def test_teacher_available_hours(teacher, student, requester, meetup, dropoff):
     tomorrow = datetime.utcnow().replace(hour=7, minute=0) + timedelta(days=1)
     kwargs = {
-        "teacher_id": teacher.id,
+        "teacher": teacher,
         "day": 1,
         "from_hour": tomorrow.hour,
         "from_minutes": tomorrow.minute,
@@ -495,7 +497,13 @@ def test_invalid_create_report(
 
 def test_create_bot_student(auth, requester, teacher):
     auth.login(email=teacher.user.email)
-    student = {"name": "test", "email": "tt@ta.com", "phone": "05444444", "price": 120}
+    student = {
+        "name": "test",
+        "email": "tt@ta.com",
+        "phone": "05444444",
+        "price": 120,
+        "car_id": teacher.cars.first().id,
+    }
     resp = requester.post(f"/teacher/create_student", data=student)
     assert resp.json["data"]["my_teacher"]["teacher_id"] == teacher.id
     assert resp.json["data"]["price"] == 120
@@ -540,7 +548,7 @@ def test_teacher_available_hours_with_rules(
 ):
     tomorrow = datetime.utcnow().replace(hour=7, minute=0) + timedelta(days=1)
     kwargs = {
-        "teacher_id": teacher.id,
+        "teacher": teacher,
         "day": 1,
         "from_hour": tomorrow.hour,
         "from_minutes": tomorrow.minute,
@@ -577,9 +585,11 @@ def test_cars(auth, teacher, requester, car):
 
 def test_register_car(auth, requester, teacher):
     auth.login(email=teacher.user.email)
-    data = {"name": "test", "number": "11111111111", "type": "auto"}
+    long_color = "0000000000000000"
+    data = {"name": "test", "number": "11111111111", "type": "auto", "color": long_color}
     resp = requester.post(f"/teacher/cars", json=data)
     assert resp.json["data"]["type"] == "auto"
+    assert resp.json["data"]["color"] == long_color[:6]
     data = {"name": "test", "number": "123123", "type": "test"}
     resp = requester.post(f"/teacher/cars", json=data)
     assert resp.json["data"]["type"] == "manual"
@@ -588,6 +598,7 @@ def test_register_car(auth, requester, teacher):
     data = {"name": "test", "number": "11111111111", "type": "auto"}
     resp = requester.post(f"/teacher/cars", json=data)
     assert resp.json["message"] == "Car already exists."
+
 
 def test_update_car(auth, requester, teacher, car):
     auth.login(email=teacher.user.email)
@@ -626,13 +637,20 @@ def test_update_kilometer(auth, teacher, requester, car):
     resp = requester.post(f"/teacher/cars/{car.id}/kilometer", json=data)
     assert resp.json["data"]["total_work_km"] == 1
 
+
 @pytest.mark.parametrize(
     ("car_id", "date", "start", "end", "error"),
     (
         (1, "2019-05-30", None, 1100, "All kilometer distances are required."),
         (1233, "2019-05-30", 1000, 1000, "Car does not exist."),
         (1, "2019-50-30", 1000, 1000, "Date is not valid."),
-        (1, "2019-08-30", 1000, 200, "Ending value must be bigger than starting value."),
+        (
+            1,
+            "2019-08-30",
+            1000,
+            200,
+            "Ending value must be bigger than starting value.",
+        ),
     ),
 )
 def test_invalid_update_kilometer(
