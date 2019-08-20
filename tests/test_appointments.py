@@ -13,7 +13,7 @@ from server.api.database.models import (
     Topic,
     WorkDay,
     LessonTopic,
-    Car
+    Car,
 )
 from server.consts import DATE_FORMAT
 from server.error_handling import RouteError
@@ -122,7 +122,7 @@ def test_student_different_car_new_lesson(auth, teacher, student, requester, top
         "to_hour": 21,
         "to_minutes": 59,
         "on_date": tomorrow.date(),
-        "car": Car.create(teacher=teacher, number="11111111")
+        "car": Car.create(teacher=teacher, number="11111111"),
     }
     WorkDay.create(**kwargs)
     resp = requester.post(
@@ -135,6 +135,7 @@ def test_student_different_car_new_lesson(auth, teacher, student, requester, top
         },
     )
     assert "not available" in resp.json["message"]
+
 
 def test_update_topics(auth, teacher, student, requester, topic):
     auth.login(email=teacher.user.email)
@@ -433,6 +434,25 @@ def test_user_edit_lesson(app, auth, student, teacher, meetup, dropoff, requeste
         f"/appointments/{lesson.id}",
         json={
             "duration": 40,
+            "date": date.strftime(DATE_FORMAT),
+            "meetup_place": {"description": "yes"},
+            "student_id": student.id,
+        },
+    )
+    assert "yes" == resp.json["data"]["meetup_place"]
+    assert resp.json["data"]["is_approved"]
+
+
+def test_teacher_edit_current_lesson(
+    auth, student, teacher, meetup, dropoff, requester
+):
+    date = datetime.utcnow()
+    lesson = create_lesson(teacher, student, meetup, dropoff, date)
+    auth.login(email=teacher.user.email)
+    resp = requester.post(
+        f"/appointments/{lesson.id}",
+        json={
+            "duration": 80,
             "date": date.strftime(DATE_FORMAT),
             "meetup_place": {"description": "yes"},
             "student_id": student.id,
