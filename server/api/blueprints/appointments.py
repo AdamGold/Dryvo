@@ -78,7 +78,11 @@ def check_available_hours_for_student(
 
 
 def handle_teacher_hours(
-    teacher: Teacher, date: datetime, duration: int, type_: Optional[AppointmentType]
+    teacher: Teacher,
+    date: datetime,
+    duration: int,
+    type_: Optional[AppointmentType],
+    appointment: Optional[Appointment],
 ):
     """check if there are existing lessons in the date given.
     If so - is test? - delete all existing lessons.
@@ -86,15 +90,19 @@ def handle_teacher_hours(
 
     # check if there's another lesson that ends or starts within this time
     end_date = date + timedelta(minutes=duration)
-    existing_lessons = Appointment.appointments_between(date, end_date).all()
+    existing_lessons = Appointment.appointments_between(date, end_date)
+    if appointment:
+        existing_lessons = existing_lessons.filter(Appointment.id != appointment.id)
+
+    existing_lessons = existing_lessons.all()
     logger.debug(f"For {date}, found existing lessons: {existing_lessons}")
     if existing_lessons:
         if type_ == AppointmentType.LESSON or date < datetime.utcnow():
             raise RouteError("This hour is not available.")
         # delete all lessons and send FCMs
-        for appointment in existing_lessons:
-            if appointment.type == AppointmentType.LESSON:
-                delete_appointment_with_fcm(appointment)
+        for existing_appointment in existing_lessons:
+            if existing_appointment.type == AppointmentType.LESSON:
+                delete_appointment_with_fcm(existing_appointment)
 
 
 def get_data(data: dict, user: User, appointment: Optional[Appointment] = None) -> dict:
@@ -130,7 +138,7 @@ def get_data(data: dict, user: User, appointment: Optional[Appointment] = None) 
             data.get("type", "").upper(),
             type_ or AppointmentType.LESSON,
         )
-        handle_teacher_hours(user.teacher, date, duration, type_)
+        handle_teacher_hours(user.teacher, date, duration, type_, appointment)
         teacher = user.teacher
         student = Student.get_by_id(data.get("student_id"))
         if not student:
