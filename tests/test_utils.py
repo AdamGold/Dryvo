@@ -3,6 +3,7 @@ from datetime import datetime, timedelta
 
 import flask
 import pytest
+import calendar
 from werkzeug import MultiDict
 
 from server.api.database.models import Appointment, Student, User, Teacher
@@ -128,8 +129,14 @@ def test_filter_data(teacher, student, meetup, dropoff):
 def test_filter_multiple_params(teacher, student, meetup, dropoff):
     date = datetime.utcnow() + timedelta(days=100)
     month_start = date.replace(day=1, hour=0, minute=0, second=0, microsecond=0)
+    month_range = calendar.monthrange(month_start.year, month_start.month)
     month_end = date.replace(
-        month=(month_start.month + 1), day=1, hour=0, minute=0, second=0, microsecond=0
+        month=month_start.month,
+        day=month_range[1],
+        hour=0,
+        minute=0,
+        second=0,
+        microsecond=0,
     )
     duration = 1200
     lesson = Appointment.create(
