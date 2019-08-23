@@ -149,4 +149,5 @@ class Teacher(SurrogatePK, LessonCreator):
             "content_rating": self.content_rating,
             "user": self.user.to_dict() if with_user else None,
             "is_approved": self.is_approved,
+            "cars": [car.to_dict() for car in self.cars],
         }
