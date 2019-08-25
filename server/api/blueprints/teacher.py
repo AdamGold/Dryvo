@@ -551,7 +551,14 @@ def update_car(id_):
         type_ = CarType[data.get("type", "")]
     except KeyError:
         type_ = CarType.manual
-    car.update(name=data.get("name"), type=type_.value, number=number)
+
+    color = data.get("color")
+    car.update(
+        name=data.get("name"),
+        type=type_.value,
+        number=number,
+        color=color[:6] if color else None,
+    )
     return {"data": car.to_dict()}
 
 
