@@ -90,7 +90,9 @@ def handle_teacher_hours(
 
     # check if there's another lesson that ends or starts within this time
     end_date = date + timedelta(minutes=duration)
-    existing_lessons = Appointment.appointments_between(date, end_date)
+    existing_lessons = Appointment.query.filter_by(teacher=teacher).filter(
+        Appointment.appointments_between(date, end_date)
+    )
     if appointment:
         existing_lessons = existing_lessons.filter(Appointment.id != appointment.id)
 

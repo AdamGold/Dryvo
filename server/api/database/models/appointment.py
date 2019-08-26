@@ -106,7 +106,7 @@ class Appointment(SurrogatePK, Model):
                 ),
             )
         )
-        return Appointment.query.filter(query)
+        return query
 
     @hybrid_property
     def lesson_length(self) -> float:

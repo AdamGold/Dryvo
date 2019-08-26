@@ -763,5 +763,5 @@ def test_appointments_between(
     7. exactly the same hours
     """
     lesson = create_lesson(teacher, student, meetup, dropoff, tomorrow)
-    existing_lessons = Appointment.appointments_between(date, end_date).all()
+    existing_lessons = Appointment.query.filter(Appointment.appointments_between(date, end_date)).all()
     assert (lesson in existing_lessons) == result
