@@ -17,6 +17,7 @@ from server.api.database.models import (
 )
 from server.consts import DATE_FORMAT
 from server.error_handling import RouteError
+from dateutil import relativedelta
 
 tomorrow = datetime.utcnow() + timedelta(days=1)
 
@@ -617,8 +618,11 @@ def test_payments(auth, teacher, student, requester):
     start_of_month = datetime.today().replace(
         day=1, hour=0, minute=0, second=0, microsecond=0
     )
-    start_next_month = start_of_month.replace(month=(start_of_month.month + 1))
-    end_next_month = start_next_month.replace(month=(start_next_month.month + 1))
+    end_of_month = datetime.today().replace(
+        day=28, hour=0, minute=0, second=0, microsecond=0
+    )
+    start_next_month = start_of_month + relativedelta.relativedelta(months=1)
+    end_next_month = end_of_month + relativedelta.relativedelta(months=1)
     start_next_month = start_next_month.strftime(DATE_FORMAT)
     start_of_month = start_of_month.strftime(DATE_FORMAT)
     end_next_month = end_next_month.strftime(DATE_FORMAT)

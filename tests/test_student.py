@@ -317,6 +317,7 @@ def test_deactivate(auth, requester, student, teacher):
 
 def test_edit_student(auth, requester, teacher, student):
     auth.login(email=teacher.user.email)
+    id_number = "204225132"
     resp = requester.post(
         f"/student/{student.id}",
         data={
@@ -324,10 +325,12 @@ def test_edit_student(auth, requester, teacher, student):
             "price": "1000",
             "number_of_old_lessons": 10.5,
             "doctor_check": "true",
+            "id_number": id_number,
             "car_id": teacher.cars.first().id,
         },
     )
     assert not resp.json["data"]["eyes_check"]
+    assert resp.json["data"]["id_number"] == id_number
     assert resp.json["data"]["theory"]
     assert resp.json["data"]["price"] == 1000
     auth.login(email=student.user.email)

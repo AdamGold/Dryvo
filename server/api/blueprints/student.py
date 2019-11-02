@@ -133,6 +133,7 @@ def edit_student(student_id):
         student.update(
             doctor_check=data.get("doctor_check", False) == "true",
             eyes_check=data.get("eyes_check", False) == "true",
+            id_number=data.get("id_number"),
             **extra_data
         )
         return {"data": student.user.to_dict()}

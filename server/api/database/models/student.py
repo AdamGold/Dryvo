@@ -46,6 +46,7 @@ class Student(SurrogatePK, LessonCreator):
     doctor_check = Column(db.Boolean, nullable=False, default=False)
     eyes_check = Column(db.Boolean, nullable=False, default=False)
     green_form = Column(db.String(240), nullable=True)
+    id_number = Column(db.String, nullable=True)
     price = Column(db.Integer, nullable=True)
     car_id = reference_col("cars", nullable=True)
     car = relationship("Car", backref=backref("students", lazy="dynamic"))
@@ -232,6 +233,7 @@ class Student(SurrogatePK, LessonCreator):
             "number_of_old_lessons": self.number_of_old_lessons,
             "green_form": green_form,
             "price": self.price,
+            "id_number": self.id_number,
             "car": self.car.to_dict(),
         }
 
