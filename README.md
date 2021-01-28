@@ -44,31 +44,27 @@ $ pip install .
 Or with installing the tests requirements:
 
 ```bash
-$ pip install .[tests]
+$ pip install .[test]
 ```
 
 
 ## Getting Started
 
 ```bash
-
-    >>> flask run
-
+$ flask run
 ```
 
 Dryvo uses [Flask](https://github.com/pallets/flask) as a web framework, therefore running the app is the same as any other Flask app. If you want to use a production server such as `gunicorn`, you can use the command below:
 
 ```bash
-
-    >>> gunicorn --preload --chdir ./server "app:create_app()"
-
+$ gunicorn --preload --chdir ./server "app:create_app()"
 ```
 
 
 ### Running tests
 
-```pycon
-    >>> pytest
+```bash
+$ python run -m pytest
 ```
 
 ### Structure Explanation
