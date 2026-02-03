@@ -36,37 +36,66 @@ def test_blacklisted(student):
     assert A(date, student, []).blacklisted() == {"start_hour": s, "end_hour": set()}
 
 
+def get_hour_by_value(hours, value):
+    """Helper to find an Hour object by its hour value."""
+    for hour in hours:
+        if hour.value == value:
+            return hour
+    return None
+
+
 def test_init_hours(student, teacher, meetup, dropoff):
-    # TODO improve test logic
+    """Test that init_hours reduces scores for hours adjacent to existing appointments.
+
+    When an appointment exists at a given time, the algorithm should reduce
+    the scores of nearby hours to encourage filling gaps and creating a
+    contiguous schedule.
+    """
     initial_hours = LessonRule.hours
-    date = datetime.utcnow().replace(hour=6, minute=0) + timedelta(days=2)
+    # Create an appointment at 6 AM, two days from now
+    appointment_date = datetime.utcnow().replace(hour=6, minute=0) + timedelta(days=2)
     Appointment.create(
         teacher=teacher,
         student=student,
         creator=teacher.user,
         duration=teacher.lesson_duration,
-        date=date,
+        date=appointment_date,
         meetup_place=meetup,
         dropoff_place=dropoff,
         is_approved=True,
     )
+
+    # Query for appointments on the same day
     query = Appointment.query.filter(
-        func.extract("day", Appointment.date) == date.day
-    ).filter(func.extract("month", Appointment.date) == date.month)
+        func.extract("day", Appointment.date) == appointment_date.day
+    ).filter(func.extract("month", Appointment.date) == appointment_date.month)
+
+    # Calculate new hour scores based on the existing appointment
     new_hours = LessonRule.init_hours(
-        date,
+        appointment_date,
         student,
-        teacher.work_hours_for_date(date),
+        teacher.work_hours_for_date(appointment_date),
         teacher.taken_appointments_tuples(query, only_approved=True),
     )
+
+    # The hours list should be modified with new scores
     assert initial_hours != new_hours
-    # we want to fill the gap after 6, so hours 7 and 8 should be really cold
-    hour_8 = new_hours[1].score
-    hour_7 = new_hours[0].score
-    old_hour_7 = initial_hours[0].score
-    old_hour_8 = initial_hours[1].score
-    assert hour_7 < old_hour_7
-    assert hour_8 < old_hour_8
+
+    # Hours 7 and 8 (immediately after the 6 AM appointment) should have reduced
+    # scores to encourage filling the gap and creating a contiguous schedule
+    initial_hour_7 = get_hour_by_value(initial_hours, 7)
+    initial_hour_8 = get_hour_by_value(initial_hours, 8)
+    new_hour_7 = get_hour_by_value(new_hours, 7)
+    new_hour_8 = get_hour_by_value(new_hours, 8)
+
+    assert new_hour_7.score < initial_hour_7.score, (
+        f"Hour 7 score should decrease after adjacent appointment: "
+        f"got {new_hour_7.score}, expected less than {initial_hour_7.score}"
+    )
+    assert new_hour_8.score < initial_hour_8.score, (
+        f"Hour 8 score should decrease after adjacent appointment: "
+        f"got {new_hour_8.score}, expected less than {initial_hour_8.score}"
+    )
 
 
 @pytest.fixture
